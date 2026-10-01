@@ -1,5 +1,8 @@
 node_modules/
 dist/
+dist.next/
+dist.prev/
+.deployed-commit
 .env
 .env.*
 *.log

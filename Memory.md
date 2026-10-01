@@ -9,7 +9,7 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | Phase 3 finished. Waiting for the owner's "go" for **Phase 4 — switch the server to this repository**. |
+| **Current phase** | **Phase 4 — switch the server to this repository**, in progress (owner said "go" on 1 Oct 2026). Step 1 of 4 done: the deploy files are written and rehearsed. Step 2 (the switch on the server) is waiting: the server could not be reached from the developer's PC. The steps are listed in `Phases.md`. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Still running from the old place: the `chat-server/` and `chat-ui/` folders inside the CRM repository on the server. It has the same features as this repository, in the old file layout. |
 
@@ -29,9 +29,18 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | `src/middleware/` | Sign-in check, Management-only check, the one error handler, rate limits. |
 | `src/sockets/` | Live events: presence, typing, read receipts, call signalling. |
 | `src/utils/` | Small pure helpers: ids, file names, validators, mention parsing, message cleaning. |
-| `migrations/` | The three database files for the `chat` schema. |
+| `migrations/` | The three database files for the `chat` schema, and `apply.mjs`, which applies them (dry run unless `--commit`). |
 | `test/` | Automated tests. |
 | `dev/local.mjs`, `dev/e2e/` | The local test server and the end-to-end and browser checks. |
+
+### Deploy (`deploy/`)
+
+| File | What it is |
+|---|---|
+| `deploy.sh` | The deploy script for the server. Pulls `main`, does only what the change needs, checks the chat answers. |
+| `ecosystem.config.cjs` | The pm2 settings for the `chat-server` process. |
+| `SERVER.md` | Where everything is on the server, how to deploy, how to apply database changes, how to install on a new server. |
+| `rehearse.sh` | Tests `deploy.sh` on a developer PC with stand-ins for pm2, npm and curl. |
 
 ### Web app (`web/src/`)
 
@@ -72,6 +81,9 @@ node server/dev/e2e/browser-calls.cjs    # 14 checks
 node server/dev/e2e/browser-polish.cjs   # 5 checks
 node server/dev/e2e/browser-admin.cjs    # 7 checks
 
+# the deploy script, rehearsed with stand-ins (nothing real is installed or restarted)
+bash deploy/rehearse.sh                  # 43 checks
+
 # formatting (settings in .prettierrc.json; run from the repository root)
 npx prettier@3 --write "server/**/*.{js,mjs,cjs}" "web/src/**/*.{ts,tsx,css}" "web/test/**/*.ts"
 ```
@@ -104,6 +116,10 @@ The browser checks use the Microsoft Edge already installed on the PC.
 - **The permission "Team chat (beta)"** is defined in the CRM's own database files, not here. Chat only reads it.
 - **Calls are held in the server's memory** as well as the database. Run only one server process.
 - **A call belongs to one browser tab per person.** Requests carry that tab's connection id.
+- **The GitHub repository is public.** Anyone can read the code and these documents. Nothing secret is in it, and it must stay that way.
+- **On the server the settings file is shared with the CRM** (`/opt/chat/.env` is a link to `/opt/crm/.env`), because chat uses the CRM's sign-in and database. See `deploy/SERVER.md`.
+- **A web-only deploy does not restart the chat**, so calls are not cut. A server-code deploy restarts it (a few seconds).
+- **The CRM's `deploy.sh --all` restarts every pm2 process, chat included.**
 - **Tests build small apps from the route files** (`createXRoutes({ db, emit, … })`). Keep that factory shape: routes take their dependencies as arguments.
 - **Dependencies added, with reasons:**
   - `playwright-core` (server, development only) — drives the real-browser checks using the installed Edge. No browser download.
@@ -132,6 +148,13 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 1 Oct 2026 — Phase 4, step 1: deploy files ✅ (switch on the server still to do)
+- Added `deploy/deploy.sh`, `deploy/ecosystem.config.cjs`, `deploy/SERVER.md`, `deploy/rehearse.sh` and `server/migrations/apply.mjs`.
+- The deploy script does only what a change needs: a web-only change is rebuilt without a restart; a failed web build never replaces the working one; a deploy that fails is picked up by the next run; a changed deploy script hands over to its new version.
+- Rehearsed locally: 43 of 43 checks. The real web build into a side folder was also tried. Server tests 353 of 353.
+- The default address in the mention-digest email now points at chat2 (it still pointed at the removed CRM page). The digest is off, so nothing visible changed.
+- **Not done yet:** the switch itself. The server did not answer from the developer's PC (network), so nothing on the server was touched.
 
 ### 1 Oct 2026 — Phase 3: code reshaped to the rules ✅
 - **Server:** every route file is now a short list of addresses. Request handling moved to `controllers/`, the rules to `services/`, and all database queries to `models/`. Sign-in checking is in `middleware/`. Shared helpers are in `utils/`.

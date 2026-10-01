@@ -52,6 +52,6 @@ export function loadConfig(env = process.env) {
     },
     mailFrom: env.MAIL_FROM || '',
     mailFromName: env.MAIL_FROM_NAME || '',
-    publicUrl: (env.CHAT_PUBLIC_URL || 'https://crm.rowanroseclaims.co.uk/chat').replace(/\/$/, ''),
+    publicUrl: (env.CHAT_PUBLIC_URL || 'https://chat2.rowanroseclaims.co.uk').replace(/\/$/, ''),
   };
 }
