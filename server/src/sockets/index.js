@@ -1,7 +1,8 @@
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
-import { socketAuth, loadSessionUser } from '../middleware/auth.js';
-import { isMember, markRead } from '../models/channels.model.js';
+import { socketAuth } from '../middleware/auth.js';
+import { loadSessionUser } from '../models/users.model.js';
+import { isMember, markRead, listChannelIdsForUser } from '../models/channels.model.js';
 import { attachPresence } from './presence.socket.js';
 import { attachCallSignalling } from './calls.socket.js';
 
@@ -75,8 +76,7 @@ export function attachSocket(io, { db, secret, aud, redisUrl, sessionRecheckMs =
     (async () => {
       let channelIds = [];
       try {
-        const { rows } = await db.query(`SELECT channel_id FROM chat.channel_members WHERE user_id = $1`, [user.id]);
-        channelIds = rows.map((r) => r.channel_id);
+        channelIds = await listChannelIdsForUser(db, user.id);
       } catch (e) { console.error('[chat] channel list failed', e.message); }
       for (const id of channelIds) socket.join(channelRoom(id));
       socket.emit('ready', { user, channel_ids: channelIds });

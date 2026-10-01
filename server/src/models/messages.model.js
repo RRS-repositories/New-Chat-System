@@ -113,3 +113,12 @@ export async function deleteMessage(db, { messageId, userId, isChannelAdmin = fa
     : await db.query(`UPDATE chat.messages SET deleted_at = now() WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`, [messageId, userId]);
   return (res.rowCount || 0) > 0;
 }
+
+/** Audit entry for a deleted message. `byAdmin` is true when someone other than the author removed it. */
+export async function logMessageDeletion(db, { actorId, messageId, channelId, byAdmin }) {
+  await db.query(`INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'message.delete', 'message', $2, $3)`, [
+    actorId,
+    messageId,
+    JSON.stringify({ channelId, byAdmin }),
+  ]);
+}

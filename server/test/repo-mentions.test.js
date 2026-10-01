@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMentions, insertMentions } from '../src/models/mentions.model.js';
+import { insertMentions } from '../src/models/mentions.model.js';
+import { parseMentions } from '../src/utils/mentions.js';
 
 const members = [{ id: 1, fullName: 'Ann Agent' }, { id: 2, fullName: 'Ann' }, { id: 3, fullName: 'Bob Sales' }];
 

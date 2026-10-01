@@ -11,7 +11,7 @@ import { insertMentions } from '../src/models/mentions.model.js';
 import { listMessages, createMessage, listThread, listAround, getMessage } from '../src/models/messages.model.js';
 import { pinMessage, unpinMessage, listPins } from '../src/models/pins.model.js';
 import { insertFile, getFile } from '../src/models/files.model.js';
-import { parseMentions } from '../src/models/mentions.model.js';
+import { parseMentions } from '../src/utils/mentions.js';
 import { addReaction, removeReaction } from '../src/models/reactions.model.js';
 
 const migration = readFileSync(new URL('../migrations/chat_001_schema.sql', import.meta.url), 'utf8');

@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import jwt from 'jsonwebtoken';
-import { verifySessionToken, loadSessionUser, requireAuth, socketAuth } from '../src/middleware/auth.js';
+import { requireAuth, socketAuth } from '../src/middleware/auth.js';
+import { verifySessionToken } from '../src/services/session.service.js';
+import { loadSessionUser } from '../src/models/users.model.js';
 
 const secret = 's'.repeat(40), aud = 'rrs-crm-session';
 const sign = (payload, opts = {}) => jwt.sign({ aud, ...payload }, secret, { expiresIn: '1h', ...opts });

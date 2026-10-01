@@ -4,7 +4,7 @@
 // itself, only for how loadSessionUser/requireAuth/socketAuth react to its result.
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadSessionUser } from '../src/middleware/auth.js';
+import { loadSessionUser } from '../src/models/users.model.js';
 import { createTestDb } from './pg-helper.js';
 
 const { db, close } = await createTestDb();

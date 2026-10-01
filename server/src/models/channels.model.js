@@ -124,3 +124,9 @@ export async function markRead(db, channelId, userId, at = new Date()) {
   await markMentionsRead(db, channelId, userId);
   return { unreadCount: 0, mentionCount: 0 };
 }
+
+/** The ids of every channel a person is in (their live connection joins one room per channel). */
+export async function listChannelIdsForUser(db, userId) {
+  const { rows } = await db.query(`SELECT channel_id FROM chat.channel_members WHERE user_id = $1`, [userId]);
+  return rows.map((r) => r.channel_id);
+}

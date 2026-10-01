@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { createTestDb } from './pg-helper.js';
-import { setAccess, listAdminUsers, listRestrictions, blockedKinds, rowsFor, nextBlocked, isBlocked } from '../src/models/restrictions.model.js';
+import { listRestrictions, isBlocked } from '../src/models/restrictions.model.js';
+import { listAdminUsers } from '../src/models/users.model.js';
+import { setAccess, blockedKinds, rowsFor, nextBlocked } from '../src/services/access.service.js';
 import { createAdminRoutes } from '../src/routes/admin.routes.js';
 
 let t; let db;

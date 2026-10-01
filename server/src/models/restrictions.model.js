@@ -1,8 +1,11 @@
+import { toId } from '../utils/ids.js';
+
 // Communication restrictions: a row (user_id = A, target_user_id = B, restriction) stops A
 // contacting B. 'all' covers dm, call and channel. Channel restrictions are enforced both ways
 // for private/group_dm membership, and so are dm restrictions (actor and joiner; any joiner pair
 // in a group_dm) so a private channel cannot stand in for a DM; public channels are never
 // restricted; 'call' is stored only.
+
 
 const fail = (code, message, status = 400) => Object.assign(new Error(message), { code, status });
 export const RESTRICTION_TYPES = ['all', 'dm', 'call', 'channel'];
@@ -23,7 +26,6 @@ const mapRestriction = (r) => ({
   userName: r.user_name ?? null, targetName: r.target_name ?? null, restrictedByName: r.restricted_by_name ?? null,
 });
 
-const toId = (v) => { const n = Number(v); return Number.isInteger(n) && n > 0 ? n : null; };
 
 /** Newest first. With `userId`: rows where that user is either side. */
 export async function listRestrictions(db, { userId = null } = {}) {
@@ -37,7 +39,7 @@ export async function listRestrictions(db, { userId = null } = {}) {
 
 // A pg Pool hands each query to any free client, so BEGIN/COMMIT must run on one pinned
 // client; PGlite and the test stubs have no connect() and are a single connection already.
-async function inTransaction(db, fn) {
+export async function inTransaction(db, fn) {
   const client = typeof db.connect === 'function' ? await db.connect() : db;
   let broken; // a client whose ROLLBACK failed must be discarded (release(err)), not pooled
   try {
@@ -142,78 +144,32 @@ export async function hiddenFromPicker(db, { forUserId }) {
   return rows.map((r) => Number(r.target_user_id));
 }
 
-// ── Admin panel: who each person may contact ─────────────────────────────────
-export const ACCESS_KINDS = ['dm', 'call', 'channel'];
+// ── Building blocks for the admin panel's bulk changes (rules live in services/access.service.js) ──
 
-/** The kinds blocked by a set of rows for one direction ('all' = every kind). */
-export function blockedKinds(restrictions) {
-  const out = new Set();
-  for (const r of restrictions) { if (r === 'all') ACCESS_KINDS.forEach((k) => out.add(k)); else if (ACCESS_KINDS.includes(r)) out.add(r); }
-  return out;
-}
-/** The rows that store a set of blocked kinds: one 'all' row when everything is blocked, else one per kind. */
-export const rowsFor = (kinds) => (ACCESS_KINDS.every((k) => kinds.has(k)) ? ['all'] : ACCESS_KINDS.filter((k) => kinds.has(k)));
-/** Blocked kinds after allowing or blocking `kind` ('all' = every kind). */
-export function nextBlocked(current, kind, allowed) {
-  const next = new Set(current);
-  for (const k of (kind === 'all' ? ACCESS_KINDS : [kind])) { if (allowed) next.delete(k); else next.add(k); }
-  return next;
+/** Every stored row between one person and a set of others, in both directions. */
+export async function listPairRows(q, { userId, otherUserIds }) {
+  const { rows } = await q.query(
+    `SELECT user_id, target_user_id, restriction, reason FROM chat.communication_restrictions
+      WHERE (user_id = $1 AND target_user_id = ANY($2::int[])) OR (target_user_id = $1 AND user_id = ANY($2::int[]))`,
+    [userId, otherUserIds],
+  );
+  return rows;
 }
 
-/**
- * Allows or blocks `userId` contacting each of `targetUserIds` by `kind` (dm | call | channel | all),
- * and the reverse direction too with `bothWays`. One transaction; one audit entry. Returns how many
- * directions changed.
- */
-export async function setAccess(db, { userId, targetUserIds, kind, allowed, bothWays = false, actorId, reason = '' }) {
-  const a = toId(userId);
-  if (a === null) throw fail('bad_user', 'userId is required');
-  if (kind !== 'all' && !ACCESS_KINDS.includes(kind)) throw fail('bad_restriction', 'kind must be dm, call, channel or all');
-  if (typeof allowed !== 'boolean') throw fail('bad_restriction', 'allowed must be true or false');
-  const targets = [...new Set((Array.isArray(targetUserIds) ? targetUserIds : []).map(toId).filter((n) => n !== null && n !== a))];
-  if (!targets.length) throw fail('bad_user', 'Choose at least one person');
-  if (targets.length > 500) throw fail('bad_user', 'Too many people in one change');
-  const { rows: found } = await db.query(`SELECT id FROM public.users WHERE id = ANY($1::int[])`, [[a, ...targets]]);
-  if (found.length < targets.length + 1) throw fail('unknown_user', 'User not found', 404);
-  const why = String(reason ?? '').trim().slice(0, 500);
-
-  const pairs = targets.flatMap((t) => (bothWays ? [[a, t], [t, a]] : [[a, t]]));
-  const changed = await inTransaction(db, async (q) => {
-    const { rows } = await q.query(
-      `SELECT user_id, target_user_id, restriction, reason FROM chat.communication_restrictions
-        WHERE (user_id = $1 AND target_user_id = ANY($2::int[])) OR (target_user_id = $1 AND user_id = ANY($2::int[]))`, [a, targets]);
-    let n = 0;
-    for (const [from, to] of pairs) {
-      const mine = rows.filter((r) => r.user_id === from && r.target_user_id === to);
-      const before = blockedKinds(mine.map((r) => r.restriction));
-      const after = nextBlocked(before, kind, allowed);
-      const want = rowsFor(after); const have = mine.map((r) => r.restriction).sort();
-      if (want.length === have.length && [...want].sort().every((w, i) => w === have[i])) continue;
-      await q.query(`DELETE FROM chat.communication_restrictions WHERE user_id = $1 AND target_user_id = $2`, [from, to]);
-      const keep = why || mine.find((r) => r.reason)?.reason || '';
-      for (const r of want) await q.query(`INSERT INTO chat.communication_restrictions (user_id, target_user_id, restriction, reason, restricted_by) VALUES ($1, $2, $3, $4, $5)`, [from, to, r, keep, actorId]);
-      n++;
-    }
+/** Replaces everything stored for one direction (from → to) with the given rows. */
+export async function replacePairRows(q, { fromUserId, toUserId, restrictions, reason, restrictedBy }) {
+  await q.query(`DELETE FROM chat.communication_restrictions WHERE user_id = $1 AND target_user_id = $2`, [fromUserId, toUserId]);
+  for (const restriction of restrictions) {
     await q.query(
-      `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'restriction.set_access', 'user', $2, $3)`,
-      [actorId, String(a), JSON.stringify({ targetUserIds: targets, kind, allowed, bothWays: !!bothWays, changed: n })]);
-    return n;
-  });
-  return { changed };
+      `INSERT INTO chat.communication_restrictions (user_id, target_user_id, restriction, reason, restricted_by) VALUES ($1, $2, $3, $4, $5)`,
+      [fromUserId, toUserId, restriction, reason, restrictedBy],
+    );
+  }
 }
 
-/** Everyone who can sign in, with whether chat is switched on for them and how many people they are blocked from / by. */
-export async function listAdminUsers(db) {
-  const { rows } = await db.query(`
-    SELECT u.id, u.full_name, u.email, u.role::text AS role,
-           (u.role IN ('Management','IT')
-            OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = u.id AND up.permission_key = 'chat.beta')
-            OR (NOT EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = u.id)
-                AND EXISTS (SELECT 1 FROM role_permissions rp JOIN roles r ON r.id = rp.role_id WHERE r.name = u.role::text AND rp.permission_key = 'chat.beta'))) AS chat_enabled,
-           (SELECT count(DISTINCT x.target_user_id) FROM chat.communication_restrictions x WHERE x.user_id = u.id) AS blocked_from,
-           (SELECT count(DISTINCT x.user_id) FROM chat.communication_restrictions x WHERE x.target_user_id = u.id) AS blocked_by
-      FROM public.users u
-     WHERE u.is_approved = TRUE AND u.is_active IS NOT FALSE
-     ORDER BY u.full_name`);
-  return rows.map((r) => ({ id: r.id, fullName: r.full_name || '', email: r.email || '', role: r.role, chatEnabled: !!r.chat_enabled, blockedFrom: Number(r.blocked_from || 0), blockedBy: Number(r.blocked_by || 0) }));
+export async function logAccessChange(q, { actorId, userId, detail }) {
+  await q.query(
+    `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'restriction.set_access', 'user', $2, $3)`,
+    [actorId, String(userId), JSON.stringify(detail)],
+  );
 }
