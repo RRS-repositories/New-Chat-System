@@ -81,6 +81,15 @@ Steps, in order:
 
 ---
 
+## Security items from the checklist review ✅ (built 1 October 2026, waiting to be deployed)
+
+Done outside the numbered phases, at the owner's request ("implement all other", MFA later):
+per-person IP restriction, upload content checks, security headers, a general request limit, and the mail library upgrade. Details in `Memory.md`.
+
+**Done when:** deployed on the owner's word, and chat2 still works for sign-in, messages, files and calls.
+
+---
+
 ## Phase 5 — The three requested items ⏳
 
 1. **Search button:** find why it does not work on the live site. Fix if simple, otherwise remove it.

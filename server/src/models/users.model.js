@@ -18,7 +18,7 @@ export async function loadSessionUser(db, { userId, iat }) {
   const {
     rows: [r],
   } = await db.query(
-    `SELECT u.id, u.email, u.full_name, u.role, u.is_approved, u.is_active, u.sessions_valid_from,
+    `SELECT u.id, u.email, u.full_name, u.role, u.is_approved, u.is_active, u.sessions_valid_from, u.ip_restriction,
             (l.user_id IS NOT NULL) AS is_locked,
             ${CHAT_ENABLED_SQL} AS chat_enabled
        FROM public.users u
@@ -29,7 +29,15 @@ export async function loadSessionUser(db, { userId, iat }) {
   if (!r || !r.is_approved || r.is_active === false || r.is_locked) return null;
   const validFrom = r.sessions_valid_from ? Math.floor(new Date(r.sessions_valid_from).getTime() / 1000) : null;
   if (validFrom !== null && iat !== null && iat < validFrom) return null;
-  return { id: r.id, email: r.email, fullName: r.full_name || r.email, role: r.role, chatEnabled: !!r.chat_enabled };
+  return {
+    id: r.id,
+    email: r.email,
+    fullName: r.full_name || r.email,
+    role: r.role,
+    chatEnabled: !!r.chat_enabled,
+    // Only for the sign-in check (services/session.service.js removes it before anyone else sees the person).
+    ipRestriction: Array.isArray(r.ip_restriction) ? r.ip_restriction : [],
+  };
 }
 
 /** Everyone who can sign in except `exceptUserId`, by name — the list people pick from. */

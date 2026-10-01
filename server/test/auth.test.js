@@ -59,7 +59,14 @@ test('wrong secret, wrong audience, expired and missing tokens are coded errors'
 
 test('loadSessionUser maps the row and hides sessions_valid_from', async () => {
   const u = await loadSessionUser(dbWith(row), { userId: 7, iat: Math.floor(Date.now() / 1000) });
-  assert.deepEqual(u, { id: 7, email: 'a@b.c', fullName: 'Ann Agent', role: 'cs_agent', chatEnabled: false });
+  assert.deepEqual(u, {
+    id: 7,
+    email: 'a@b.c',
+    fullName: 'Ann Agent',
+    role: 'cs_agent',
+    chatEnabled: false,
+    ipRestriction: [],
+  });
 });
 
 test('loadSessionUser maps chatEnabled from the row, defaulting false when the column is absent', async () => {

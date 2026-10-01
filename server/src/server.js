@@ -28,6 +28,7 @@ export function createHttpStack({ config, db, fetchImpl, sessionRecheckMs, webpu
     redisUrl: config.redisUrl,
     sessionRecheckMs,
     requireBeta: config.requireBeta,
+    enforceIp: config.enforceIpRestriction,
     presence,
     getCalls: () => calls,
   });

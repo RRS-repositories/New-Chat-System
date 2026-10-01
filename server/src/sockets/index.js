@@ -1,7 +1,7 @@
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import { socketAuth } from '../middleware/auth.js';
-import { loadSessionUser } from '../models/users.model.js';
+import { sessionUser } from '../services/session.service.js';
 import { isMember, markRead, listChannelIdsForUser } from '../models/channels.model.js';
 import { attachPresence } from './presence.socket.js';
 import { attachCallSignalling } from './calls.socket.js';
@@ -22,6 +22,7 @@ export function attachSocket(
     redisUrl,
     sessionRecheckMs = SESSION_RECHECK_MS,
     requireBeta = false,
+    enforceIp = true,
     presence = null,
     getCalls = () => null,
   },
@@ -35,7 +36,7 @@ export function attachSocket(
     io.adapter(createAdapter(pub, sub));
   }
   const nsp = io.of('/chat');
-  nsp.use(socketAuth({ db, secret, aud, requireBeta }));
+  nsp.use(socketAuth({ db, secret, aud, requireBeta, enforceIp }));
 
   const lastTyping = new Map(); // `${userId}:${channelId}` -> ms
 
@@ -79,7 +80,11 @@ export function attachSocket(
     // within a minute too, not just refused on the next reconnect.
     const recheck = setInterval(async () => {
       try {
-        const still = await loadSessionUser(db, { userId: user.id, iat: socket.data.iat ?? null });
+        const claims = { userId: user.id, iat: socket.data.iat ?? null };
+        // A restriction added while the person is connected ends the connection too (the error is caught below).
+        const still = await sessionUser({ db, claims, ip: socket.data.ip, enforceIp }).catch((e) =>
+          e?.code === 'ip_not_allowed' ? null : Promise.reject(e),
+        );
         if (!still) {
           socket.emit('session_ended', { reason: 'token_invalid' });
           socket.disconnect(true);

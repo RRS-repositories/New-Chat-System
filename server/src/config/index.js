@@ -27,6 +27,8 @@ export function loadConfig(env = process.env) {
     uploadsDir: env.CHAT_UPLOADS_DIR || '/data/chat-uploads',
     // The chat.beta gate defaults ON: unset or 'true' -> true, only 'false' turns it off.
     requireBeta: env.CHAT_REQUIRE_BETA !== 'false',
+    // Per-person IP restriction (set in the CRM). On unless 'false', which only logs what would be refused.
+    enforceIpRestriction: env.IP_RESTRICTION_ENFORCE !== 'false',
     // Web Push (VAPID). Push is simply off when the keys are missing.
     vapidPublic: env.CHAT_VAPID_PUBLIC || '',
     vapidPrivate: env.CHAT_VAPID_PRIVATE || '',
