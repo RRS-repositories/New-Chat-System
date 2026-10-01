@@ -20,7 +20,7 @@ Built between 28 September and 1 October 2026, inside the CRM repository. All of
 | E | Voice calls and screen sharing, one-to-one and group | ✅ live |
 | F | Full-screen and separate-window screen viewing, scroll only the messages, folding sidebar sections | ✅ live |
 | G | Admin panel: people list and per-person contact permissions | ✅ live |
-| H | Three call fixes (microphone release, long calls with many screen shares, two people answering at once) and the new colour theme | ⏳ finished and merged, **not deployed yet** |
+| H | Three call fixes (microphone release, long calls with many screen shares, two people answering at once) and the new colour theme | ✅ live (1 Oct) |
 
 ---
 
@@ -70,10 +70,9 @@ Built between 28 September and 1 October 2026, inside the CRM repository. All of
 
 - Put this repository on the server in its own folder, with its own deploy script.
 - Point the chat process at it. A few seconds of downtime, once.
-- This also puts item H live (call fixes and colour theme).
 - Remove the chat folders and the chat deploy step from the CRM repository.
 
-**Needs:** the developer's PC able to reach the server, and the owner's "go".
+**Needs:** the owner's "go".
 
 **Done when:** chat2 works from the new folder and the owner has checked it.
 

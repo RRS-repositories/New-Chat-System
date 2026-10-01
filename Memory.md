@@ -12,7 +12,7 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | **Current phase** | Phase 2 finished. Waiting for the owner's "go" for **Phase 3 — reshape the code**. |
 | **This repository** | Holds the whole chat system. All tests pass from here. |
 | **Live site (chat2)** | Still running from the old place: the `chat-server/` and `chat-ui/` folders inside the CRM repository on the server. Nothing has changed for staff. |
-| **Not yet live** | The three call fixes and the colour theme. They are in this code but the server has not been updated since (see "Blockers"). |
+| **Live code** | Everything in this repository is live on chat2, including the three call fixes and the colour theme (deployed 1 Oct 2026, 10:11). |
 
 ## What is in this repository
 
@@ -70,7 +70,7 @@ The browser checks use the Microsoft Edge already installed on the PC.
 
 ## Blockers
 
-- **The developer's PC cannot reach the server on the office network** (since 1 Oct, morning). The public sites work. Until this is back, nothing can be deployed from this PC. Phase 4 needs it.
+- None for the server: the developer's PC can reach it again (1 Oct).
 - **Router port forwarding** for calls from outside the office is with the server team (ports 3478 UDP+TCP and 49160–49200 UDP to 192.168.1.58).
 
 ## Things to know before changing code
@@ -94,6 +94,11 @@ The browser checks use the Microsoft Edge already installed on the PC.
 ---
 
 ## Log
+
+### 1 Oct 2026 — call fixes and colour theme deployed ✅
+- The connection from the developer's PC to the server came back. Deployed from the CRM repository (still the live source until Phase 4): the three call fixes and the colour theme are now live on chat2.
+- Checked after deploy: chat service healthy, CRM up, new theme being served, relay running.
+- That deploy also carried five unrelated CRM changes other people had merged, because chat still deploys through the CRM's script. Phase 4 ends that.
 
 ### 1 Oct 2026 — Phase 2: code moved here ✅
 - Copied from the CRM repository (`CRM-Finalised`, main at `aad009b9`): `chat-server/` → `server/`, `chat-ui/` → `web/`, and the three `chat_00x` database files → `server/migrations/`.
