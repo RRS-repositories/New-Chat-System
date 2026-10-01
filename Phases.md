@@ -64,13 +64,16 @@ Built between 28 September and 1 October 2026, inside the CRM repository. All of
 
 ---
 
-## Phase 4 — Switch the server to this repository ⏳ (next)
+## Phase 4 — Switch the server to this repository ⏳ (in progress)
 
 **Goal:** chat2 runs from this repository, and chat deploys no longer touch the CRM.
 
-- Put this repository on the server in its own folder, with its own deploy script.
-- Point the chat process at it. A few seconds of downtime, once.
-- Remove the chat folders and the chat deploy step from the CRM repository.
+Steps, in order:
+
+1. ✅ **Deploy files in this repository:** deploy script, process settings, server notes, and a script to apply database changes. Rehearsed locally (43 checks).
+2. ⏳ **The switch on the server:** copy this repository to `/opt/chat`, build it there, then stop the old chat process and start the new one. A few seconds of downtime, once. If the new one does not answer, the old one is started again.
+3. ⏳ **CRM repository, part 1:** remove the chat step from the CRM's deploy script and the chat process from its process list. Must be on the server **before** part 2 (otherwise the old deploy script would fail on the deleted folders).
+4. ⏳ **CRM repository, part 2:** delete the `chat-server/` and `chat-ui/` folders and the chat database files from the CRM repository. Done after the owner has checked chat2.
 
 **Needs:** the owner's "go".
 

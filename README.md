@@ -13,4 +13,4 @@ The Rowan Rose team chat (https://chat2.rowanroseclaims.co.uk): messages, files,
 | [Rules.md](Rules.md) | The rules for anyone (or any AI) working on it. |
 | [Design.md](Design.md) | Colours, fonts and layout. |
 
-`server/` is the back end, `web/` is the front end.
+`server/` is the back end, `web/` is the front end, `deploy/` holds the deploy script and the server notes ([deploy/SERVER.md](deploy/SERVER.md)).
