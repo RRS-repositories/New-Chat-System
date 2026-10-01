@@ -65,7 +65,7 @@ If a rule here and an instruction from the owner disagree, the owner's latest in
 2. A fix comes with a test that fails before the fix and passes after.
 3. Say plainly what was tested and what was not.
 4. **Deploy only when the owner says so.** After deploying, confirm the service started.
-5. **Git:** never commit straight to `main` after the first setup commit. Work on a branch, open a pull request, then merge. Never force-push.
+5. **Git:** work goes straight to `main` (the owner's decision, 1 October 2026: only the owner and the developer work in this repository, so no branch or pull request is needed). Run the tests before every push. Never force-push. This applies to this repository only; the CRM and the other repositories still use a branch and a pull request.
 
 ## 8. What the AI must not do
 

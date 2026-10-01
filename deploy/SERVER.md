@@ -74,7 +74,7 @@ Apply a new database file **before** deploying the code that needs it.
 
 ## Going back to an earlier version
 
-Undo the change on GitHub (revert the pull request), then run the deploy script. The server only ever follows `main`.
+Undo the change on GitHub (revert the commit, or the pull request if there was one), then run the deploy script. The server only ever follows `main`.
 
 ## Installing on a new server
 
