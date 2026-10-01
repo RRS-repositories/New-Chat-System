@@ -1,5 +1,5 @@
 // Chat service: its own pm2 process on port 5020. Settings come from the `.env` file in the repository folder
-// (on the server that file is a link to the CRM's settings; see deploy/SERVER.md).
+// (the chat's own file; see deploy/SERVER.md and deploy/env.example).
 import { config as loadEnv } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -152,6 +152,29 @@ has "npm ci --omit=dev --no-audit --no-fund [in server]" "server libraries"
 has "npm run build" "web rebuilt"
 has "pm2 start deploy/ecosystem.config.cjs --only chat-server" "process re-created"
 
+echo "14. make-env.sh: the chat's own settings file"
+ENVT="$T/envtest"; mkdir -p "$ENVT/deploy"
+cp "$(dirname "$SRC")/make-env.sh" "$(dirname "$SRC")/env.example" "$ENVT/deploy/"
+printf 'DB_HOST=h
+DB_NAME=n
+DB_USER=u
+DB_PASSWORD=p=1#x
+SESSION_JWT_SECRET=s
+CHAT_PORT=5020
+CHAT_NEW_THING=1
+TWILIO_AUTH_TOKEN=never
+MY_DB_PASSWORD=never
+' > "$T/crm.env"
+bash "$ENVT/deploy/make-env.sh" "$T/crm.env" > "$T/out.txt" 2>&1 && ok "created" || bad "create failed"
+grep -q '^DB_PASSWORD=p=1#x$' "$ENVT/.env" && ok "values copied exactly" || bad "value changed"
+grep -q '^CHAT_NEW_THING=1$' "$ENVT/.env" && ok "any CHAT_ setting is copied" || bad "CHAT_ setting missing"
+grep -q 'never' "$ENVT/.env" && bad "copied a setting the chat does not use" || ok "other settings are left behind"
+grep -q 'p=1#x' "$T/out.txt" && bad "printed a value" || ok "no value shown on screen"
+bash "$ENVT/deploy/make-env.sh" "$T/crm.env" > /dev/null 2>&1 && bad "overwrote without --force" || ok "refuses to overwrite"
+bash "$ENVT/deploy/make-env.sh" "$T/crm.env" --force > /dev/null 2>&1 && ls -a "$ENVT" | grep -q 'env.before-' && ok "--force keeps a dated copy" || bad "--force"
+grep -v DB_PASSWORD "$T/crm.env" > "$T/crm2.env"
+bash "$ENVT/deploy/make-env.sh" "$T/crm2.env" --force > /dev/null 2>&1 && bad "accepted a file with no database password" || ok "stops when a required setting is missing"
+
 echo; echo "passed $PASS, failed $FAIL"
 [ "$FAIL" = 0 ] || { echo "--- last output ---"; cat "$T/out.txt"; echo "--- last calls ---"; cat "$LOG"; }
 rm -rf "$T"
