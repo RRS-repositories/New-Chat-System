@@ -107,17 +107,44 @@ export function MessagePanel({
     }
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The feed and every message in it are drawn again only when one of their props changes, so the
+  // callbacks below must stay the same between draws: they read what changes through a ref.
+  const held = useRef(bucket?.items);
+  held.current = bucket?.items;
   const jump = useCallback(
     (id: string) => {
       if (!channelId) return;
-      if (bucket?.items.some((m) => m.id === id)) {
+      if (held.current?.some((m) => m.id === id)) {
         actions.highlight(id);
         return;
       }
       void actions.jumpTo(channelId, id).catch(() => {});
     },
-    [channelId, bucket, actions],
+    [channelId, actions],
   );
+  const openThread = useRef(onOpenThread);
+  openThread.current = onOpenThread;
+  const loadOlder = useCallback(
+    () => (channelId ? actions.loadOlder(channelId) : Promise.resolve()),
+    [actions, channelId],
+  );
+  const loadNewer = useCallback(
+    () => (channelId ? actions.loadNewer(channelId) : Promise.resolve()),
+    [actions, channelId],
+  );
+  const loadLatest = useCallback(
+    () => (channelId ? actions.loadLatest(channelId) : Promise.resolve()),
+    [actions, channelId],
+  );
+  const trim = useCallback(() => {
+    if (channelId) actions.trimChannel(channelId);
+  }, [actions, channelId]);
+  const thread = useCallback((m: Message) => openThread.current?.(m), []);
+  const togglePin = useCallback(
+    (m: Message) => void (m.pinned ? actions.unpin(m.id) : actions.pin(m.id)).catch(() => {}),
+    [actions],
+  );
+  const react = useCallback((m: Message, emoji: string) => void actions.react(m.id, emoji).catch(() => {}), [actions]);
 
   return (
     <div
@@ -155,11 +182,13 @@ export function MessagePanel({
             key={channelId}
             items={bucket?.items || []}
             hasOlder={!!bucket?.nextCursor}
-            onLoadOlder={() => actions.loadOlder(channelId)}
+            onLoadOlder={loadOlder}
+            onLoadNewer={loadNewer}
+            onTrim={trim}
             selfId={user.id}
             canModerate={canModerate}
             windowed={!!bucket?.windowed}
-            onLoadLatest={() => actions.loadLatest(channelId)}
+            onLoadLatest={loadLatest}
             highlightId={state.highlightId}
             onHighlightDone={actions.clearHighlight}
             renderContent={renderContent}
@@ -167,9 +196,9 @@ export function MessagePanel({
             onEdit={actions.edit}
             onDelete={actions.remove}
             onReply={actions.reply}
-            onThread={(m) => onOpenThread?.(m)}
-            onPin={(m) => void (m.pinned ? actions.unpin(m.id) : actions.pin(m.id)).catch(() => {})}
-            onReact={(m, e) => void actions.react(m.id, e).catch(() => {})}
+            onThread={thread}
+            onPin={togglePin}
+            onReact={react}
             onJump={jump}
           />
           <TypingIndicator names={typing} />

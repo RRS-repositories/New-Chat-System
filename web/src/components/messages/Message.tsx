@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { memo, useState, type ReactNode } from 'react';
 import { Phone, Pin, X } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
 import { avatarTone, formatTime, initials } from '../../utils/format.ts';
@@ -13,7 +13,8 @@ export type MessageProps = {
   inThread?: boolean;
   highlighted?: boolean;
   renderContent?: (content: string) => ReactNode;
-  extra?: ReactNode;
+  /** What goes under the text (files, reactions). A function, so an unchanged message is not redrawn. */
+  renderExtra?: (m: M) => ReactNode;
   onEdit: (id: string, c: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onReply: (m: M) => void;
@@ -23,7 +24,11 @@ export type MessageProps = {
   onJump: (id: string) => void;
 };
 
-export function Message({
+/**
+ * One message. Wrapped in `memo`: with hundreds on the page, a new message or a keystroke must not
+ * redraw the ones that did not change, so every prop here has to stay the same between draws.
+ */
+export const Message = memo(function Message({
   m,
   grouped,
   own,
@@ -31,7 +36,7 @@ export function Message({
   inThread,
   highlighted,
   renderContent,
-  extra,
+  renderExtra,
   onEdit,
   onDelete,
   onReply,
@@ -122,7 +127,7 @@ export function Message({
             {m.editedAt && <span className="muted"> (edited)</span>}
           </div>
         ) : null}
-        {extra}
+        {renderExtra?.(m)}
         {!inThread && m.replyCount > 0 && (
           <button className="link thread-link" onClick={() => onThread(m)}>
             {m.replyCount} {m.replyCount === 1 ? 'reply' : 'replies'}
@@ -165,4 +170,4 @@ export function Message({
       )}
     </div>
   );
-}
+});

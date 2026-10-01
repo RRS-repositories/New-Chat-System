@@ -43,7 +43,7 @@ export function ThreadPanel({
     inThread: true,
     highlighted: false,
     renderContent,
-    extra: renderExtra?.(m),
+    renderExtra,
     onEdit: actions.edit,
     onDelete: actions.remove,
     onReply: () => actions.reply(m),

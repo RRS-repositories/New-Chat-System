@@ -77,6 +77,29 @@ test('deleted messages are not found; blank queries return nothing', async () =>
   assert.deepEqual(await searchMessages(db, { userId: 3, q: '   ' }), { hits: [], page: 1, hasMore: false });
 });
 
+test('newest first, whichever way a message matched', async () => {
+  const channel = await createChannel(db, { displayName: 'Order', type: 'private', createdBy: 1, memberIds: [3] });
+  const at = (minutes, content, userId = 1) =>
+    db.query(
+      `INSERT INTO chat.messages (channel_id, user_id, content, created_at) VALUES ($1, $2, $3, now() - ($4 || ' minutes')::interval)`,
+      [channel.id, userId, content, minutes],
+    );
+  await at(30, 'refund refund refund refund'); // the strongest full-text match is the oldest
+  await at(20, 'partial refunding note');
+  await at(10, 'one refund');
+  const r = await searchMessages(db, { userId: 1, q: 'refund', channelId: channel.id });
+  assert.deepEqual(texts(r), ['one refund', 'partial refunding note', 'refund refund refund refund']);
+});
+
+test('the search indexes exist', async () => {
+  const { rows } = await db.query(
+    `SELECT indexname FROM pg_indexes WHERE schemaname = 'chat' AND tablename = 'messages'`,
+  );
+  const names = rows.map((r) => r.indexname);
+  for (const index of ['idx_messages_content_trgm', 'idx_messages_user_created', 'idx_messages_created'])
+    assert.ok(names.includes(index), index);
+});
+
 test('pages of 20, newest first among equal matches', async () => {
   for (let i = 1; i <= SEARCH_PAGE + 3; i++)
     await createMessage(db, { channelId: general.id, userId: 3, content: `paging sample ${i}` });

@@ -1,14 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
+import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 
 /**
  * Real Postgres in-process (PGlite). Users: 1 Meg Manager (Management), 2 Ann Agent (cs_agent),
  * 3 Bob Sales (Sales), 4 Gone User (inactive), 5 Cy Sales (Sales). CRM permission tables exist
- * with the 'chat.beta' key defined and no grants. users.role is the user_role enum, as in the CRM. Both chat migrations applied (#general seeded
+ * with the 'chat.beta' key defined and no grants. users.role is the user_role enum, as in the CRM. Every chat migration applied (#general seeded
  * with users 1, 2, 3, 5).
  */
 export async function createTestDb() {
-  const pg = new PGlite();
+  const pg = new PGlite({ extensions: { pg_trgm } });
   await pg.exec(`
     CREATE TYPE user_role AS ENUM ('Management','IT','Payments','Admin','Sales','cs_agent');
     CREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT, full_name TEXT, role user_role, is_approved BOOLEAN DEFAULT TRUE, is_active BOOLEAN DEFAULT TRUE, sessions_valid_from TIMESTAMPTZ);
@@ -24,7 +25,12 @@ export async function createTestDb() {
     INSERT INTO permissions (key, category, label) VALUES ('chat.beta', 'chat', 'Team chat (beta)');
     INSERT INTO roles (name) VALUES ('Management'), ('IT'), ('Sales'), ('cs_agent');
   `);
-  for (const f of ['chat_001_schema.sql', 'chat_002_rich.sql', 'chat_003_notify_calls.sql'])
+  for (const f of [
+    'chat_001_schema.sql',
+    'chat_002_rich.sql',
+    'chat_003_notify_calls.sql',
+    'chat_004_search_speed.sql',
+  ])
     await pg.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8'));
   const db = {
     async query(sql, params = []) {

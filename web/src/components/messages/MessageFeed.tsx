@@ -1,17 +1,23 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
 import { Message } from './Message.tsx';
 import { groupWithPrevious } from '../../utils/format.ts';
+import { MAX_HELD } from '../../utils/messageWindow.ts';
 
 type Props = {
+  /** The part of the channel held on the page, oldest first (at most a few hundred messages). */
   items: M[];
   hasOlder: boolean;
   onLoadOlder: () => Promise<void>;
+  /** Newer messages exist that are not on the page: the person is looking at older history. */
+  windowed?: boolean;
+  onLoadNewer?: () => Promise<void>;
+  onLoadLatest?: () => Promise<void>;
+  /** At the newest end with more than the cap on the page: let go of the oldest. */
+  onTrim?: () => void;
   selfId: number;
   canModerate: boolean;
-  windowed?: boolean;
-  onLoadLatest?: () => Promise<void>;
   highlightId: string | null;
   onHighlightDone: () => void;
   renderContent?: (content: string) => ReactNode;
@@ -25,14 +31,42 @@ type Props = {
   onJump: (id: string) => void;
 };
 
-export function MessageFeed({
+const NEAR_EDGE_PX = 80;
+const AT_BOTTOM_PX = 40;
+/** How far past the cap the newest end may grow before the oldest are let go. */
+const TRIM_SLACK = 100;
+
+/** Where one message is on screen, so the view can be put back after messages are added or removed around it. */
+type Mark = { id: string; top: number };
+
+/** The first message on screen that will still be there after the list changes. Read before the page is redrawn. */
+function markVisible(box: HTMLDivElement | null, staying: M[]): Mark | null {
+  if (!box) return null;
+  const kept = new Set(staying.map((m) => `msg-${m.id}`));
+  const edge = box.getBoundingClientRect().top;
+  for (const el of box.querySelectorAll<HTMLElement>('[id^="msg-"]')) {
+    if (!kept.has(el.id)) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > edge) return { id: el.id, top: rect.top };
+  }
+  return null;
+}
+
+/**
+ * The messages of one channel. Only a window of a long channel is on the page: scrolling near the
+ * top asks for older messages, scrolling near the bottom of a window asks for newer ones, and what
+ * was read stays exactly where it was on screen while pages come and go.
+ */
+export const MessageFeed = memo(function MessageFeed({
   items,
   hasOlder,
   onLoadOlder,
+  windowed = false,
+  onLoadNewer,
+  onLoadLatest,
+  onTrim,
   selfId,
   canModerate,
-  windowed,
-  onLoadLatest,
   highlightId,
   onHighlightDone,
   renderContent,
@@ -46,52 +80,75 @@ export function MessageFeed({
   onJump,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
-  const [pinned, setPinned] = useState(true);
+  const [atBottom, setAtBottom] = useState(true);
   const [fresh, setFresh] = useState(false);
   const lastId = items.at(-1)?.id;
-  const prevHeight = useRef(0);
   const loading = useRef(false);
+  // Following the newest message only makes sense when the newest message is on the page.
+  const pinned = atBottom && !windowed;
+
+  // The list is about to change and the page still shows the old one: note where a surviving message is.
+  const shown = useRef(items);
+  const mark = useRef<Mark | null>(null);
+  if (shown.current !== items) {
+    mark.current = pinned ? null : markVisible(box.current, items);
+    shown.current = items;
+  }
 
   useLayoutEffect(() => {
     const el = box.current;
-    if (!el) return;
-    if (highlightId) return;
-    if (pinned) el.scrollTop = el.scrollHeight;
-    else if (prevHeight.current) {
-      el.scrollTop += el.scrollHeight - prevHeight.current;
-      prevHeight.current = 0;
+    if (!el || highlightId) return;
+    if (pinned) {
+      el.scrollTop = el.scrollHeight;
+      return;
     }
-  }, [items.length, pinned, highlightId]);
+    const was = mark.current;
+    mark.current = null;
+    const now = was && document.getElementById(was.id);
+    if (was && now) el.scrollTop += now.getBoundingClientRect().top - was.top;
+  }, [items, pinned, highlightId]);
+
   useEffect(() => {
-    if (!pinned && lastId) setFresh(true);
+    if (!pinned && lastId && !windowed) setFresh(true);
   }, [lastId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // At the newest end the page would otherwise grow for as long as it stays open.
+  useEffect(() => {
+    if (pinned && items.length > MAX_HELD + TRIM_SLACK) onTrim?.();
+  }, [items.length, pinned, onTrim]);
+
   useEffect(() => {
     if (!highlightId) return;
     const el = document.getElementById(`msg-${highlightId}`);
     if (el) {
-      setPinned(false);
+      setAtBottom(false);
       el.scrollIntoView({ block: 'center' });
     }
     const t = setTimeout(onHighlightDone, 2000);
     return () => clearTimeout(t);
   }, [highlightId, items.length, onHighlightDone]);
 
+  async function loadOnce(load: () => Promise<void>) {
+    loading.current = true;
+    try {
+      await load();
+    } finally {
+      loading.current = false;
+    }
+  }
+
   async function onScroll() {
     const el = box.current;
     if (!el) return;
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    setPinned(atBottom);
-    if (atBottom) setFresh(false);
-    if (el.scrollTop < 80 && hasOlder && !loading.current) {
-      loading.current = true;
-      prevHeight.current = el.scrollHeight;
-      try {
-        await onLoadOlder();
-      } finally {
-        loading.current = false;
-      }
-    }
+    const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const bottom = fromBottom < AT_BOTTOM_PX;
+    setAtBottom(bottom);
+    if (bottom && !windowed) setFresh(false);
+    if (loading.current) return;
+    if (el.scrollTop < NEAR_EDGE_PX && hasOlder) await loadOnce(onLoadOlder);
+    else if (fromBottom < NEAR_EDGE_PX && windowed && onLoadNewer) await loadOnce(onLoadNewer);
   }
+
   if (!items.length)
     return (
       <div className="feed">
@@ -111,7 +168,7 @@ export function MessageFeed({
             canModerate={canModerate}
             highlighted={m.id === highlightId}
             renderContent={renderContent}
-            extra={renderExtra?.(m)}
+            renderExtra={renderExtra}
             onEdit={onEdit}
             onDelete={onDelete}
             onReply={onReply}
@@ -121,13 +178,14 @@ export function MessageFeed({
             onJump={onJump}
           />
         ))}
+        {windowed && <p className="muted center">Scroll down for newer messages</p>}
       </div>
       {windowed && onLoadLatest ? (
         <button
           className="new-pill"
           onClick={() => {
             void onLoadLatest().then(() => {
-              setPinned(true);
+              setAtBottom(true);
               setFresh(false);
             });
           }}
@@ -142,7 +200,7 @@ export function MessageFeed({
             onClick={() => {
               const el = box.current;
               if (el) el.scrollTop = el.scrollHeight;
-              setPinned(true);
+              setAtBottom(true);
               setFresh(false);
             }}
           >
@@ -152,4 +210,4 @@ export function MessageFeed({
       )}
     </div>
   );
-}
+});

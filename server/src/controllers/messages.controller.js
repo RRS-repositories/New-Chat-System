@@ -34,6 +34,7 @@ export function createMessageController({ db, emit, notifier = null }) {
       }
       const page = await listMessages(db, channelId, {
         before: req.query.before || null,
+        after: req.query.after || null,
         limit: req.query.limit || 50,
       });
       res.json({ success: true, ...page });

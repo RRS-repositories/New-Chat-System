@@ -9,6 +9,8 @@ export type Message = {
   content: string;
   type: 'message' | 'system' | 'join' | 'leave' | 'file' | 'call';
   createdAt: string;
+  /** The message's exact position in its channel, for paging older or newer from it. */
+  cursor?: string | null;
   editedAt: string | null;
   replyToId: string | null;
   threadId: string | null;

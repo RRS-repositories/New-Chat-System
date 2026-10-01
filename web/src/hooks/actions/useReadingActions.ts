@@ -1,5 +1,6 @@
 import { useCallback, useRef, type MutableRefObject } from 'react';
 import { createBlobCache } from '../../utils/blobCache.ts';
+import { cursorOf } from '../../utils/messageWindow.ts';
 import type { ActionDeps } from './actionDeps.ts';
 
 const THUMBNAIL_CACHE_SIZE = 300;
@@ -32,6 +33,8 @@ export function useReadingActions({ chatApi, dispatch, stateRef, setCurrentChann
   const openChannel = useCallback(
     async (channelId: string) => {
       setCurrentChannelId(channelId);
+      // Only the open channel keeps a long history on the page; the others keep their newest page.
+      dispatch({ type: 'buckets_rest', keep: channelId });
       if (jumpedTo.current === channelId) {
         jumpedTo.current = null;
         markReadIfLooking(channelId);
@@ -71,6 +74,29 @@ export function useReadingActions({ chatApi, dispatch, stateRef, setCurrentChann
     [chatApi, dispatch, stateRef],
   );
 
+  /** Scrolled to the bottom of a window into older history: fetch the next newer page. */
+  const loadNewer = useCallback(
+    async (channelId: string) => {
+      const bucket = stateRef.current.messagesByChannel[channelId];
+      const newest = bucket?.items.at(-1);
+      if (!bucket?.windowed || !newest) return;
+      const page = await chatApi.newerMessages(channelId, cursorOf(newest));
+      dispatch({
+        type: 'messages_loaded',
+        channelId,
+        messages: page.messages,
+        nextCursor: null,
+        prepend: false,
+        append: true,
+        hasNewer: !!page.hasNewer,
+      });
+    },
+    [chatApi, dispatch, stateRef],
+  );
+
+  /** The open channel has grown past the cap while the person is at the newest end. */
+  const trimChannel = useCallback((channelId: string) => dispatch({ type: 'bucket_trim', channelId }), [dispatch]);
+
   /** Shows the messages around one message (from search or a pin) and highlights it. */
   const jumpTo = useCallback(
     async (channelId: string, messageId: string) => {
@@ -84,7 +110,8 @@ export function useReadingActions({ chatApi, dispatch, stateRef, setCurrentChann
           messages: page.messages,
           nextCursor: page.nextCursor,
           prepend: false,
-          windowed: true,
+          // A window only if newer messages exist beyond it; near the newest end it is simply the channel.
+          windowed: page.hasNewer ?? true,
         });
         setCurrentChannelId(channelId);
         dispatch({ type: 'highlight', messageId });
@@ -142,6 +169,8 @@ export function useReadingActions({ chatApi, dispatch, stateRef, setCurrentChann
     openChannel,
     loadLatest,
     loadOlder,
+    loadNewer,
+    trimChannel,
     jumpTo,
     openThread,
     loadPins,

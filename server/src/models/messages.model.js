@@ -28,6 +28,8 @@ const map = (r) =>
     content: r.content,
     type: r.type,
     createdAt: new Date(r.created_at).toISOString(),
+    // Where this message sits in its channel, exact to the microsecond: pass it as `before` or `after` to page from here.
+    cursor: r.created_at_raw ? `${r.created_at_raw}|${r.id}` : null,
     editedAt: r.edited_at ? new Date(r.edited_at).toISOString() : null,
     replyToId: r.reply_to_id || null,
     threadId: r.thread_id || null,
@@ -66,8 +68,24 @@ export function parseCursor(cursor) {
   return { at, raw, id };
 }
 
-export async function listMessages(db, channelId, { before = null, limit = 50 } = {}) {
+/**
+ * One page of a channel, oldest first.
+ *  - no cursor: the newest page; `nextCursor` pages further back (null at the start of the channel).
+ *  - `before`: the page older than that cursor.
+ *  - `after`: the page newer than that cursor, with `hasNewer` saying whether more follows.
+ * The web app holds only a window of a long channel, so it needs both directions.
+ */
+export async function listMessages(db, channelId, { before = null, after = null, limit = 50 } = {}) {
   const lim = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+  const from = parseCursor(after);
+  if (from) {
+    const { rows } = await db.query(
+      `${SELECT} WHERE x.channel_id = $1 AND x.deleted_at IS NULL AND x.thread_id IS NULL
+         AND (x.created_at, x.id) > ($3::timestamptz, $4) ORDER BY x.created_at ASC, x.id ASC LIMIT $2`,
+      [channelId, lim + 1, from.raw, from.id],
+    );
+    return { messages: rows.slice(0, lim).map(map), hasNewer: rows.length > lim };
+  }
   const cur = parseCursor(before);
   const params = [channelId, lim];
   let where = `x.channel_id = $1 AND x.deleted_at IS NULL AND x.thread_id IS NULL`;
@@ -146,7 +164,7 @@ export async function listAround(db, channelId, messageId, { radius = 25 } = {})
   const messages = [...before.slice().reverse().map(map), target, ...after.map(map)];
   const oldest = before[before.length - 1];
   const nextCursor = before.length === radius && oldest ? `${oldest.created_at_raw}|${oldest.id}` : null;
-  return { messages, nextCursor, target: messageId };
+  return { messages, nextCursor, target: messageId, hasNewer: after.length === radius };
 }
 
 export async function editMessage(db, { messageId, userId, content }) {

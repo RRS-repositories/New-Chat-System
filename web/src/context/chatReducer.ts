@@ -6,9 +6,13 @@ import type {
   Preferences,
   PresenceSnapshot,
 } from '../types/index.ts';
+import { KEEP_WHEN_AWAY, keepNewest, keepOldest } from '../utils/messageWindow.ts';
 import type { Presence } from '../utils/presence.ts';
 
-/** windowed: the bucket holds a jump-to window rather than the newest page. */
+/**
+ * The part of one channel held on the page (see utils/messageWindow.ts).
+ * windowed: newer messages exist that are not held: the person is looking at older history.
+ */
 export type Bucket = { items: Message[]; nextCursor: string | null; loaded: boolean; windowed?: boolean };
 export type Thread = { root: Message; replies: Message[]; loaded: boolean };
 export type State = {
@@ -21,8 +25,8 @@ export type State = {
   membersByChannel: Record<string, ChannelMember[]>;
   replyTarget: Message | null;
   highlightId: string | null;
-  /** ids already applied by message_added — own sends are echoed by the socket, so every add must be idempotent. */
-  seen: Record<string, true>;
+  /** The most recent ids applied by message_added: own sends are echoed by the socket, so every add must be idempotent. */
+  seen: string[];
   /** The server said chat is not switched on for this user (403 / connect_error `chat_not_enabled`). */
   notEnabled: boolean;
   /** Who is online/away and their status (GET /users/online, then user_* socket events). */
@@ -41,8 +45,15 @@ export type Action =
       nextCursor: string | null;
       prepend: boolean;
       windowed?: boolean;
+      /** A newer page for the bottom of a window; `hasNewer` says whether the newest message is still further on. */
+      append?: boolean;
+      hasNewer?: boolean;
     }
   | { type: 'bucket_unload'; channelId: string }
+  /** The open channel has grown past the cap while the person is at the newest end: let go of the oldest. */
+  | { type: 'bucket_trim'; channelId: string }
+  /** A channel was opened: every other channel keeps only its newest page. */
+  | { type: 'buckets_rest'; keep: string }
   /** looking: the chat is being looked at (default true). When false the open channel counts unread like any other. */
   | { type: 'message_added'; message: Message; currentChannelId: string | null; selfId: number; looking?: boolean }
   | { type: 'message_edited'; channelId: string; messageId: string; content: string; editedAt: string | null }
@@ -89,7 +100,7 @@ export const initialState: State = {
   membersByChannel: {},
   replyTarget: null,
   highlightId: null,
-  seen: {},
+  seen: [],
   notEnabled: false,
   presence: { online: {}, away: {}, statuses: {} },
   prefs: defaultPrefs,
@@ -107,6 +118,7 @@ const without = <T>(r: Record<number, T>, id: number): Record<number, T> => {
   return o;
 };
 const empty = (): Bucket => ({ items: [], nextCursor: null, loaded: false });
+const SEEN_KEPT = 200;
 const byTime = (a: Message, b: Message) =>
   a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1;
 const mergeById = (a: Message[], b: Message[]) => {
@@ -158,15 +170,33 @@ export function chatReducer(state: State, action: Action): State {
     case 'messages_loaded': {
       const cur = state.messagesByChannel[action.channelId] || empty();
       if (action.prepend) {
+        // Older messages at the top. Past the cap the newest are let go: the bucket becomes a window.
+        const { items, dropped } = keepOldest(mergeById(action.messages, cur.items));
         return {
           ...state,
           messagesByChannel: {
             ...state.messagesByChannel,
             [action.channelId]: {
-              items: mergeById(action.messages, cur.items),
+              items,
               nextCursor: action.nextCursor,
               loaded: true,
-              windowed: cur.windowed,
+              windowed: dropped || cur.windowed,
+            },
+          },
+        };
+      }
+      if (action.append) {
+        // Newer messages at the bottom of a window. Past the cap the oldest are let go.
+        const { items, olderCursor } = keepNewest(mergeById(cur.items, action.messages));
+        return {
+          ...state,
+          messagesByChannel: {
+            ...state.messagesByChannel,
+            [action.channelId]: {
+              items,
+              nextCursor: olderCursor ?? cur.nextCursor,
+              loaded: true,
+              windowed: !!action.hasNewer,
             },
           },
         };
@@ -194,6 +224,38 @@ export function chatReducer(state: State, action: Action): State {
         messagesByChannel: { ...state.messagesByChannel, [action.channelId]: { ...cur, loaded: false } },
       };
     }
+    case 'bucket_trim': {
+      const cur = state.messagesByChannel[action.channelId];
+      if (!cur || cur.windowed) return state;
+      const { items, olderCursor } = keepNewest(cur.items);
+      if (!olderCursor) return state;
+      return {
+        ...state,
+        messagesByChannel: {
+          ...state.messagesByChannel,
+          [action.channelId]: { ...cur, items, nextCursor: olderCursor },
+        },
+      };
+    }
+    case 'buckets_rest': {
+      let changed = false;
+      const out: Record<string, Bucket> = {};
+      for (const [channelId, bucket] of Object.entries(state.messagesByChannel)) {
+        if (channelId === action.keep) {
+          out[channelId] = bucket;
+          continue;
+        }
+        // A window into old history is not worth keeping: the channel reloads from its newest page.
+        if (bucket.windowed) {
+          changed = true;
+          continue;
+        }
+        const { items, olderCursor } = keepNewest(bucket.items, KEEP_WHEN_AWAY);
+        if (olderCursor) changed = true;
+        out[channelId] = olderCursor ? { ...bucket, items, nextCursor: olderCursor } : bucket;
+      }
+      return changed ? { ...state, messagesByChannel: out } : state;
+    }
     case 'stale_all': {
       const out: Record<string, Bucket> = {};
       for (const [cid, b] of Object.entries(state.messagesByChannel)) out[cid] = { ...b, loaded: false };
@@ -201,12 +263,12 @@ export function chatReducer(state: State, action: Action): State {
     }
     case 'message_added': {
       const { message: m } = action;
-      if (state.seen[m.id]) return state;
+      if (state.seen.includes(m.id)) return state;
       const bump = (m.channelId !== action.currentChannelId || action.looking === false) && m.userId !== action.selfId;
       const bumpMention = bump && !!m.mentionsMe;
       let next: State = {
         ...state,
-        seen: { ...state.seen, [m.id]: true },
+        seen: [...state.seen.slice(-(SEEN_KEPT - 1)), m.id],
         channels: state.channels.map((c) =>
           c.id === m.channelId
             ? {
@@ -228,8 +290,19 @@ export function chatReducer(state: State, action: Action): State {
         return patchMessage(next, m.channelId, m.threadId, (root) => ({ ...root, replyCount: root.replyCount + 1 }));
       }
       const cur = next.messagesByChannel[m.channelId] || empty();
-      const items = cur.items.some((x) => x.id === m.id) ? cur.items : [...cur.items, m].sort(byTime);
-      return { ...next, messagesByChannel: { ...next.messagesByChannel, [m.channelId]: { ...cur, items } } };
+      // Looking at older history: the message is not glued under the window; scrolling down fetches it.
+      if (cur.windowed) return next;
+      const added = cur.items.some((x) => x.id === m.id) ? cur.items : [...cur.items, m].sort(byTime);
+      // A channel that is not open stays small. The open one is trimmed by the feed, when the person is at the newest end.
+      const away = m.channelId !== action.currentChannelId && added.length > KEEP_WHEN_AWAY * 2;
+      const { items, olderCursor } = away ? keepNewest(added, KEEP_WHEN_AWAY) : { items: added, olderCursor: null };
+      return {
+        ...next,
+        messagesByChannel: {
+          ...next.messagesByChannel,
+          [m.channelId]: { ...cur, items, nextCursor: olderCursor ?? cur.nextCursor },
+        },
+      };
     }
     case 'message_edited':
       return patchMessage(state, action.channelId, action.messageId, (m) => ({

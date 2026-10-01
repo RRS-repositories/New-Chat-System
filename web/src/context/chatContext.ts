@@ -20,6 +20,10 @@ export type ChatActions = {
   loadChannels: () => Promise<void>;
   openChannel: (channelId: string) => Promise<void>;
   loadOlder: (channelId: string) => Promise<void>;
+  /** In a window into older history: the next newer page. */
+  loadNewer: (channelId: string) => Promise<void>;
+  /** Let go of the oldest messages of a channel that has grown past the cap. */
+  trimChannel: (channelId: string) => void;
   loadLatest: (channelId: string) => Promise<void>;
   send: (channelId: string, content: string, opts?: SendOpts) => Promise<void>;
   edit: (messageId: string, content: string) => Promise<void>;

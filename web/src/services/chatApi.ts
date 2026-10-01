@@ -18,7 +18,8 @@ import type {
   UserStatus,
 } from '../types/index.ts';
 
-export type MessagePage = { messages: Message[]; nextCursor: string | null };
+/** `hasNewer`: newer messages exist beyond this page (a page asked for with `after`, or a window around a message). */
+export type MessagePage = { messages: Message[]; nextCursor: string | null; hasNewer?: boolean };
 export type SearchPage = { hits: SearchHit[]; page: number; hasMore: boolean };
 export type FilePage = { files: ChannelFileRow[]; nextCursor: string | null };
 export type NewChannel = {
@@ -65,6 +66,8 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       api.get<MessagePage>(`/api/chat/channels/${channelId}/messages?limit=${PAGE_SIZE}`),
     olderMessages: (channelId: string, before: string) =>
       api.get<MessagePage>(`/api/chat/channels/${channelId}/messages?limit=${PAGE_SIZE}&before=${id(before)}`),
+    newerMessages: (channelId: string, after: string) =>
+      api.get<MessagePage>(`/api/chat/channels/${channelId}/messages?limit=${PAGE_SIZE}&after=${id(after)}`),
     messagesAround: (channelId: string, messageId: string) =>
       api.get<MessagePage>(`/api/chat/channels/${channelId}/messages?around=${messageId}`),
     sendMessage: async (channelId: string, content: string, opts: SendOpts = {}) =>

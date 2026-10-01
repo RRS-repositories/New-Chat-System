@@ -30,6 +30,9 @@ await pg.exec(`
     ON CONFLICT DO NOTHING;
 `);
 
+// SEED_HEAVY=1 loads far more data than the office has, for the speed check (dev/e2e/browser-perf.cjs).
+if (process.env.SEED_HEAVY) await (await import('./seed-heavy.mjs')).seedHeavy(pg);
+
 const vapid = webpush.generateVAPIDKeys();
 const config = {
   ...loadConfig({
