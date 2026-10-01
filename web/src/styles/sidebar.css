@@ -1,0 +1,116 @@
+/* The left panel: who you are, the channel and people lists, the actions at the bottom. */
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.sidebar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-user {
+  font-weight: 500;
+}
+.sidebar-foot {
+  margin-top: auto;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.sidebar-head,
+.sidebar-foot {
+  flex: none;
+}
+.chan-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.chan-group-title {
+  padding: 8px 12px 4px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.chan-row {
+  width: 100%;
+  height: 32px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  color: var(--text);
+}
+.chan-row:hover {
+  background: var(--hover);
+}
+.chan-row.active {
+  background: var(--hover);
+  color: var(--accent);
+}
+.chan-row.unread .chan-name {
+  font-weight: 600;
+}
+.chan-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--text-2);
+  display: inline-block;
+  flex: none;
+}
+.dot.online {
+  background: var(--call);
+  border-color: var(--call);
+}
+.dot.away {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+.status-badge {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.muted-icon {
+  flex: none;
+  color: var(--text-2);
+}
+button.chan-group-title {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+button.chan-group-title:hover {
+  color: var(--text);
+}
+button.chan-group-title .muted {
+  margin-left: auto;
+}

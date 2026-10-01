@@ -94,7 +94,13 @@ export function RemoteScreen({ track, name }: { track: TrackLike; name: string }
         <span className="muted call-name">
           {inWindow ? `${name}'s screen is open in its own window` : `${name} is sharing their screen`}
         </span>
-        <button className="icon-btn" data-testid="call-screen-full" aria-label="Full screen" title="Full screen" onClick={fullScreen}>
+        <button
+          className="icon-btn"
+          data-testid="call-screen-full"
+          aria-label="Full screen"
+          title="Full screen"
+          onClick={fullScreen}
+        >
           <Maximize2 size={15} />
         </button>
         {inWindow ? (

@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react';
 
-type Props = { sidebar: ReactNode; main: ReactNode; panel?: ReactNode; sidebarOpen: boolean; onCloseSidebar: () => void };
+type Props = {
+  sidebar: ReactNode;
+  main: ReactNode;
+  panel?: ReactNode;
+  sidebarOpen: boolean;
+  onCloseSidebar: () => void;
+};
 
 /** The page frame: sidebar on the left, the main area, and an optional panel on the right. */
 export function ChatLayout({ sidebar, main, panel, sidebarOpen, onCloseSidebar }: Props) {

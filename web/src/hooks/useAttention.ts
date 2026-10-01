@@ -12,15 +12,20 @@ export function useAttention() {
   const notLookingSince = useRef<number | null>(looking ? null : Date.now());
   useEffect(() => {
     const update = () => {
-      const v = read(); if (v === lookingRef.current) return;
-      lookingRef.current = v; notLookingSince.current = v ? null : Date.now(); setLooking(v);
+      const v = read();
+      if (v === lookingRef.current) return;
+      lookingRef.current = v;
+      notLookingSince.current = v ? null : Date.now();
+      setLooking(v);
     };
     document.addEventListener('visibilitychange', update);
-    window.addEventListener('focus', update); window.addEventListener('blur', update);
+    window.addEventListener('focus', update);
+    window.addEventListener('blur', update);
     update();
     return () => {
       document.removeEventListener('visibilitychange', update);
-      window.removeEventListener('focus', update); window.removeEventListener('blur', update);
+      window.removeEventListener('focus', update);
+      window.removeEventListener('blur', update);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return { looking, lookingRef, notLookingSince };

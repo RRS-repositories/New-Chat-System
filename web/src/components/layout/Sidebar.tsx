@@ -21,7 +21,17 @@ type Props = {
   onSignOut?: () => void;
 };
 
-function FootRow({ icon, label, active, onClick }: { icon: ReactNode; label: string; active?: boolean; onClick: () => void }) {
+function FootRow({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
   return (
     <button className={`chan-row${active ? ' active' : ''}`} onClick={onClick}>
       {icon}

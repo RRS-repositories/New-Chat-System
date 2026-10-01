@@ -1,0 +1,78 @@
+/* Pop-up dialogs: new channel, new message, browse channels, settings. */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.3);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 30;
+}
+.modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+.pick-list {
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.pick-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.pick-row:last-child {
+  border-bottom: 0;
+}
+.pick-row:hover {
+  background: var(--hover);
+}
+.browse-info {
+  flex: 1;
+  min-width: 0;
+}
+.browse-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browse-row .btn-ghost:disabled {
+  color: var(--text-2);
+  cursor: default;
+}
+.settings-note {
+  font-size: 13px;
+  color: var(--text);
+}
+.status-emoji {
+  width: 56px;
+}
+.status-text {
+  flex: 1;
+  min-width: 0;
+}

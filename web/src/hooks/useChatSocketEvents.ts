@@ -90,7 +90,13 @@ export function useChatSocketEvents(deps: Deps): void {
       };
       const looking = lookingRef.current;
       const inOpenChannel = message.channelId === currentChannelRef.current;
-      dispatch({ type: 'message_added', message, currentChannelId: currentChannelRef.current, selfId: user.id, looking });
+      dispatch({
+        type: 'message_added',
+        message,
+        currentChannelId: currentChannelRef.current,
+        selfId: user.id,
+        looking,
+      });
       if (inOpenChannel && fromSomeoneElse) scheduleRead(message, looking);
 
       const channel = channelsRef.current.find((c) => c.id === message.channelId);
@@ -110,7 +116,13 @@ export function useChatSocketEvents(deps: Deps): void {
       [
         'message_edited',
         (p: { message_id: string; channel_id: string; content: string; edited_at: string | null }) =>
-          dispatch({ type: 'message_edited', channelId: p.channel_id, messageId: p.message_id, content: p.content, editedAt: p.edited_at }),
+          dispatch({
+            type: 'message_edited',
+            channelId: p.channel_id,
+            messageId: p.message_id,
+            content: p.content,
+            editedAt: p.edited_at,
+          }),
       ],
       [
         'message_deleted',
@@ -120,7 +132,13 @@ export function useChatSocketEvents(deps: Deps): void {
       [
         'typing',
         (p: { channel_id: string; user_id: number; user_name: string }) =>
-          dispatch({ type: 'typing', channelId: p.channel_id, userId: p.user_id, name: p.user_name, until: Date.now() + TYPING_SHOWN_MS }),
+          dispatch({
+            type: 'typing',
+            channelId: p.channel_id,
+            userId: p.user_id,
+            name: p.user_name,
+            until: Date.now() + TYPING_SHOWN_MS,
+          }),
       ],
       ['channel_updated', () => void loadChannels()],
       [
@@ -151,12 +169,24 @@ export function useChatSocketEvents(deps: Deps): void {
       [
         'reaction_added',
         (p: { message_id: string; channel_id: string; emoji: string; user_id: number }) =>
-          dispatch({ type: 'reaction_added', channelId: p.channel_id, messageId: p.message_id, emoji: p.emoji, userId: p.user_id }),
+          dispatch({
+            type: 'reaction_added',
+            channelId: p.channel_id,
+            messageId: p.message_id,
+            emoji: p.emoji,
+            userId: p.user_id,
+          }),
       ],
       [
         'reaction_removed',
         (p: { message_id: string; channel_id: string; emoji: string; user_id: number }) =>
-          dispatch({ type: 'reaction_removed', channelId: p.channel_id, messageId: p.message_id, emoji: p.emoji, userId: p.user_id }),
+          dispatch({
+            type: 'reaction_removed',
+            channelId: p.channel_id,
+            messageId: p.message_id,
+            emoji: p.emoji,
+            userId: p.user_id,
+          }),
       ],
       ['unread_update', (p: { channel_id: string }) => dispatch({ type: 'read', channelId: p.channel_id })],
     ];
@@ -170,5 +200,20 @@ export function useChatSocketEvents(deps: Deps): void {
       if (readTimer.current) clearTimeout(readTimer.current);
       for (const [event, handler] of handlers) socket.off(event, handler);
     };
-  }, [socket, chatApi, dispatch, loadChannels, fetchNewest, loadPins, user.id, user.fullName, onAuthError, lookingRef, currentChannelRef, channelsRef, prefsRef, pendingRead]);
+  }, [
+    socket,
+    chatApi,
+    dispatch,
+    loadChannels,
+    fetchNewest,
+    loadPins,
+    user.id,
+    user.fullName,
+    onAuthError,
+    lookingRef,
+    currentChannelRef,
+    channelsRef,
+    prefsRef,
+    pendingRead,
+  ]);
 }

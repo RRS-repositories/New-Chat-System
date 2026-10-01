@@ -49,7 +49,7 @@ Built between 28 September and 1 October 2026, inside the CRM repository. All of
 
 ---
 
-## Phase 3 — Reshape the code to the rules ⏳
+## Phase 3 — Reshape the code to the rules ✅
 
 **Goal:** the code follows the folder structure in `Architecture.md` and the code-quality rules.
 
@@ -60,11 +60,11 @@ Built between 28 September and 1 October 2026, inside the CRM repository. All of
 
 **Behaviour does not change.** Done in small steps, with tests run after each.
 
-**Done when:** every file sits in the right folder, all tests and browser tests pass, and the app behaves the same.
+**Done when:** every file sits in the right folder, all tests and browser tests pass, and the app behaves the same. *Done 1 October 2026: 353 server tests, 107 web tests, 13 end-to-end checks and 36 browser checks pass; before/after screenshots match. Four files stay long on purpose; `Memory.md` lists them with the reason.*
 
 ---
 
-## Phase 4 — Switch the server to this repository ⏳
+## Phase 4 — Switch the server to this repository ⏳ (next)
 
 **Goal:** chat2 runs from this repository, and chat deploys no longer touch the CRM.
 

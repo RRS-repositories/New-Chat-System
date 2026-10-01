@@ -1,11 +1,19 @@
 /** Call state of this tab (pure). One call at a time per tab. */
 export type CallPhase = 'idle' | 'ringing-in' | 'joining' | 'in-call';
-export type IncomingCall = { callId: string; channelId: string; channelName: string; channelType: 'public' | 'private' | 'dm' | 'group_dm'; fromId: number; fromName: string };
+export type IncomingCall = {
+  callId: string;
+  channelId: string;
+  channelName: string;
+  channelType: 'public' | 'private' | 'dm' | 'group_dm';
+  fromId: number;
+  fromName: string;
+};
 export type EndStatus = 'ended' | 'missed' | 'declined';
 export type CallUiState = {
   phase: CallPhase;
   /** The call this tab is joining or in. */
-  callId: string | null; channelId: string | null;
+  callId: string | null;
+  channelId: string | null;
   incoming: IncomingCall | null;
   /** Why the last attempt failed (shown inline). */
   error: string | null;
@@ -23,8 +31,22 @@ export type CallAction =
   | { type: 'error'; error: string | null }
   | { type: 'notice'; notice: string | null };
 
-export const initialCallState: CallUiState = { phase: 'idle', callId: null, channelId: null, incoming: null, error: null, notice: null };
-const idle = (s: CallUiState, extra: Partial<CallUiState> = {}): CallUiState => ({ ...s, phase: 'idle', callId: null, channelId: null, incoming: null, ...extra });
+export const initialCallState: CallUiState = {
+  phase: 'idle',
+  callId: null,
+  channelId: null,
+  incoming: null,
+  error: null,
+  notice: null,
+};
+const idle = (s: CallUiState, extra: Partial<CallUiState> = {}): CallUiState => ({
+  ...s,
+  phase: 'idle',
+  callId: null,
+  channelId: null,
+  incoming: null,
+  ...extra,
+});
 const END_NOTICE: Record<EndStatus, string> = { ended: 'Call ended', missed: 'No answer', declined: 'Call declined' };
 
 export function callReducer(s: CallUiState, a: CallAction): CallUiState {
@@ -35,10 +57,19 @@ export function callReducer(s: CallUiState, a: CallAction): CallUiState {
       return s.phase === 'ringing-in' && s.incoming?.callId === a.callId ? idle(s) : s;
     case 'ended':
       if (s.phase === 'ringing-in' && s.incoming?.callId === a.callId) return idle(s);
-      if ((s.phase === 'in-call' || s.phase === 'joining') && s.callId === a.callId) return idle(s, { notice: END_NOTICE[a.status] || 'Call ended' });
+      if ((s.phase === 'in-call' || s.phase === 'joining') && s.callId === a.callId)
+        return idle(s, { notice: END_NOTICE[a.status] || 'Call ended' });
       return s;
     case 'join_begin':
-      return { ...s, phase: 'joining', callId: a.callId, channelId: a.channelId, incoming: null, error: null, notice: null };
+      return {
+        ...s,
+        phase: 'joining',
+        callId: a.callId,
+        channelId: a.channelId,
+        incoming: null,
+        error: null,
+        notice: null,
+      };
     case 'joined':
       return { ...s, phase: 'in-call', callId: a.callId, channelId: a.channelId, incoming: null, error: null };
     case 'failed':

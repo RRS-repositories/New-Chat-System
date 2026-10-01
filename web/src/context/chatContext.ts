@@ -37,7 +37,13 @@ export type ChatActions = {
   pin: (messageId: string) => Promise<void>;
   unpin: (messageId: string) => Promise<void>;
   react: (messageId: string, emoji: string) => Promise<void>;
-  upload: (channelId: string, files: File[], content: string, replyToId?: string | null, threadId?: string | null) => Promise<void>;
+  upload: (
+    channelId: string,
+    files: File[],
+    content: string,
+    replyToId?: string | null,
+    threadId?: string | null,
+  ) => Promise<void>;
   search: (query: string, channelId?: string | null, page?: number) => Promise<SearchPage>;
   jumpTo: (channelId: string, messageId: string) => Promise<void>;
   clearHighlight: () => void;

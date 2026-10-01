@@ -10,6 +10,7 @@ import type {
   ChannelNotifyPref,
   Message,
   Preferences,
+  PresenceSnapshot,
   Restriction,
   RestrictionInput,
   SearchHit,
@@ -20,9 +21,16 @@ import type {
 export type MessagePage = { messages: Message[]; nextCursor: string | null };
 export type SearchPage = { hits: SearchHit[]; page: number; hasMore: boolean };
 export type FilePage = { files: ChannelFileRow[]; nextCursor: string | null };
-export type NewChannel = { displayName: string; type: 'public' | 'private' | 'group_dm'; purpose?: string; memberIds?: number[] };
+export type NewChannel = {
+  displayName: string;
+  type: 'public' | 'private' | 'group_dm';
+  purpose?: string;
+  memberIds?: number[];
+};
 export type SendOpts = { replyToId?: string | null; threadId?: string | null };
-export type PreferencePatch = Partial<Pick<Preferences, 'desktopNotif' | 'mobileNotif' | 'soundEnabled' | 'sendOnEnter'>>;
+export type PreferencePatch = Partial<
+  Pick<Preferences, 'desktopNotif' | 'mobileNotif' | 'soundEnabled' | 'sendOnEnter'>
+>;
 
 type Deps = { api: ApiClient; getToken: () => string | null; onAuthError?: () => void };
 
@@ -40,8 +48,10 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
   return {
     // Channels
     channels: async () => (await api.get<{ channels: Channel[] }>('/api/chat/channels')).channels,
-    createChannel: async (input: NewChannel) => (await api.post<{ channel: Channel }>('/api/chat/channels', input)).channel,
-    openDm: async (userId: number) => (await api.post<{ channel: Channel }>('/api/chat/channels/dm', { userId })).channel,
+    createChannel: async (input: NewChannel) =>
+      (await api.post<{ channel: Channel }>('/api/chat/channels', input)).channel,
+    openDm: async (userId: number) =>
+      (await api.post<{ channel: Channel }>('/api/chat/channels/dm', { userId })).channel,
     browseChannels: async () => (await api.get<{ channels: BrowseChannel[] }>('/api/chat/channels/browse')).channels,
     joinChannel: async (channelId: string) =>
       (await api.post<{ channel: Channel }>(`/api/chat/channels/${id(channelId)}/join`)).channel,
@@ -71,11 +81,15 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
     thread: (rootId: string) => api.get<{ root: Message; replies: Message[] }>(`/api/chat/messages/${rootId}/thread`),
 
     // Pins and reactions
-    pins: async (channelId: string) => (await api.get<{ pins: Message[] }>(`/api/chat/channels/${channelId}/pins`)).pins,
-    pin: async (messageId: string) => (await api.post<{ message: Message }>(`/api/chat/messages/${messageId}/pin`)).message,
-    unpin: async (messageId: string) => (await api.del<{ message: Message }>(`/api/chat/messages/${messageId}/pin`)).message,
+    pins: async (channelId: string) =>
+      (await api.get<{ pins: Message[] }>(`/api/chat/channels/${channelId}/pins`)).pins,
+    pin: async (messageId: string) =>
+      (await api.post<{ message: Message }>(`/api/chat/messages/${messageId}/pin`)).message,
+    unpin: async (messageId: string) =>
+      (await api.del<{ message: Message }>(`/api/chat/messages/${messageId}/pin`)).message,
     addReaction: (messageId: string, emoji: string) => api.post(`/api/chat/messages/${messageId}/reactions`, { emoji }),
-    removeReaction: (messageId: string, emoji: string) => api.del(`/api/chat/messages/${messageId}/reactions/${id(emoji)}`),
+    removeReaction: (messageId: string, emoji: string) =>
+      api.del(`/api/chat/messages/${messageId}/reactions/${id(emoji)}`),
 
     // Files
     async uploadFiles(channelId: string, files: File[], content: string, opts: SendOpts = {}): Promise<Message> {
@@ -84,7 +98,11 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       if (content.trim()) form.append('content', content);
       if (opts.replyToId) form.append('replyToId', opts.replyToId);
       if (opts.threadId) form.append('threadId', opts.threadId);
-      const res = await fetch(`/api/chat/channels/${channelId}/upload`, { method: 'POST', headers: authHeader(), body: form });
+      const res = await fetch(`/api/chat/channels/${channelId}/upload`, {
+        method: 'POST',
+        headers: authHeader(),
+        body: form,
+      });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) throw signedOut();
       if (!res.ok) throw new Error(data.message || 'Upload failed');
@@ -105,16 +123,20 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       api.get<SearchPage>(`/api/chat/search?q=${id(query)}${channelId ? `&channelId=${channelId}` : ''}&page=${page}`),
 
     // People and preferences
+    presence: () => api.get<PresenceSnapshot>('/api/chat/users/online'),
     users: async () => (await api.get<{ users: UserOption[] }>('/api/chat/users')).users,
-    preferences: async () => (await api.get<{ preferences: Preferences }>('/api/chat/users/me/preferences')).preferences,
+    preferences: async () =>
+      (await api.get<{ preferences: Preferences }>('/api/chat/users/me/preferences')).preferences,
     updatePreferences: async (patch: PreferencePatch) =>
       (await api.patch<{ preferences: Preferences }>('/api/chat/users/me/preferences', patch)).preferences,
     setStatus: async (text: string, emoji: string) =>
-      (await api.patch<{ status: UserStatus }>('/api/chat/users/me/status', { statusText: text, statusEmoji: emoji })).status,
+      (await api.patch<{ status: UserStatus }>('/api/chat/users/me/status', { statusText: text, statusEmoji: emoji }))
+        .status,
 
     // Admin (Management only; the server refuses everyone else)
     adminUsers: async () => (await api.get<{ users: AdminUser[] }>('/api/chat/admin/users')).users,
-    restrictions: async () => (await api.get<{ restrictions: Restriction[] }>('/api/chat/admin/restrictions')).restrictions,
+    restrictions: async () =>
+      (await api.get<{ restrictions: Restriction[] }>('/api/chat/admin/restrictions')).restrictions,
     restrictionsForUser: async (userId: number) =>
       (await api.get<{ restrictions: Restriction[] }>(`/api/chat/admin/restrictions/user/${userId}`)).restrictions,
     addRestriction: async (input: RestrictionInput) =>

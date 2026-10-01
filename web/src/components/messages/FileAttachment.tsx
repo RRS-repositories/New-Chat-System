@@ -8,25 +8,63 @@ import { Lightbox } from './Lightbox.tsx';
 /** Hand a fetched file to the browser's download UI, then release the memory. */
 async function saveToDevice(fetchBlob: (p: string) => Promise<string>, path: string, filename: string) {
   const url = await fetchBlob(path);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 export function FileAttachment({ file }: { file: ChatFile }) {
   const { actions } = useChat();
-  const [thumb, setThumb] = useState<string | null>(null); const [full, setFull] = useState<string | null>(null); const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null);
+  const [thumb, setThumb] = useState<string | null>(null);
+  const [full, setFull] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const dl = `/api/chat/files/${file.id}/download`;
-  useEffect(() => { if (isImage(file.mimeType) && file.hasThumb) actions.fetchBlob(`/api/chat/files/${file.id}/thumb`).then(setThumb).catch(() => setThumb(null)); }, [file.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isImage(file.mimeType) && file.hasThumb)
+      actions
+        .fetchBlob(`/api/chat/files/${file.id}/thumb`)
+        .then(setThumb)
+        .catch(() => setThumb(null));
+  }, [file.id]); // eslint-disable-line react-hooks/exhaustive-deps
   async function download() {
-    setBusy(true); setError(null);
-    try { await saveToDevice(actions.fetchBlob, dl, file.filename); } catch (e: any) { setError(e?.message || 'Could not download'); } finally { setBusy(false); }
+    setBusy(true);
+    setError(null);
+    try {
+      await saveToDevice(actions.fetchBlob, dl, file.filename);
+    } catch (e: any) {
+      setError(e?.message || 'Could not download');
+    } finally {
+      setBusy(false);
+    }
   }
-  async function openFull() { setOpen(true); if (!full) setFull(await actions.fetchBlob(dl).catch(() => null)); }
-  function closeFull() { setOpen(false); if (full) { URL.revokeObjectURL(full); setFull(null); } }
+  async function openFull() {
+    setOpen(true);
+    if (!full) setFull(await actions.fetchBlob(dl).catch(() => null));
+  }
+  function closeFull() {
+    setOpen(false);
+    if (full) {
+      URL.revokeObjectURL(full);
+      setFull(null);
+    }
+  }
   if (isImage(file.mimeType)) {
     return (
       <>
-        <button className="file-image" onClick={() => void openFull()} aria-label={`Open ${file.filename}`}>{thumb ? <img src={thumb} alt={file.filename} width={200} /> : <span className="file-card"><FileText size={18} /><span className="file-name">{file.filename}</span></span>}</button>
+        <button className="file-image" onClick={() => void openFull()} aria-label={`Open ${file.filename}`}>
+          {thumb ? (
+            <img src={thumb} alt={file.filename} width={200} />
+          ) : (
+            <span className="file-card">
+              <FileText size={18} />
+              <span className="file-name">{file.filename}</span>
+            </span>
+          )}
+        </button>
         {open && <Lightbox src={full} alt={file.filename} onClose={closeFull} />}
       </>
     );
@@ -34,25 +72,61 @@ export function FileAttachment({ file }: { file: ChatFile }) {
   if (isVideo(file.mimeType)) return <VideoAttachment file={file} src={dl} />;
   return (
     <div className="file-card">
-      <FileText size={18} /><div className="file-meta"><div className="file-name">{file.filename}</div><div className="muted">{formatBytes(file.sizeBytes)}{error ? ` · ${error}` : ''}</div></div>
-      <button className="btn-ghost" disabled={busy} onClick={() => void download()}><Download size={14} /> Download</button>
+      <FileText size={18} />
+      <div className="file-meta">
+        <div className="file-name">{file.filename}</div>
+        <div className="muted">
+          {formatBytes(file.sizeBytes)}
+          {error ? ` · ${error}` : ''}
+        </div>
+      </div>
+      <button className="btn-ghost" disabled={busy} onClick={() => void download()}>
+        <Download size={14} /> Download
+      </button>
     </div>
   );
 }
 
 /** Nothing is fetched until the person taps play — a 20 MB video must not pull itself onto a phone unasked. */
 function VideoAttachment({ file, src }: { file: ChatFile; src: string }) {
-  const { actions } = useChat(); const [url, setUrl] = useState<string | null>(null); const [busy, setBusy] = useState(false);
-  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  const { actions } = useChat();
+  const [url, setUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(
+    () => () => {
+      if (url) URL.revokeObjectURL(url);
+    },
+    [url],
+  );
   if (url) return <video className="file-video" src={url} controls autoPlay preload="metadata" />;
   return (
-    <button className="file-card" disabled={busy} onClick={() => { setBusy(true); actions.fetchBlob(src).then(setUrl).catch(() => setBusy(false)); }}>
-      <Play size={18} /><span className="file-meta"><span className="file-name">{file.filename}</span><span className="muted"> · {formatBytes(file.sizeBytes)} · tap to play</span></span>
+    <button
+      className="file-card"
+      disabled={busy}
+      onClick={() => {
+        setBusy(true);
+        actions
+          .fetchBlob(src)
+          .then(setUrl)
+          .catch(() => setBusy(false));
+      }}
+    >
+      <Play size={18} />
+      <span className="file-meta">
+        <span className="file-name">{file.filename}</span>
+        <span className="muted"> · {formatBytes(file.sizeBytes)} · tap to play</span>
+      </span>
     </button>
   );
 }
 
 export function FileList({ files }: { files: ChatFile[] }) {
   if (!files.length) return null;
-  return <div className="file-list">{files.map((f) => <FileAttachment key={f.id} file={f} />)}</div>;
+  return (
+    <div className="file-list">
+      {files.map((f) => (
+        <FileAttachment key={f.id} file={f} />
+      ))}
+    </div>
+  );
 }

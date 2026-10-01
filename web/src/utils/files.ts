@@ -1,6 +1,22 @@
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
 export const MAX_FILES = 5;
-const EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'docx', 'xlsx', 'pptx', 'csv', 'txt', 'zip', 'mp4', 'webm'];
+const EXT = [
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'webp',
+  'svg',
+  'pdf',
+  'docx',
+  'xlsx',
+  'pptx',
+  'csv',
+  'txt',
+  'zip',
+  'mp4',
+  'webm',
+];
 export const ACCEPT = EXT.map((e) => `.${e}`).join(',');
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -8,14 +24,24 @@ export function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1).replace(/\.0$/, '')} MB`;
 }
 export function validateFiles(files: File[]): { ok: File[]; errors: string[] } {
-  const ok: File[] = []; const errors: string[] = [];
+  const ok: File[] = [];
+  const errors: string[] = [];
   for (const f of files) {
     const ext = (f.name.split('.').pop() || '').toLowerCase();
-    if (!EXT.includes(ext)) { errors.push(`${f.name}: this file type is not allowed`); continue; }
-    if (f.size > MAX_FILE_BYTES) { errors.push(`${f.name}: files must be 20 MB or smaller`); continue; }
+    if (!EXT.includes(ext)) {
+      errors.push(`${f.name}: this file type is not allowed`);
+      continue;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      errors.push(`${f.name}: files must be 20 MB or smaller`);
+      continue;
+    }
     ok.push(f);
   }
-  if (ok.length > MAX_FILES) { errors.push(`Up to ${MAX_FILES} files per message`); ok.length = MAX_FILES; }
+  if (ok.length > MAX_FILES) {
+    errors.push(`Up to ${MAX_FILES} files per message`);
+    ok.length = MAX_FILES;
+  }
   return { ok, errors };
 }
 export const isImage = (mime: string) => /^image\/(jpeg|png|gif|webp)$/.test(mime);

@@ -1,5 +1,5 @@
 import { Phone, X } from 'lucide-react';
-import { useCall } from '../../context/CallProvider.tsx';
+import { useCall } from '../../context/callContext.ts';
 
 /** Under the channel header: "Call in progress — Join" for a live call this tab is not in, plus call errors/notices. */
 export function CallBanner({ channelId }: { channelId: string | null }) {
@@ -12,14 +12,26 @@ export function CallBanner({ channelId }: { channelId: string | null }) {
       {live && !here && channelId && (
         <div className="call-banner" role="status">
           <Phone size={14} aria-hidden="true" />
-          <span className="call-banner-text">Call in progress{live.participantIds.length ? ` · ${live.participantIds.length} in call` : ''}</span>
-          <button className="btn-accent btn-small" data-testid="call-banner-join" aria-label="Join call" disabled={joining} onClick={() => void joinCall(live.callId, channelId)}>Join</button>
+          <span className="call-banner-text">
+            Call in progress{live.participantIds.length ? ` · ${live.participantIds.length} in call` : ''}
+          </span>
+          <button
+            className="btn-accent btn-small"
+            data-testid="call-banner-join"
+            aria-label="Join call"
+            disabled={joining}
+            onClick={() => void joinCall(live.callId, channelId)}
+          >
+            Join
+          </button>
         </div>
       )}
       {(call.error || call.notice) && (
         <div className={`call-note${call.error ? ' is-error' : ''}`} role={call.error ? 'alert' : 'status'}>
           <span>{call.error || call.notice}</span>
-          <button className="icon-btn small" aria-label="Dismiss" onClick={clearMessages}><X size={12} /></button>
+          <button className="icon-btn small" aria-label="Dismiss" onClick={clearMessages}>
+            <X size={12} />
+          </button>
         </div>
       )}
     </>

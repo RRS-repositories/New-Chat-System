@@ -9,24 +9,46 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | Phase 2 finished. Waiting for the owner's "go" for **Phase 3 — reshape the code**. |
-| **This repository** | Holds the whole chat system. All tests pass from here. |
-| **Live site (chat2)** | Still running from the old place: the `chat-server/` and `chat-ui/` folders inside the CRM repository on the server. Nothing has changed for staff. |
-| **Live code** | Everything in this repository is live on chat2, including the three call fixes and the colour theme (deployed 1 Oct 2026, 10:11). |
+| **Current phase** | Phase 3 finished. Waiting for the owner's "go" for **Phase 4 — switch the server to this repository**. |
+| **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
+| **Live site (chat2)** | Still running from the old place: the `chat-server/` and `chat-ui/` folders inside the CRM repository on the server. It has the same features as this repository, in the old file layout. |
 
-## What is in this repository
+## Where things are
 
-| Folder | What it is |
+### Server (`server/`)
+
+| Folder | What is in it |
 |---|---|
-| `server/` | The chat server (was `chat-server/` in the CRM repository). |
-| `server/migrations/` | The three database files for the `chat` schema. |
-| `server/test/` | Automated server tests. |
-| `server/dev/local.mjs` | The local test server: the real server with an in-memory database and test people. |
-| `server/dev/e2e/` | End-to-end checks: one that talks to the server directly, four that drive real browsers. |
-| `web/` | The web app (was `chat-ui/`). |
-| `web/test/` | Automated web tests. |
+| `main.js` | Starts the server. |
+| `src/app.js`, `src/server.js` | Wire the pieces together (which routes exist, in what order). |
+| `src/config/` | Reads the environment settings. The only place that does. |
+| `src/routes/` | One file per area. Each line maps an address to a controller. No logic. |
+| `src/controllers/` | One file per area. Reads the request, calls services or models, sends the reply. |
+| `src/services/` | The rules: who may post, who may share a channel, access changes, calls, notifications, presence, digest, file storage, sign-in forwarding, session check. |
+| `src/models/` | Every database query. One file per table or topic. **No query lives anywhere else.** |
+| `src/middleware/` | Sign-in check, Management-only check, the one error handler, rate limits. |
+| `src/sockets/` | Live events: presence, typing, read receipts, call signalling. |
+| `src/utils/` | Small pure helpers: ids, file names, validators, mention parsing, message cleaning. |
+| `migrations/` | The three database files for the `chat` schema. |
+| `test/` | Automated tests. |
+| `dev/local.mjs`, `dev/e2e/` | The local test server and the end-to-end and browser checks. |
 
-The code is **not yet in the folder structure from `Architecture.md`**. It was moved unchanged on purpose. Reshaping is Phase 3.
+### Web app (`web/src/`)
+
+| Folder | What is in it |
+|---|---|
+| `main.tsx`, `App.tsx` | Start-up, sign-in gate, the list of pages. |
+| `pages/` | Whole screens: sign-in, chat, admin people, one person's access, restrictions, direct-message redirect. |
+| `components/` | Reusable pieces, grouped by area: `layout/`, `channel/`, `messages/`, `dialogs/`, `calls/`, `admin/`, `common/`. |
+| `context/` | Shared state: chat (`ChatProvider`, `chatContext`, `chatReducer`), calls (`CallProvider`, `callContext`, `callState`), sign-out. |
+| `hooks/` | Reusable screen logic. `hooks/actions/` holds the chat actions, grouped: channels, reading, writing, people. |
+| `services/` | **Every call to the server**: `chatApi`, `callApi`, `authApi`, `apiClient`, `socket`, `push`, plus `callManager` (the browser-to-browser call engine), `media`, `session`. |
+| `utils/` | Pure helpers: formatting, mentions, notification rules, presence, access, sound. |
+| `types/` | Shared TypeScript types. |
+| `config/` | Constants and the app's addresses (`routes.ts`). |
+| `styles/` | CSS, one file per area. `tokens.css` holds every colour and size. `theme.css` is applied last. |
+
+**Rule kept everywhere:** screens and hooks never call the server directly. They go through `services/`.
 
 ## How to run and test (on the developer's PC)
 
@@ -36,11 +58,11 @@ cd server && npm ci
 cd ../web && npm ci && npm run build
 
 # automated tests
-cd server && npm test                 # 353 tests
+cd server && npm test                    # 353 tests
 cd web && npm test && npx tsc --noEmit   # 107 tests + type check
 
 # local chat in a browser
-node server/dev/local.mjs             # http://localhost:5021
+node server/dev/local.mjs                # http://localhost:5021
 # sign in as m@x (Management), a@x, b@x, c@x, dee@x, eli@x or fay@x — password: local
 
 # end-to-end checks (start the local chat first; restart it between scripts for a clean database)
@@ -49,6 +71,9 @@ node server/dev/e2e/browser-notify.cjs   # 10 checks
 node server/dev/e2e/browser-calls.cjs    # 14 checks
 node server/dev/e2e/browser-polish.cjs   # 5 checks
 node server/dev/e2e/browser-admin.cjs    # 7 checks
+
+# formatting (settings in .prettierrc.json; run from the repository root)
+npx prettier@3 --write "server/**/*.{js,mjs,cjs}" "web/src/**/*.{ts,tsx,css}" "web/test/**/*.ts"
 ```
 
 The browser checks use the Microsoft Edge already installed on the PC.
@@ -70,7 +95,6 @@ The browser checks use the Microsoft Edge already installed on the PC.
 
 ## Blockers
 
-- None for the server: the developer's PC can reach it again (1 Oct).
 - **Router port forwarding** for calls from outside the office is with the server team (ports 3478 UDP+TCP and 49160–49200 UDP to 192.168.1.58).
 
 ## Things to know before changing code
@@ -80,8 +104,21 @@ The browser checks use the Microsoft Edge already installed on the PC.
 - **The permission "Team chat (beta)"** is defined in the CRM's own database files, not here. Chat only reads it.
 - **Calls are held in the server's memory** as well as the database. Run only one server process.
 - **A call belongs to one browser tab per person.** Requests carry that tab's connection id.
+- **Tests build small apps from the route files** (`createXRoutes({ db, emit, … })`). Keep that factory shape: routes take their dependencies as arguments.
 - **Dependencies added, with reasons:**
   - `playwright-core` (server, development only) — drives the real-browser checks using the installed Edge. No browser download.
+  - Prettier is run with `npx` and is not installed in the project.
+
+## Files that are still long, and why
+
+These were left whole on purpose. Splitting them would mean passing a lot of shared state around, which is harder to follow than one focused file.
+
+| File | Lines | Why it stays in one piece |
+|---|---|---|
+| `web/src/services/callManager.ts` | ~725 | One class that runs the browser-to-browser connections. Covered by 21 unit tests and the browser call checks. |
+| `server/src/services/calls/call.service.js` | ~495 | The call lifecycle on the server, built around one set of timers and locks. Covered by the call service tests. |
+| `web/src/context/chatReducer.ts` | ~394 | One pure function: every way the chat state can change. |
+| `web/src/context/CallProvider.tsx` | ~311 | Start, join and leave share the same handful of working values. |
 
 ## Known small issues (also listed in `Phases.md`)
 
@@ -90,10 +127,19 @@ The browser checks use the Microsoft Edge already installed on the PC.
 - Signing out during a call is tidied up by the server after 10 seconds, not at once.
 - A new restriction does not remove two people from a private channel they already share.
 - The search button is reported not working on the live site (Phase 5).
+- `addRestriction` in `models/restrictions.model.js` still checks its own input. Moving those checks into `services/access.service.js` would complete the split.
 
 ---
 
 ## Log
+
+### 1 Oct 2026 — Phase 3: code reshaped to the rules ✅
+- **Server:** every route file is now a short list of addresses. Request handling moved to `controllers/`, the rules to `services/`, and all database queries to `models/`. Sign-in checking is in `middleware/`. Shared helpers are in `utils/`.
+- **Web app:** screens are in `pages/`; components are grouped by area; the large chat state file was split into server calls (`services/chatApi.ts`), read-tracking, live events and four small action files; the call state file was split the same way; sign-in goes through a service. No screen or hook calls the server directly any more.
+- **Styles:** the single long CSS file became eleven files, one per area, with all colours and sizes in `tokens.css`.
+- **Removed:** the leftover CRM-embedding setting (`basePath`), three unused variables, and the last direct server calls in screens.
+- **Formatting:** all code formatted with Prettier (settings in `.prettierrc.json`); line endings fixed to LF (`.gitattributes`).
+- **Behaviour did not change.** Verified after the reshaping: server tests 353/353, web tests 107/107, strict type check clean, build succeeds, end-to-end 13/13, browser checks 10/10, 14/14, 5/5 and 7/7 with no browser errors, and a before/after screenshot comparison.
 
 ### 1 Oct 2026 — call fixes and colour theme deployed ✅
 - The connection from the developer's PC to the server came back. Deployed from the CRM repository (still the live source until Phase 4): the three call fixes and the colour theme are now live on chat2.
@@ -104,7 +150,6 @@ The browser checks use the Microsoft Edge already installed on the PC.
 - Copied from the CRM repository (`CRM-Finalised`, main at `aad009b9`): `chat-server/` → `server/`, `chat-ui/` → `web/`, and the three `chat_00x` database files → `server/migrations/`.
 - Only file paths were changed, so the code finds the renamed folders. No behaviour changed.
 - Added `.gitignore` and the `playwright-core` development dependency.
-- **Verified from this repository:** server tests 353/353, web tests 107/107, type check clean, build succeeds, end-to-end 13/13, browser checks 10/10, 14/14, 5/5 and 7/7 with no browser errors.
 - The history of earlier commits stays in the CRM repository; it was not copied.
 
 ### 1 Oct 2026 — Phase 1: project documents ✅

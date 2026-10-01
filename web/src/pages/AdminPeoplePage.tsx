@@ -35,7 +35,10 @@ function PersonRow({ person, onOpen }: { person: AdminUser; onOpen: () => void }
         {person.chatEnabled ? (
           <span className="pill on">On</span>
         ) : (
-          <span className="pill" title="Tick “Team chat (beta)” for this person in the CRM: Settings → user → Permissions">
+          <span
+            className="pill"
+            title="Tick “Team chat (beta)” for this person in the CRM: Settings → user → Permissions"
+          >
             Off
           </span>
         )}

@@ -99,7 +99,10 @@ export function AdminUserAccessPage() {
   const others = useMemo(() => (users || []).filter((u) => u.id !== userId), [users, userId]);
   const roles = useMemo(() => [...new Set(others.map((u) => u.role))].sort(), [others]);
   const shown = useMemo(() => filterPeople(others, query, role), [others, query, role]);
-  const access = useMemo(() => (userId === null ? new Map() : accessMap(userId, restrictions || [])), [userId, restrictions]);
+  const access = useMemo(
+    () => (userId === null ? new Map() : accessMap(userId, restrictions || [])),
+    [userId, restrictions],
+  );
 
   if (userId === null) return <Navigate to={paths.admin} replace />;
   const name = subject?.fullName || 'Person';
@@ -120,9 +123,17 @@ export function AdminUserAccessPage() {
 
   function changeAllShown(allow: boolean) {
     if (!shown.length) return;
-    const who = shown.length === others.length ? 'everyone' : `the ${shown.length} ${shown.length === 1 ? 'person' : 'people'} shown`;
+    const who =
+      shown.length === others.length
+        ? 'everyone'
+        : `the ${shown.length} ${shown.length === 1 ? 'person' : 'people'} shown`;
     const question = `${allow ? 'Allow' : 'Block'} ${name} ${allow ? 'to contact' : 'from contacting'} ${who}${bothWays ? ', both ways' : ''}?`;
-    if (window.confirm(question)) void change(shown.map((u) => u.id), 'all', allow);
+    if (window.confirm(question))
+      void change(
+        shown.map((u) => u.id),
+        'all',
+        allow,
+      );
   }
 
   const loading = users === null || restrictions === null;

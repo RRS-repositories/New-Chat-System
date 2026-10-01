@@ -25,25 +25,43 @@ export type Signal =
   | { type: 'state'; muted: boolean };
 
 export interface TrackLike {
-  kind: string; enabled: boolean; muted?: boolean; stop(): void;
-  onended?: ((ev?: any) => any) | null; onmute?: ((ev?: any) => any) | null; onunmute?: ((ev?: any) => any) | null;
+  kind: string;
+  enabled: boolean;
+  muted?: boolean;
+  stop(): void;
+  onended?: ((ev?: any) => any) | null;
+  onmute?: ((ev?: any) => any) | null;
+  onunmute?: ((ev?: any) => any) | null;
 }
-export interface StreamLike { getTracks(): TrackLike[]; getAudioTracks(): TrackLike[]; getVideoTracks(): TrackLike[] }
-export interface SenderLike { track?: TrackLike | null; replaceTrack?(track: TrackLike | null): Promise<void> }
+export interface StreamLike {
+  getTracks(): TrackLike[];
+  getAudioTracks(): TrackLike[];
+  getVideoTracks(): TrackLike[];
+}
+export interface SenderLike {
+  track?: TrackLike | null;
+  replaceTrack?(track: TrackLike | null): Promise<void>;
+}
 export interface TransceiverLike {
-  direction: string; stopped?: boolean;
+  direction: string;
+  stopped?: boolean;
   sender: { track?: TrackLike | null; replaceTrack(track: TrackLike | null): Promise<void> };
   receiver: { track: TrackLike | null };
 }
 export interface PeerLike {
-  signalingState: string; connectionState: string;
-  localDescription: SessionDesc | null; remoteDescription: SessionDesc | null;
+  signalingState: string;
+  connectionState: string;
+  localDescription: SessionDesc | null;
+  remoteDescription: SessionDesc | null;
   onnegotiationneeded: ((ev?: any) => any) | null;
   onicecandidate: ((ev: any) => any) | null;
   ontrack: ((ev: any) => any) | null;
   onconnectionstatechange: ((ev?: any) => any) | null;
   addTrack(track: TrackLike, ...streams: StreamLike[]): SenderLike;
-  addTransceiver(trackOrKind: TrackLike | string, init?: { direction?: string; streams?: StreamLike[] }): TransceiverLike;
+  addTransceiver(
+    trackOrKind: TrackLike | string,
+    init?: { direction?: string; streams?: StreamLike[] },
+  ): TransceiverLike;
   getTransceivers(): TransceiverLike[];
   setLocalDescription(desc?: SessionDesc): Promise<void>;
   setRemoteDescription(desc: SessionDesc): Promise<void>;
@@ -52,18 +70,26 @@ export interface PeerLike {
   close(): void;
 }
 export type IceServer = { urls: string | string[]; username?: string; credential?: string };
-export type JoinResult = { participants: Array<{ userId: number; userName: string; isSharingScreen?: boolean }>; iceServers: IceServer[] };
+export type JoinResult = {
+  participants: Array<{ userId: number; userName: string; isSharingScreen?: boolean }>;
+  iceServers: IceServer[];
+};
 
 export type PeerState = 'connecting' | 'connected' | 'lost';
 export type RemoteParticipant = {
-  userId: number; userName: string; state: PeerState; muted: boolean; sharing: boolean;
+  userId: number;
+  userName: string;
+  state: PeerState;
+  muted: boolean;
+  sharing: boolean;
   /** Their voice (play it in an <audio autoplay>). */
   audioTrack: TrackLike | null;
   /** Their shared screen while it is live (video track received and not muted/ended/stopped). */
   screenTrack: TrackLike | null;
 };
 export type CallSnapshot = { muted: boolean; sharing: boolean; participants: RemoteParticipant[] };
-export type ShareResult = { ok: true } | { ok: false; reason: 'cancelled' | 'busy' | 'failed' | 'not_in_call'; message: string };
+export type ShareResult =
+  { ok: true } | { ok: false; reason: 'cancelled' | 'busy' | 'failed' | 'not_in_call'; message: string };
 
 type Timers = { setTimeout: (fn: () => void, ms: number) => any; clearTimeout: (h: any) => void };
 export type CallManagerDeps = {
@@ -84,19 +110,36 @@ export type CallManagerDeps = {
 
 export class CallError extends Error {
   code: string;
-  constructor(code: string, message: string) { super(message); this.code = code; }
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
 }
 
 type TimerKey = 'lostTimer' | 'connectTimer' | 'waitTimer';
 type Peer = {
-  userId: number; userName: string; pc: PeerLike | null; polite: boolean;
+  userId: number;
+  userName: string;
+  pc: PeerLike | null;
+  polite: boolean;
   /** Built from my own join answer: I made the first offer. */
   initiator: boolean;
   /** false while waiting for their first offer: our own negotiationneeded is not acted on yet. */
-  ready: boolean; makingOffer: boolean; offering: Promise<void> | null; ignoreOffer: boolean; pending: unknown[];
-  restartTried: boolean; lostTimer: any; connectTimer: any; waitTimer: any;
-  state: PeerState; muted: boolean; sharing: boolean;
-  audioTrack: TrackLike | null; videoTrack: TrackLike | null; videoLive: boolean;
+  ready: boolean;
+  makingOffer: boolean;
+  offering: Promise<void> | null;
+  ignoreOffer: boolean;
+  pending: unknown[];
+  restartTried: boolean;
+  lostTimer: any;
+  connectTimer: any;
+  waitTimer: any;
+  state: PeerState;
+  muted: boolean;
+  sharing: boolean;
+  audioTrack: TrackLike | null;
+  videoTrack: TrackLike | null;
+  videoLive: boolean;
   /** The one video transceiver my screen goes out on (while sharing). */
   screenTx: TransceiverLike | null;
 };
@@ -118,7 +161,10 @@ export class CallManager {
    */
   private ownJoinSeen = false;
   /** Until the start/join answer arrives: participant joins and signals are kept here and applied after it. */
-  private early: { joined: Map<number, string>; signals: Array<[number, Signal]> } | null = { joined: new Map(), signals: [] };
+  private early: { joined: Map<number, string>; signals: Array<[number, Signal]> } | null = {
+    joined: new Map(),
+    signals: [],
+  };
 
   constructor(deps: CallManagerDeps) {
     this.deps = deps;
@@ -133,16 +179,36 @@ export class CallManager {
    */
   async connect(join: () => Promise<JoinResult>): Promise<JoinResult> {
     let mic: StreamLike;
-    try { mic = await this.deps.getMic(); }
-    catch { if (this.closed) throw new CallError('left', 'You left the call'); this.closed = true; throw new CallError('mic', MIC_MESSAGE); }
+    try {
+      mic = await this.deps.getMic();
+    } catch {
+      if (this.closed) throw new CallError('left', 'You left the call');
+      this.closed = true;
+      throw new CallError('mic', MIC_MESSAGE);
+    }
     this.mic = mic;
     // Left (or the call ended / moved to another tab) while the browser was asking: no request is sent.
-    if (this.closed) { this.stopLocal(); throw new CallError('left', 'You left the call'); }
-    if (!mic.getAudioTracks().length) { this.stopLocal(); this.closed = true; throw new CallError('mic', MIC_MESSAGE); }
+    if (this.closed) {
+      this.stopLocal();
+      throw new CallError('left', 'You left the call');
+    }
+    if (!mic.getAudioTracks().length) {
+      this.stopLocal();
+      this.closed = true;
+      throw new CallError('mic', MIC_MESSAGE);
+    }
     let result: JoinResult;
-    try { result = await join(); }
-    catch (e) { this.stopLocal(); this.closed = true; throw e; }
-    if (this.closed) { this.stopLocal(); throw new CallError('left', 'You left the call'); }
+    try {
+      result = await join();
+    } catch (e) {
+      this.stopLocal();
+      this.closed = true;
+      throw e;
+    }
+    if (this.closed) {
+      this.stopLocal();
+      throw new CallError('left', 'You left the call');
+    }
     this.iceServers = result.iceServers || [];
     this.offerToAll(result);
     return result;
@@ -153,7 +219,12 @@ export class CallManager {
     this.early = { joined: new Map(), signals: [] };
     this.ownJoinSeen = false;
     let result: JoinResult;
-    try { result = await join(); } catch (e) { this.early = null; throw e; }
+    try {
+      result = await join();
+    } catch (e) {
+      this.early = null;
+      throw e;
+    }
     if (this.closed) return result;
     this.iceServers = result.iceServers || this.iceServers;
     for (const p of [...this.peers.values()]) this.closePeer(p);
@@ -163,20 +234,25 @@ export class CallManager {
   }
 
   /** My own `call_participant_joined` arrived (or, for a call I started, the start answer did). */
-  markOwnJoin() { this.ownJoinSeen = true; }
+  markOwnJoin() {
+    this.ownJoinSeen = true;
+  }
 
   private offerToAll(result: JoinResult) {
     const listed = new Set<number>();
     for (const r of result.participants || []) {
       if (r.userId === this.deps.myUserId) continue;
       listed.add(r.userId);
-      const old = this.peers.get(r.userId); if (old) this.closePeer(old);
+      const old = this.peers.get(r.userId);
+      if (old) this.closePeer(old);
       const p = this.newPeer(r.userId, r.userName, true);
       p.sharing = !!r.isSharingScreen;
     }
     // Someone who joined after me (their event came before my join answer) offers to me: wait for it.
-    const early = this.early; this.early = null;
-    for (const [id, name] of early?.joined || []) if (!listed.has(id) && id !== this.deps.myUserId) this.newPeer(id, name, false);
+    const early = this.early;
+    this.early = null;
+    for (const [id, name] of early?.joined || [])
+      if (!listed.has(id) && id !== this.deps.myUserId) this.newPeer(id, name, false);
     this.changed();
     for (const [from, data] of early?.signals || []) this.handleSignal(from, data);
   }
@@ -184,15 +260,23 @@ export class CallManager {
   /** Closes every peer and stops every local track (the mic light goes off). Idempotent. The caller tells the server. */
   leave() {
     if (this.closed && !this.mic && !this.peers.size && !this.screen) return;
-    this.closed = true; this.early = null;
+    this.closed = true;
+    this.early = null;
     for (const p of this.peers.values()) this.closePeer(p);
     this.peers.clear();
-    if (this.screen) { const s = this.screen; this.screen = null; s.track.onended = null; for (const t of s.stream.getTracks()) this.safe('stop screen', () => t.stop()); }
+    if (this.screen) {
+      const s = this.screen;
+      this.screen = null;
+      s.track.onended = null;
+      for (const t of s.stream.getTracks()) this.safe('stop screen', () => t.stop());
+    }
     this.stopLocal();
     this.changed();
   }
 
-  get isClosed() { return this.closed; }
+  get isClosed() {
+    return this.closed;
+  }
 
   // ---- participants -------------------------------------------------------
 
@@ -203,7 +287,10 @@ export class CallManager {
    */
   addParticipant(userId: number, userName: string) {
     if (this.closed || userId === this.deps.myUserId) return;
-    if (this.early) { this.early.joined.set(userId, userName); return; }
+    if (this.early) {
+      this.early.joined.set(userId, userName);
+      return;
+    }
     const old = this.peers.get(userId);
     if (old && old.initiator && old.state !== 'lost' && !this.ownJoinSeen) return;
     if (old) this.closePeer(old);
@@ -214,7 +301,8 @@ export class CallManager {
   /** `call_participant_left`: only that peer goes. */
   removeParticipant(userId: number) {
     this.early?.joined.delete(userId);
-    const p = this.peers.get(userId); if (!p) return;
+    const p = this.peers.get(userId);
+    if (!p) return;
     this.closePeer(p);
     this.peers.delete(userId);
     this.changed();
@@ -222,7 +310,8 @@ export class CallManager {
 
   /** `call_screen_share_started|stopped` for someone else. */
   setRemoteSharing(userId: number, on: boolean) {
-    const p = this.peers.get(userId); if (!p) return;
+    const p = this.peers.get(userId);
+    if (!p) return;
     p.sharing = on;
     if (!on) p.videoLive = false;
     else if (p.videoTrack && !p.videoTrack.muted) p.videoLive = true;
@@ -234,14 +323,23 @@ export class CallManager {
   /** `webrtc_signal` from another participant. Unknown or lost senders are ignored; errors stay with that peer. */
   handleSignal(fromUserId: number, data: Signal) {
     if (this.closed || !data || typeof data !== 'object') return;
-    if (this.early) { if (this.early.signals.length < 500) this.early.signals.push([Number(fromUserId), data]); return; }
-    const p = this.peers.get(Number(fromUserId)); if (!p) return;
-    if (data.type === 'state') { p.muted = !!data.muted; this.changed(); return; }
+    if (this.early) {
+      if (this.early.signals.length < 500) this.early.signals.push([Number(fromUserId), data]);
+      return;
+    }
+    const p = this.peers.get(Number(fromUserId));
+    if (!p) return;
+    if (data.type === 'state') {
+      p.muted = !!data.muted;
+      this.changed();
+      return;
+    }
     this.onSignal(p, data).catch((e) => this.log(`signal from ${p.userId}`, e));
   }
 
   private async onSignal(p: Peer, data: Signal) {
-    const pc = p.pc; if (!pc) return;
+    const pc = p.pc;
+    if (!pc) return;
     if (data.type === 'description') {
       const description = data.description;
       const offerCollision = description.type === 'offer' && (p.makingOffer || pc.signalingState !== 'stable');
@@ -258,22 +356,35 @@ export class CallManager {
       await this.flushCandidates(p, pc);
       if (description.type === 'offer') {
         const first = !p.ready;
-        p.ready = true; this.clearTimer(p, 'waitTimer');
+        p.ready = true;
+        this.clearTimer(p, 'waitTimer');
         await pc.setLocalDescription();
-        if (p.pc === pc && pc.localDescription) this.send(p, { type: 'description', description: plainDesc(pc.localDescription) });
+        if (p.pc === pc && pc.localDescription)
+          this.send(p, { type: 'description', description: plainDesc(pc.localDescription) });
         if (first && p.pc === pc) this.addScreenTo(p);
       }
     } else if (data.type === 'candidate') {
-      if (!pc.remoteDescription) { p.pending.push(data.candidate); return; }
-      try { await pc.addIceCandidate(data.candidate); }
-      catch (e) { if (!p.ignoreOffer) throw e; }
+      if (!pc.remoteDescription) {
+        p.pending.push(data.candidate);
+        return;
+      }
+      try {
+        await pc.addIceCandidate(data.candidate);
+      } catch (e) {
+        if (!p.ignoreOffer) throw e;
+      }
     }
   }
 
   private async flushCandidates(p: Peer, pc: PeerLike) {
-    const queued = p.pending; p.pending = [];
+    const queued = p.pending;
+    p.pending = [];
     for (const c of queued) {
-      try { await pc.addIceCandidate(c); } catch (e) { this.log(`queued candidate for ${p.userId}`, e); }
+      try {
+        await pc.addIceCandidate(c);
+      } catch (e) {
+        this.log(`queued candidate for ${p.userId}`, e);
+      }
     }
   }
 
@@ -281,7 +392,10 @@ export class CallManager {
 
   setMuted(muted: boolean) {
     this.muted = muted;
-    for (const t of this.mic?.getAudioTracks() || []) this.safe('mute', () => { t.enabled = !muted; });
+    for (const t of this.mic?.getAudioTracks() || [])
+      this.safe('mute', () => {
+        t.enabled = !muted;
+      });
     for (const p of this.peers.values()) if (p.pc) this.send(p, { type: 'state', muted });
     this.changed();
   }
@@ -293,28 +407,44 @@ export class CallManager {
     this.sharePending = true;
     try {
       let stream: StreamLike;
-      try { stream = await this.deps.getDisplay(); }
-      catch { return { ok: false, reason: 'cancelled', message: 'Screen sharing was cancelled' }; }
+      try {
+        stream = await this.deps.getDisplay();
+      } catch {
+        return { ok: false, reason: 'cancelled', message: 'Screen sharing was cancelled' };
+      }
       const track = stream.getVideoTracks()[0];
-      const stopAll = () => { for (const t of stream.getTracks()) this.safe('stop capture', () => t.stop()); };
-      if (!track) { stopAll(); return { ok: false, reason: 'failed', message: 'No screen was captured' }; }
-      try { await this.deps.announceShare(true); }
-      catch (e: any) {
+      const stopAll = () => {
+        for (const t of stream.getTracks()) this.safe('stop capture', () => t.stop());
+      };
+      if (!track) {
+        stopAll();
+        return { ok: false, reason: 'failed', message: 'No screen was captured' };
+      }
+      try {
+        await this.deps.announceShare(true);
+      } catch (e: any) {
         stopAll();
         if (e?.code === 'already_sharing') return { ok: false, reason: 'busy', message: SHARE_BUSY_MESSAGE };
         return { ok: false, reason: 'failed', message: e?.message || 'Could not share your screen' };
       }
-      if (this.closed) { stopAll(); this.deps.announceShare(false).catch(() => {}); return { ok: false, reason: 'not_in_call', message: 'You are not in a call' }; }
+      if (this.closed) {
+        stopAll();
+        this.deps.announceShare(false).catch(() => {});
+        return { ok: false, reason: 'not_in_call', message: 'You are not in a call' };
+      }
       this.screen = { stream, track };
       track.onended = () => this.stopShare(); // the browser's own "Stop sharing" button
       for (const p of this.peers.values()) this.addScreenTo(p);
       this.changed();
       return { ok: true };
-    } finally { this.sharePending = false; }
+    } finally {
+      this.sharePending = false;
+    }
   }
 
   stopShare() {
-    const s = this.screen; if (!s) return;
+    const s = this.screen;
+    if (!s) return;
     this.screen = null;
     s.track.onended = null;
     for (const p of this.peers.values()) this.removeScreenFrom(p);
@@ -325,10 +455,16 @@ export class CallManager {
 
   snapshot(): CallSnapshot {
     return {
-      muted: this.muted, sharing: !!this.screen,
+      muted: this.muted,
+      sharing: !!this.screen,
       participants: [...this.peers.values()].map((p) => ({
-        userId: p.userId, userName: p.userName, state: p.state, muted: p.muted, sharing: p.sharing,
-        audioTrack: p.audioTrack, screenTrack: p.videoLive ? p.videoTrack : null,
+        userId: p.userId,
+        userName: p.userName,
+        state: p.state,
+        muted: p.muted,
+        sharing: p.sharing,
+        audioTrack: p.audioTrack,
+        screenTrack: p.videoLive ? p.videoTrack : null,
       })),
     };
   }
@@ -337,23 +473,51 @@ export class CallManager {
 
   private newPeer(userId: number, userName: string, initiator: boolean): Peer {
     const p: Peer = {
-      userId, userName, pc: null, polite: this.deps.myUserId > userId, initiator, ready: initiator, makingOffer: false, offering: null,
-      ignoreOffer: false, pending: [], restartTried: false, lostTimer: null, connectTimer: null, waitTimer: null,
-      state: 'connecting', muted: false, sharing: false, audioTrack: null, videoTrack: null, videoLive: false, screenTx: null,
+      userId,
+      userName,
+      pc: null,
+      polite: this.deps.myUserId > userId,
+      initiator,
+      ready: initiator,
+      makingOffer: false,
+      offering: null,
+      ignoreOffer: false,
+      pending: [],
+      restartTried: false,
+      lostTimer: null,
+      connectTimer: null,
+      waitTimer: null,
+      state: 'connecting',
+      muted: false,
+      sharing: false,
+      audioTrack: null,
+      videoTrack: null,
+      videoLive: false,
+      screenTx: null,
     };
     this.peers.set(userId, p);
     let pc: PeerLike;
-    try { pc = this.deps.createPeer(this.iceServers, userId); }
-    catch (e) { this.log(`create peer ${userId}`, e); p.state = 'lost'; return p; }
+    try {
+      pc = this.deps.createPeer(this.iceServers, userId);
+    } catch (e) {
+      this.log(`create peer ${userId}`, e);
+      p.state = 'lost';
+      return p;
+    }
     p.pc = pc;
     try {
       pc.onnegotiationneeded = () => this.negotiate(p, pc);
       pc.onicecandidate = (ev: any) => {
         if (p.pc !== pc || !ev?.candidate) return;
-        const c = ev.candidate; this.send(p, { type: 'candidate', candidate: typeof c.toJSON === 'function' ? c.toJSON() : c });
+        const c = ev.candidate;
+        this.send(p, { type: 'candidate', candidate: typeof c.toJSON === 'function' ? c.toJSON() : c });
       };
-      pc.ontrack = (ev: any) => { if (p.pc === pc) this.onTrack(p, ev.track); };
-      pc.onconnectionstatechange = () => { if (p.pc === pc) this.onConnState(p, pc); };
+      pc.ontrack = (ev: any) => {
+        if (p.pc === pc) this.onTrack(p, ev.track);
+      };
+      pc.onconnectionstatechange = () => {
+        if (p.pc === pc) this.onConnState(p, pc);
+      };
       for (const t of this.mic?.getAudioTracks() || []) pc.addTrack(t, this.mic!);
       this.addScreenTo(p);
       p.connectTimer = this.timers.setTimeout(() => {
@@ -384,26 +548,52 @@ export class CallManager {
     p.offering = (async () => {
       try {
         await pc.setLocalDescription();
-        if (p.pc === pc && pc.localDescription) this.send(p, { type: 'description', description: plainDesc(pc.localDescription) });
-      } catch (e) { this.log(`offer to ${p.userId}`, e); }
-      finally { p.makingOffer = false; p.offering = null; }
+        if (p.pc === pc && pc.localDescription)
+          this.send(p, { type: 'description', description: plainDesc(pc.localDescription) });
+      } catch (e) {
+        this.log(`offer to ${p.userId}`, e);
+      } finally {
+        p.makingOffer = false;
+        p.offering = null;
+      }
     })();
   }
 
   /** Audio = their voice; video = their shared screen, live while not muted/ended (a failed share-off request cannot leave a frozen frame). */
   private onTrack(p: Peer, track: TrackLike) {
-    if (track.kind !== 'video') { p.audioTrack = track; this.changed(); return; }
+    if (track.kind !== 'video') {
+      p.audioTrack = track;
+      this.changed();
+      return;
+    }
     p.videoTrack = track;
     p.videoLive = track.muted !== true;
-    track.onmute = () => { if (p.videoTrack === track && p.videoLive) { p.videoLive = false; this.changed(); } };
-    track.onunmute = () => { if (p.videoTrack === track && !p.videoLive) { p.videoLive = true; this.changed(); } };
-    track.onended = () => { if (p.videoTrack === track) { p.videoTrack = null; p.videoLive = false; this.changed(); } };
+    track.onmute = () => {
+      if (p.videoTrack === track && p.videoLive) {
+        p.videoLive = false;
+        this.changed();
+      }
+    };
+    track.onunmute = () => {
+      if (p.videoTrack === track && !p.videoLive) {
+        p.videoLive = true;
+        this.changed();
+      }
+    };
+    track.onended = () => {
+      if (p.videoTrack === track) {
+        p.videoTrack = null;
+        p.videoLive = false;
+        this.changed();
+      }
+    };
     this.changed();
   }
 
   /** Sends my screen to this peer on its one video transceiver (reused, or created the first time). */
   private addScreenTo(p: Peer) {
-    const s = this.screen; const pc = p.pc;
+    const s = this.screen;
+    const pc = p.pc;
     if (!s || !pc || !p.ready || p.screenTx) return;
     try {
       const tr = pc.getTransceivers().find((t) => !t.stopped && t.receiver?.track?.kind === 'video');
@@ -414,35 +604,51 @@ export class CallManager {
       } else {
         p.screenTx = pc.addTransceiver(s.track, { direction: 'sendrecv', streams: [s.stream] });
       }
-    } catch (e) { this.log(`share screen with ${p.userId}`, e); }
+    } catch (e) {
+      this.log(`share screen with ${p.userId}`, e);
+    }
   }
 
   private removeScreenFrom(p: Peer) {
-    const tr = p.screenTx; p.screenTx = null;
+    const tr = p.screenTx;
+    p.screenTx = null;
     if (!tr || !p.pc) return;
     try {
       tr.direction = 'recvonly';
       tr.sender.replaceTrack(null).catch((e) => this.log(`unshare screen with ${p.userId}`, e));
-    } catch (e) { this.log(`unshare screen with ${p.userId}`, e); }
+    } catch (e) {
+      this.log(`unshare screen with ${p.userId}`, e);
+    }
   }
 
   private onConnState(p: Peer, pc: PeerLike) {
     const st = pc.connectionState;
     if (st === 'connected') {
-      this.clearTimer(p, 'lostTimer'); this.clearTimer(p, 'connectTimer');
+      this.clearTimer(p, 'lostTimer');
+      this.clearTimer(p, 'connectTimer');
       p.restartTried = false;
-      if (p.state !== 'connected') { p.state = 'connected'; this.send(p, { type: 'state', muted: this.muted }); this.changed(); }
+      if (p.state !== 'connected') {
+        p.state = 'connected';
+        this.send(p, { type: 'state', muted: this.muted });
+        this.changed();
+      }
       return;
     }
     if (st === 'disconnected' || st === 'failed') {
-      if (!p.restartTried) { p.restartTried = true; this.safe(`ICE restart ${p.userId}`, () => pc.restartIce()); }
+      if (!p.restartTried) {
+        p.restartTried = true;
+        this.safe(`ICE restart ${p.userId}`, () => pc.restartIce());
+      }
       if (!p.lostTimer) {
         p.lostTimer = this.timers.setTimeout(() => {
           p.lostTimer = null;
           if (p.pc === pc && pc.connectionState !== 'connected') this.markLost(p);
         }, this.deps.lostAfterMs ?? 10_000);
       }
-      if (p.state === 'connected') { p.state = 'connecting'; this.changed(); }
+      if (p.state === 'connected') {
+        p.state = 'connecting';
+        this.changed();
+      }
     }
   }
 
@@ -453,15 +659,30 @@ export class CallManager {
   }
 
   private closePeer(p: Peer) {
-    this.clearTimer(p, 'lostTimer'); this.clearTimer(p, 'connectTimer'); this.clearTimer(p, 'waitTimer');
-    const pc = p.pc; p.pc = null; p.screenTx = null; p.audioTrack = null; p.videoTrack = null; p.videoLive = false; p.pending = [];
+    this.clearTimer(p, 'lostTimer');
+    this.clearTimer(p, 'connectTimer');
+    this.clearTimer(p, 'waitTimer');
+    const pc = p.pc;
+    p.pc = null;
+    p.screenTx = null;
+    p.audioTrack = null;
+    p.videoTrack = null;
+    p.videoLive = false;
+    p.pending = [];
     if (!pc) return;
-    pc.onnegotiationneeded = null; pc.onicecandidate = null; pc.ontrack = null; pc.onconnectionstatechange = null;
+    pc.onnegotiationneeded = null;
+    pc.onicecandidate = null;
+    pc.ontrack = null;
+    pc.onconnectionstatechange = null;
     this.safe(`close peer ${p.userId}`, () => pc.close());
   }
 
   private clearTimer(p: Peer, key: TimerKey) {
-    if (p[key]) { const h = p[key]; p[key] = null; this.safe('clear timer', () => this.timers.clearTimeout(h)); }
+    if (p[key]) {
+      const h = p[key];
+      p[key] = null;
+      this.safe('clear timer', () => this.timers.clearTimeout(h));
+    }
   }
 
   private send(p: Peer, data: Signal) {
@@ -474,15 +695,27 @@ export class CallManager {
   }
 
   private safe(what: string, fn: () => void) {
-    try { fn(); } catch (e) { this.log(what, e); }
+    try {
+      fn();
+    } catch (e) {
+      this.log(what, e);
+    }
   }
 
   private log(what: string, e?: unknown) {
-    try { (this.deps.log ?? ((w, err) => console.warn(`[call] ${w}`, (err as any)?.message || err)))(what, e); } catch { /* never */ }
+    try {
+      (this.deps.log ?? ((w, err) => console.warn(`[call] ${w}`, (err as any)?.message || err)))(what, e);
+    } catch {
+      /* never */
+    }
   }
 
   private changed() {
-    try { this.deps.onChange(this.snapshot()); } catch (e) { this.log('onChange', e); }
+    try {
+      this.deps.onChange(this.snapshot());
+    } catch (e) {
+      this.log('onChange', e);
+    }
   }
 }
 

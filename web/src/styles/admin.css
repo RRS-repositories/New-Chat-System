@@ -1,0 +1,122 @@
+/* The admin pages: people list, per-person permissions, restrictions. */
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+.admin-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+.admin-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 720px;
+}
+.admin-form h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.admin-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.admin-table-wrap {
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.admin-foot {
+  margin: 0;
+  max-width: 720px;
+}
+.admin-tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: 12px;
+}
+.admin-tab {
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-2);
+}
+.admin-tab:hover {
+  background: var(--hover);
+}
+.admin-tab.active {
+  color: var(--accent);
+  background: var(--hover);
+}
+.admin-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.admin-filters input,
+.admin-filters select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.admin-search {
+  min-width: 220px;
+}
+.admin-tools {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.admin-summary {
+  margin: 0;
+}
+.admin-row {
+  cursor: pointer;
+}
+.admin-row:hover,
+.admin-row:focus {
+  background: var(--hover);
+  outline: none;
+}
+.admin-table th.center,
+.admin-table td.center {
+  text-align: center;
+}
+.admin-table td input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+}
+.admin-table tr.restricted td:first-child {
+  box-shadow: inset 2px 0 0 #dc2626;
+}

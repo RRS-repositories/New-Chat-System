@@ -28,7 +28,16 @@ type Props = {
  * Holds everything the chat screens share: channels, messages, presence and preferences, kept up
  * to date by the live connection, plus the actions screens use to change them.
  */
-export function ChatProvider({ api, socket, user, getToken, currentChannelId, setCurrentChannelId, onAuthError, children }: Props) {
+export function ChatProvider({
+  api,
+  socket,
+  user,
+  getToken,
+  currentChannelId,
+  setCurrentChannelId,
+  onAuthError,
+  children,
+}: Props) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const stateRef = useLatest(state);
   const currentChannelRef = useLatest(currentChannelId);
@@ -37,12 +46,18 @@ export function ChatProvider({ api, socket, user, getToken, currentChannelId, se
   const chatApi = useMemo(() => createChatApi({ api, getToken, onAuthError }), [api, getToken, onAuthError]);
 
   const { looking, lookingRef, notLookingSince } = useAttention();
-  usePresence({ api, socket, dispatch, looking, notLookingSince });
+  usePresence({ chatApi, socket, dispatch, looking, notLookingSince });
   useEffect(() => {
     void restorePush(api);
   }, [api]);
 
-  const { markRead, markReadIfLooking, pendingRead } = useReadTracking({ socket, dispatch, looking, lookingRef, currentChannelRef });
+  const { markRead, markReadIfLooking, pendingRead } = useReadTracking({
+    socket,
+    dispatch,
+    looking,
+    lookingRef,
+    currentChannelRef,
+  });
   const { actions, loadChannels, fetchNewest, loadPins } = useChatActions({
     chatApi,
     socket,
