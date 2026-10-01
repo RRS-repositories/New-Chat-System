@@ -156,6 +156,13 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 1 Oct 2026 — technical reference written ✅
+- The owner asked for one file describing everything implemented, with the technical detail. It is `IMPLEMENTATION.md` at the top of the repository.
+- It covers: what is live and what is waiting, how the pieces fit, libraries and versions, folder layout, sign-in and access, every database table, every address, every live event, each feature, the web app, security, limits, settings, running it, tests, known issues, history.
+- Every figure in it was checked against the code and the server on the day it was written. Anything merged in pull request #9 but not yet deployed is marked.
+- **Keep it up to date:** when a feature, address, table, limit or setting changes, change that file in the same pull request.
+- It holds no secret and no server address beyond what `deploy/SERVER.md` already has (the repository is public).
+
 ### 1 Oct 2026 — security items from the checklist review ✅ (not deployed yet)
 The owner gave a security checklist (kept in `Tasks/`, which is not in git). Checked against the chat, four gaps applied to it. All four are fixed in one pull request:
 - **Per-person IP restriction.** A manager can limit a person to certain addresses in the CRM. The CRM now enforces that, and the chat does too: on every request, when a live connection starts, and at the once-a-minute re-check. Nobody has a restriction saved today, so nobody is affected until a manager sets one. Switch: `IP_RESTRICTION_ENFORCE=false` in the chat's settings file only logs what would be refused.
