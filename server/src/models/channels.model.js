@@ -64,11 +64,65 @@ export async function getChannel(db, channelId) {
 }
 
 export async function isMember(db, channelId, userId) {
-  const { rows } = await db.query(`SELECT 1 AS ok FROM chat.channel_members WHERE channel_id = $1 AND user_id = $2`, [
-    channelId,
-    userId,
-  ]);
+  // An archived channel has no members as far as the chat is concerned: nothing in it can be read or posted.
+  const { rows } = await db.query(
+    `SELECT 1 AS ok FROM chat.channel_members WHERE channel_id = $1 AND user_id = $2
+        AND EXISTS (SELECT 1 FROM chat.channels c WHERE c.id = $1 AND c.archived_at IS NULL)`,
+    [channelId, userId],
+  );
   return rows.length > 0;
+}
+
+export const NAME_MAX = 80;
+export const PURPOSE_MAX = 250;
+
+/** Changes a channel's shown name and/or purpose (its internal name stays). Returns the channel, or null if it is gone. */
+export async function updateChannel(db, channelId, { displayName, purpose, actorId }) {
+  const changes = {};
+  if (displayName !== undefined) {
+    const name = String(displayName ?? '').trim();
+    if (!name || name.length > NAME_MAX) throw fail('bad_name', `A channel name needs 1 to ${NAME_MAX} characters`);
+    changes.display_name = name;
+  }
+  if (purpose !== undefined) {
+    const text = String(purpose ?? '').trim();
+    if (text.length > PURPOSE_MAX) throw fail('bad_purpose', `A purpose can be up to ${PURPOSE_MAX} characters`);
+    changes.purpose = text;
+  }
+  const columns = Object.keys(changes);
+  if (!columns.length) throw fail('nothing_to_change', 'Give a new name or purpose');
+  const sets = columns.map((column, i) => `${column} = $${i + 2}`).join(', ');
+  const { rowCount } = await db.query(
+    `UPDATE chat.channels SET ${sets}, updated_at = now() WHERE id = $1 AND archived_at IS NULL`,
+    [channelId, ...columns.map((column) => changes[column])],
+  );
+  if (!rowCount) return null;
+  await db.query(
+    `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'channel.rename', 'channel', $2, $3)`,
+    [actorId, channelId, JSON.stringify(changes)],
+  );
+  return getChannel(db, channelId);
+}
+
+/** Hides a channel from everyone. Its messages stay in the database. False when it was already archived. */
+export async function archiveChannel(db, channelId, { actorId, reason = 'archived' }) {
+  const { rowCount } = await db.query(
+    `UPDATE chat.channels SET archived_at = now(), updated_at = now() WHERE id = $1 AND archived_at IS NULL`,
+    [channelId],
+  );
+  if (!rowCount) return false;
+  await db.query(
+    `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'channel.archive', 'channel', $2, $3)`,
+    [actorId, channelId, JSON.stringify({ reason })],
+  );
+  return true;
+}
+
+export async function countMembers(db, channelId) {
+  const { rows } = await db.query(`SELECT count(*)::int AS n FROM chat.channel_members WHERE channel_id = $1`, [
+    channelId,
+  ]);
+  return rows[0].n;
 }
 
 const cleanIds = (ids) => [...new Set((ids || []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];

@@ -133,3 +133,32 @@ mark.hit {
   color: inherit;
   padding: 0 1px;
 }
+
+/* Channel housekeeping in the details panel: rename, leave, archive. */
+.chan-options {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+.chan-options-form {
+  display: grid;
+  gap: 8px;
+}
+.chan-options textarea {
+  resize: vertical;
+  font: inherit;
+}
+.chan-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--hover);
+}
+.chan-confirm p {
+  margin: 0;
+}
+.chan-purpose {
+  margin: 0;
+}

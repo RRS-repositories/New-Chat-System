@@ -5,7 +5,7 @@ import type { Channel, ChannelNotifyPref } from '../../types/index.ts';
 import type { ActionDeps } from './actionDeps.ts';
 
 /** Actions on channels: listing, creating, joining, members and the per-channel notification level. */
-export function useChannelActions({ chatApi, socket, dispatch, stateRef }: ActionDeps) {
+export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }: ActionDeps) {
   // Someone not switched on for chat is refused on every call: show the "not enabled" screen
   // instead of treating it as a sign-in problem.
   const loadChannels = useCallback(async () => {
@@ -60,5 +60,40 @@ export function useChannelActions({ chatApi, socket, dispatch, stateRef }: Actio
     [chatApi, dispatch, stateRef],
   );
 
-  return { loadChannels, createChannel, openDm, joinChannel, browseChannels, loadMembers, setChannelNotify };
+  const renameChannel = useCallback(
+    async (channelId: string, change: { displayName?: string; purpose?: string }) => {
+      dispatch({ type: 'channel_upsert', channel: await chatApi.updateChannel(channelId, change) });
+    },
+    [chatApi, dispatch],
+  );
+
+  /** The channel goes from this person's list at once; the server tells the others. */
+  const leaveChannel = useCallback(
+    async (channelId: string) => {
+      await chatApi.leaveChannel(channelId, user.id);
+      dispatch({ type: 'channel_removed', channelId });
+    },
+    [chatApi, dispatch, user.id],
+  );
+
+  const archiveChannel = useCallback(
+    async (channelId: string) => {
+      await chatApi.archiveChannel(channelId);
+      dispatch({ type: 'channel_removed', channelId });
+    },
+    [chatApi, dispatch],
+  );
+
+  return {
+    loadChannels,
+    createChannel,
+    openDm,
+    joinChannel,
+    browseChannels,
+    loadMembers,
+    setChannelNotify,
+    renameChannel,
+    leaveChannel,
+    archiveChannel,
+  };
 }

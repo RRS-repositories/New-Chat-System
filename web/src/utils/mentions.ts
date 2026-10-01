@@ -16,13 +16,25 @@ export function mentionQueryAt(text: string, caret: number): { start: number; qu
   return { start: caret - m[2]!.length - 1, query: m[2]! };
 }
 
+const mentionPatterns = new WeakMap<string[], RegExp>();
+/** The pattern that finds @Name for a list of names. Kept per list: it is costly to build and used for every message. */
+function mentionPattern(names: string[]): RegExp {
+  let re = mentionPatterns.get(names);
+  if (!re) {
+    const tokens = [...names]
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length)
+      .map(esc)
+      .concat(['all', 'channel']);
+    re = new RegExp(`@(?:${tokens.join('|')})(?![\\w])`, 'gi');
+    mentionPatterns.set(names, re);
+  }
+  return re;
+}
+
 export function renderWithMentions(content: string, names: string[]): Array<{ text: string; mention: boolean }> {
-  const tokens = [...names]
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length)
-    .map(esc)
-    .concat(['all', 'channel']);
-  const re = new RegExp(`@(?:${tokens.join('|')})(?![\\w])`, 'gi');
+  if (!content.includes('@')) return content ? [{ text: content, mention: false }] : [];
+  const re = mentionPattern(names);
   const out: Array<{ text: string; mention: boolean }> = [];
   let last = 0;
   for (const m of content.matchAll(re)) {

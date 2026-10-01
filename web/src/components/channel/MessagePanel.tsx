@@ -5,29 +5,17 @@ import { FileList } from '../messages/FileAttachment.tsx';
 import type { MessageInputHandle } from '../messages/MessageInput.tsx';
 import { useChat } from '../../context/chatContext.ts';
 import type { Message } from '../../types/index.ts';
-import { renderWithMentions } from '../../utils/mentions.ts';
+import { renderRich } from '../messages/RichText.tsx';
 import { presenceOf } from '../../utils/presence.ts';
 
-/** Render message text with @mentions highlighted. Text only — never HTML. */
+/** Message text on screen: links, bold, code, lists and @mentions. Built from text pieces — never HTML. */
 export function useMentionRenderer(channelId: string | null): (content: string) => ReactNode {
   const { state } = useChat();
   const names = useMemo(
     () => (channelId ? (state.membersByChannel[channelId] || []).map((m) => m.fullName) : []),
     [state.membersByChannel, channelId],
   );
-  return useCallback(
-    (content: string) =>
-      renderWithMentions(content, names).map((p, i) =>
-        p.mention ? (
-          <span key={i} className="mention">
-            {p.text}
-          </span>
-        ) : (
-          <span key={i}>{p.text}</span>
-        ),
-      ),
-    [names],
-  );
+  return useCallback((content: string) => renderRich(content, names), [names]);
 }
 import { ChannelHeader } from './ChannelHeader.tsx';
 import { MessageFeed } from '../messages/MessageFeed.tsx';

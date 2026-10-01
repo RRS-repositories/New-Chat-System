@@ -9,7 +9,11 @@ import {
   listMembers,
   markRead,
   ensureDefaultMembership,
+  updateChannel,
+  archiveChannel,
+  countMembers,
 } from '../models/channels.model.js';
+import { getLiveCall } from '../models/calls.model.js';
 import { isBlocked, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
 import { assertMember, assertCanShareChannel, canModerate } from '../services/channels.service.js';
 import { toIds } from '../utils/ids.js';
@@ -22,6 +26,13 @@ export function createChannelController({ db, emit }) {
     const channel = await getChannel(db, channelId);
     if (!channel) throw httpError(404, 'not_found', 'Channel not found');
     return channel;
+  };
+
+  // General is the one channel everyone is always in, and a direct message is fixed between two people.
+  const mustBeOrdinary = (channel) => {
+    if (channel.type === 'dm') throw httpError(403, 'dm_fixed', 'A direct message is between two people');
+    if (channel.name === 'general' && channel.type === 'public')
+      throw httpError(403, 'default_channel', 'Everyone stays in General');
   };
 
   return {
@@ -88,11 +99,45 @@ export function createChannelController({ db, emit }) {
       res.json({ success: true, added: inserted.length });
     }),
 
+    /** The shown name and the purpose. Channel owner or admin, or Management. */
+    update: wrap(async (req, res) => {
+      const channelId = req.params.id;
+      await assertMember(db, channelId, req.user.id);
+      const current = await channelOr404(channelId);
+      if (current.type === 'dm') throw httpError(403, 'dm_fixed', 'A direct message is between two people');
+      if (!(await canModerate(db, channelId, req.user)))
+        throw httpError(403, 'forbidden', 'Only channel admins can change the channel');
+      const channel = await updateChannel(db, channelId, {
+        displayName: req.body?.displayName,
+        purpose: req.body?.purpose,
+        actorId: req.user.id,
+      });
+      if (!channel) throw httpError(404, 'not_found', 'Channel not found');
+      emit.toChannel(channelId, 'channel_updated', { channel });
+      res.json({ success: true, channel });
+    }),
+
+    /** Hides the channel for everyone; its messages are kept. Channel owner or admin, or Management. */
+    archive: wrap(async (req, res) => {
+      const channelId = req.params.id;
+      await assertMember(db, channelId, req.user.id);
+      mustBeOrdinary(await channelOr404(channelId));
+      if (!(await canModerate(db, channelId, req.user)))
+        throw httpError(403, 'forbidden', 'Only channel admins can archive the channel');
+      if (await getLiveCall(db, channelId))
+        throw httpError(409, 'call_in_progress', 'A call is going on in this channel. End it first.');
+      await archiveChannel(db, channelId, { actorId: req.user.id });
+      emit.toChannel(channelId, 'channel_archived', { channel_id: channelId });
+      res.json({ success: true });
+    }),
+
     /** Anyone may leave; removing someone else needs a channel admin or Management. */
     removeMember: wrap(async (req, res) => {
       const channelId = req.params.id;
       await assertMember(db, channelId, req.user.id);
       const target = parseInt(req.params.userId, 10);
+      const channel = await channelOr404(channelId);
+      mustBeOrdinary(channel);
       if (target !== req.user.id && !(await canModerate(db, channelId, req.user))) {
         throw httpError(403, 'forbidden', 'Only channel admins can remove members');
       }
@@ -100,6 +145,9 @@ export function createChannelController({ db, emit }) {
       emit.leaveRoom?.(target, channelId);
       emit.toChannel(channelId, 'member_removed', { channel_id: channelId, user_id: target });
       emit.toUser(target, 'member_removed', { channel_id: channelId, user_id: target });
+      // Nobody is left to read or reopen a private channel: archive it instead of leaving an orphan.
+      if (channel.type !== 'public' && (await countMembers(db, channelId)) === 0)
+        await archiveChannel(db, channelId, { actorId: req.user.id, reason: 'last member left' });
       res.json({ success: true });
     }),
 

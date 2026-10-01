@@ -154,6 +154,11 @@ export function useChatSocketEvents(deps: Deps): void {
           if (p.user_id === user.id) dispatch({ type: 'channel_removed', channelId: p.channel_id });
         },
       ],
+      // Someone archived a channel this person is in: it leaves their list.
+      [
+        'channel_archived',
+        (p: { channel_id: string }) => dispatch({ type: 'channel_removed', channelId: p.channel_id }),
+      ],
       [
         'message_pinned',
         (p: { message_id: string; channel_id: string; pinned_by: number }) => {

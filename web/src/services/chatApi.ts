@@ -56,6 +56,12 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
     browseChannels: async () => (await api.get<{ channels: BrowseChannel[] }>('/api/chat/channels/browse')).channels,
     joinChannel: async (channelId: string) =>
       (await api.post<{ channel: Channel }>(`/api/chat/channels/${id(channelId)}/join`)).channel,
+    /** Change the shown name and/or the purpose (channel owner or admin, or Management). */
+    updateChannel: async (channelId: string, change: { displayName?: string; purpose?: string }) =>
+      (await api.patch<{ channel: Channel }>(`/api/chat/channels/${channelId}`, change)).channel,
+    /** Hide the channel for everyone; its messages are kept. */
+    archiveChannel: (channelId: string) => api.post(`/api/chat/channels/${channelId}/archive`),
+    leaveChannel: (channelId: string, userId: number) => api.del(`/api/chat/channels/${channelId}/members/${userId}`),
     members: async (channelId: string) =>
       (await api.get<{ members: ChannelMember[] }>(`/api/chat/channels/${channelId}`)).members,
     setChannelNotify: (channelId: string, pref: ChannelNotifyPref) =>

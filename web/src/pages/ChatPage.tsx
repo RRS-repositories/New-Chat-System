@@ -29,10 +29,16 @@ export function ChatPage({ details = false }: { details?: boolean }) {
     goToChannel(state.channels.find((c) => c.id === last)?.id || state.channels[0]!.id);
   }, [channelId, state.channels, goToChannel]);
 
+  // The open channel left this person's list (they left it, it was archived, or they were removed): go home.
+  useEffect(() => {
+    if (channelId && state.channels.length && !state.channels.some((c) => c.id === channelId)) navigate(paths.home);
+  }, [channelId, state.channels, navigate]);
+
   const backToChannel = () => channelId && navigate(paths.channel(channelId));
   let panel;
   if (channelId && messageId) panel = <ThreadPanel rootId={messageId} channelId={channelId} onClose={backToChannel} />;
-  else if (channelId && details) panel = <ChannelDetailsPanel channelId={channelId} onClose={backToChannel} />;
+  else if (channelId && details)
+    panel = <ChannelDetailsPanel channelId={channelId} onClose={backToChannel} onGone={() => navigate(paths.home)} />;
 
   return (
     <AppShell

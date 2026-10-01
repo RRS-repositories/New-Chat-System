@@ -6,9 +6,22 @@ import { formatBytes } from '../../utils/files.ts';
 import { formatTime } from '../../utils/format.ts';
 import { presenceOf } from '../../utils/presence.ts';
 import { PresenceDot, StatusBadge } from '../common/PresenceDot.tsx';
-export function ChannelDetailsPanel({ channelId, onClose }: { channelId: string; onClose: () => void }) {
+import { ChannelOptions } from './ChannelOptions.tsx';
+import { useCanModerate } from './MessagePanel.tsx';
+
+type Props = {
+  channelId: string;
+  onClose: () => void;
+  /** The channel left this person's list (they left it, or it was archived). */
+  onGone: () => void;
+};
+
+export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
   const { state, actions } = useChat();
-  const [tab, setTab] = useState<'members' | 'files'>('members');
+  const [tab, setTab] = useState<'members' | 'files' | 'options'>('members');
+  const channel = state.channels.find((c) => c.id === channelId);
+  const canManage = useCanModerate(channelId);
+  const hasOptions = !!channel && channel.type !== 'dm';
   const [files, setFiles] = useState<ChannelFileRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,6 +75,15 @@ export function ChannelDetailsPanel({ channelId, onClose }: { channelId: string;
         <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>
           Files
         </button>
+        {hasOptions && (
+          <button
+            className={tab === 'options' ? 'active' : ''}
+            data-testid="channel-options-tab"
+            onClick={() => setTab('options')}
+          >
+            Options
+          </button>
+        )}
       </div>
       <div className="feed">
         {tab === 'members' &&
@@ -73,6 +95,9 @@ export function ChannelDetailsPanel({ channelId, onClose }: { channelId: string;
               <span className="muted"> · {m.channelRole === 'owner' ? 'owner' : m.role}</span>
             </div>
           ))}
+        {tab === 'options' && channel && hasOptions && (
+          <ChannelOptions key={channel.id} channel={channel} canManage={canManage} onGone={onGone} />
+        )}
         {tab === 'files' && (
           <>
             {files.map((f) => (

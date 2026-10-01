@@ -309,3 +309,45 @@
   outline: 2px dashed var(--accent);
   outline-offset: -4px;
 }
+
+/* Formatted message text: links, code, lists. */
+.msg-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.msg-link:hover {
+  color: var(--accent-strong);
+}
+.msg-inline-code,
+.msg-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.msg-inline-code {
+  padding: 0 4px;
+}
+.msg-code {
+  margin: 4px 0;
+  padding: 8px 10px;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre;
+}
+.msg-list {
+  margin: 2px 0;
+  padding-left: 22px;
+  white-space: normal;
+}
+.input-hint {
+  margin: 2px 12px 6px;
+  font-size: 11px;
+}
+@media (max-width: 720px) {
+  .input-hint {
+    display: none;
+  }
+}

@@ -32,6 +32,10 @@ export type ChatActions = {
   openDm: (userId: number) => Promise<Channel>;
   browseChannels: () => Promise<BrowseChannel[]>;
   joinChannel: (channelId: string) => Promise<Channel>;
+  renameChannel: (channelId: string, change: { displayName?: string; purpose?: string }) => Promise<void>;
+  leaveChannel: (channelId: string) => Promise<void>;
+  /** Hides the channel for everyone; its messages are kept. */
+  archiveChannel: (channelId: string) => Promise<void>;
   typing: (channelId: string) => void;
   markRead: (channelId: string) => void;
   reply: (message: Message | null) => void;

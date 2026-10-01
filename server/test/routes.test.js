@@ -234,6 +234,12 @@ test('DELETE /channels/:id/members/:userId leaves the room for the removed user'
         { id: 7, full_name: 'Ann', role: 'cs_agent', channel_role: 'owner' },
         { id: 9, full_name: 'Zed', role: 'Sales', channel_role: 'member' },
       ],
+      // The channel is looked up first (nobody leaves General or a direct message)…
+      'FROM chat\\.channels c WHERE c\\.id = \\$1 AND c\\.archived_at IS NULL': [
+        { id: 'c1', name: 'team', display_name: 'Team', type: 'private', purpose: '', header: '', member_count: '2' },
+      ],
+      // …and counted afterwards (a private channel nobody is left in gets archived).
+      'SELECT count\\(\\*\\)::int AS n FROM chat\\.channel_members WHERE channel_id': [{ n: 1 }],
     },
   });
   const r = await request(app(db, emitted)).delete('/api/chat/channels/c1/members/9').set('Authorization', token(7));

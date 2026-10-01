@@ -194,6 +194,9 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
           <Send size={18} />
         </button>
       </div>
+      <p className="input-hint muted" aria-hidden="true">
+        **bold** · `code` · - list · links become clickable · Shift+Enter for a new line
+      </p>
     </div>
   );
 });
