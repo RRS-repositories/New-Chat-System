@@ -1,4 +1,4 @@
-import { getChannel } from './channels.js';
+import { getChannel } from './channels.model.js';
 
 const fail = (code, message, status) => Object.assign(new Error(message), { code, status });
 

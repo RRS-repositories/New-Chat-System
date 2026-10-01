@@ -6,10 +6,10 @@
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import { createApp } from './app.js';
-import { attachSocket } from './socket/index.js';
-import { createPresence } from './presence/registry.js';
-import { createNotifier } from './notify/index.js';
-import { createCallService } from './calls/service.js';
+import { attachSocket } from './sockets/index.js';
+import { createPresence } from './services/presence/registry.js';
+import { createNotifier } from './services/notifications/notifier.js';
+import { createCallService } from './services/calls/call.service.js';
 
 export function createHttpStack({ config, db, fetchImpl, sessionRecheckMs, webpush = null }) {
   const io = new Server({ cors: config.corsOrigins.length ? { origin: config.corsOrigins } : undefined, path: '/socket.io' });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanMessageContent, MAX_MESSAGE_LENGTH } from '../src/sanitize.js';
+import { cleanMessageContent, MAX_MESSAGE_LENGTH } from '../src/utils/sanitize.js';
 
 test('strips HTML tags, keeps text, trims, collapses CRLF', () => {
   assert.equal(cleanMessageContent('  <b>hi</b> <script>x()</script> there\r\n'), 'hi x() there');

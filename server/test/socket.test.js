@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import { io as connect } from 'socket.io-client';
 import jwt from 'jsonwebtoken';
-import { attachSocket } from '../src/socket/index.js';
+import { attachSocket } from '../src/sockets/index.js';
 
 const secret = 's'.repeat(40), aud = 'rrs-crm-session';
 const tok = (id) => jwt.sign({ sub: id, aud }, secret, { expiresIn: '1h' });

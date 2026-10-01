@@ -1,4 +1,4 @@
-import { markMentionsRead } from './mentions.js';
+import { markMentionsRead } from './mentions.model.js';
 
 const fail = (code, message, status = 400) => Object.assign(new Error(message), { code, status });
 const TYPES = new Set(['public', 'private', 'group_dm']);

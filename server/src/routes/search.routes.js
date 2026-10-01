@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { httpError, wrap } from '../http-errors.js';
-import { searchMessages } from '../repo/search.js';
+import { httpError, wrap } from '../middleware/errors.js';
+import { searchMessages } from '../models/search.model.js';
 
 export function createSearchRoutes({ db }) {
   const r = Router();

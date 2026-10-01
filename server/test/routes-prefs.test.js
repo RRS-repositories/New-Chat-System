@@ -3,7 +3,7 @@ import { test, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
-import { loadConfig } from '../src/config.js';
+import { loadConfig } from '../src/config/index.js';
 import { createTestDb } from './pg-helper.js';
 import { token, secret } from './route-helper.js';
 

@@ -7,15 +7,15 @@
  * that socket only, and that socket disconnecting (plus a grace period) makes them leave.
  * Single chat-server instance, so this map and the per-call lock are in memory.
  */
-import { httpError } from '../http-errors.js';
+import { httpError } from '../../middleware/errors.js';
 import { buildIceServers } from './ice.js';
-import { getChannel, isMember, listMembers } from '../repo/channels.js';
-import { createMessage } from '../repo/messages.js';
-import { isBlocked } from '../repo/restrictions.js';
+import { getChannel, isMember, listMembers } from '../../models/channels.model.js';
+import { createMessage } from '../../models/messages.model.js';
+import { isBlocked } from '../../models/restrictions.model.js';
 import {
   isUuid, createCall, getCall, getLiveCall, listCalls, listParticipants, participantNames,
   addParticipant, removeParticipant, activateCall, finishCall, setScreenShare, sweepStaleCalls as sweepRows,
-} from '../repo/calls.js';
+} from '../../models/calls.model.js';
 
 export const RESTRICTED_CALL_MESSAGE = 'You cannot call this person';
 const MAX_SIGNAL_BYTES = 64 * 1024;

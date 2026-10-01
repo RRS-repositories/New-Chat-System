@@ -3,7 +3,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
-import { addRestriction, removeRestriction, listRestrictions, isBlocked, blockedPairs, hiddenFromPicker } from '../src/repo/restrictions.js';
+import { addRestriction, removeRestriction, listRestrictions, isBlocked, blockedPairs, hiddenFromPicker } from '../src/models/restrictions.model.js';
 
 // Users: 1 Meg Manager (Management), 2 Ann Agent, 3 Bob Sales, 5 Cy Sales.
 const MEG = 1, ANN = 2, BOB = 3, CY = 5;

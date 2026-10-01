@@ -3,8 +3,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
-import { listPublicChannels, joinPublicChannel } from '../src/repo/browse.js';
-import { createChannel } from '../src/repo/channels.js';
+import { listPublicChannels, joinPublicChannel } from '../src/models/browse.model.js';
+import { createChannel } from '../src/models/channels.model.js';
 
 let close, db;
 

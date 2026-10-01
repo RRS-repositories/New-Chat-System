@@ -7,10 +7,10 @@ import { mkdtempSync, readdirSync, rmSync, existsSync, mkdirSync } from 'node:fs
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import sharp from 'sharp';
-import { requireAuth } from '../src/auth.js';
-import { createFileRoutes } from '../src/routes/files.js';
-import { safeFilename, ALLOWED_MIME, MAX_FILE_BYTES } from '../src/files/storage.js';
-import { perUserLimiter } from '../src/rate-limit.js';
+import { requireAuth } from '../src/middleware/auth.js';
+import { createFileRoutes } from '../src/routes/files.routes.js';
+import { safeFilename, ALLOWED_MIME, MAX_FILE_BYTES } from '../src/services/files/storage.js';
+import { perUserLimiter } from '../src/middleware/rate-limit.js';
 
 const secret = 's'.repeat(40), aud = 'rrs-crm-session';
 const token = (id) => `Bearer ${jwt.sign({ sub: id, aud }, secret, { expiresIn: '1h' })}`;

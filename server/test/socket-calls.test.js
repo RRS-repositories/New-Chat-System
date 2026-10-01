@@ -7,10 +7,10 @@ import { EventEmitter } from 'node:events';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { io as connect } from 'socket.io-client';
-import { attachCallSignalling } from '../src/socket/calls.js';
+import { attachCallSignalling } from '../src/sockets/calls.socket.js';
 import { createHttpStack } from '../src/server.js';
 import { createTestDb } from './pg-helper.js';
-import { createChannel } from '../src/repo/channels.js';
+import { createChannel } from '../src/models/channels.model.js';
 
 const fakeSocket = (id) => Object.assign(new EventEmitter(), { id });
 

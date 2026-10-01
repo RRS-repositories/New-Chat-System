@@ -3,7 +3,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
-import { createNotifier } from '../src/notify/index.js';
+import { createNotifier } from '../src/services/notifications/notifier.js';
 
 // Users: 1 Meg Manager, 2 Ann Agent, 3 Bob Sales, 4 Gone (inactive), 5 Cy Sales. #general = 1,2,3,5.
 const MEG = 1, ANN = 2, BOB = 3, GONE = 4, CY = 5;

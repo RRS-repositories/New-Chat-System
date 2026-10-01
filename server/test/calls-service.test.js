@@ -5,10 +5,10 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
-import { createChannel, openDm } from '../src/repo/channels.js';
-import { addRestriction } from '../src/repo/restrictions.js';
-import { createCall, getCall, addParticipant } from '../src/repo/calls.js';
-import { createCallService } from '../src/calls/service.js';
+import { createChannel, openDm } from '../src/models/channels.model.js';
+import { addRestriction } from '../src/models/restrictions.model.js';
+import { createCall, getCall, addParticipant } from '../src/models/calls.model.js';
+import { createCallService } from '../src/services/calls/call.service.js';
 
 const { db, close } = await createTestDb();
 after(() => close());

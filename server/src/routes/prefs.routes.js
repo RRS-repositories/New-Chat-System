@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { httpError, wrap } from '../http-errors.js';
-import { getPreferences, updatePreferences, setStatus, listStatuses, setChannelNotifyPref } from '../repo/prefs.js';
+import { httpError, wrap } from '../middleware/errors.js';
+import { getPreferences, updatePreferences, setStatus, listStatuses, setChannelNotifyPref } from '../models/prefs.model.js';
 
 /** /users/online, /users/me/preferences, /users/me/status — mounted at /api/chat/users BEFORE the users router. */
 export function createPrefRoutes({ db, presence, emit }) {

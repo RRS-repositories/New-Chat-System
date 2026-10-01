@@ -1,5 +1,5 @@
 import webpushLib from 'web-push';
-import { messageCandidates, callCandidates, subscriptionsForUsers, deleteSubscriptionByEndpoint } from '../repo/push.js';
+import { messageCandidates, callCandidates, subscriptionsForUsers, deleteSubscriptionByEndpoint } from '../../models/push.model.js';
 
 /**
  * Web Push for people with no live socket (connected clients notify themselves).

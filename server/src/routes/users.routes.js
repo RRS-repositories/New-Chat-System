@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { wrap } from '../http-errors.js';
-import { hiddenFromPicker } from '../repo/restrictions.js';
+import { wrap } from '../middleware/errors.js';
+import { hiddenFromPicker } from '../models/restrictions.model.js';
 
 export function createUserRoutes({ db }) {
   const r = Router();

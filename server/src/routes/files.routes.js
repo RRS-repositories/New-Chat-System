@@ -2,13 +2,13 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'node:path';
 import { createReadStream } from 'node:fs';
-import { httpError, wrap, sendError } from '../http-errors.js';
-import { isMember } from '../repo/channels.js';
-import { createMessage, getMessage } from '../repo/messages.js';
-import { insertFile, getFile, listChannelFiles } from '../repo/files.js';
-import { cleanMessageContent } from '../sanitize.js';
-import { dmPostBlocked, DM_BLOCKED_MESSAGE } from '../repo/restrictions.js';
-import { ALLOWED_MIME, MAX_FILE_BYTES, saveUpload, makeThumbnail, removeUpload } from '../files/storage.js';
+import { httpError, wrap, sendError } from '../middleware/errors.js';
+import { isMember } from '../models/channels.model.js';
+import { createMessage, getMessage } from '../models/messages.model.js';
+import { insertFile, getFile, listChannelFiles } from '../models/files.model.js';
+import { cleanMessageContent } from '../utils/sanitize.js';
+import { dmPostBlocked, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
+import { ALLOWED_MIME, MAX_FILE_BYTES, saveUpload, makeThumbnail, removeUpload } from '../services/files/storage.js';
 
 // busboy/multer decode multipart filenames as latin1; browsers send UTF-8.
 const utf8Name = (name) => Buffer.from(String(name || ''), 'latin1').toString('utf8').split(/[\\/]/).pop() || 'file';

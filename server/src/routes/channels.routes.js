@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { httpError, wrap } from '../http-errors.js';
-import { listChannelsForUser, getChannel, isMember, createChannel, openDm, addMembers, removeMember, listMembers, markRead, ensureDefaultMembership } from '../repo/channels.js';
-import { isBlocked, blockedPairs, DM_BLOCKED_MESSAGE } from '../repo/restrictions.js';
+import { httpError, wrap } from '../middleware/errors.js';
+import { listChannelsForUser, getChannel, isMember, createChannel, openDm, addMembers, removeMember, listMembers, markRead, ensureDefaultMembership } from '../models/channels.model.js';
+import { isBlocked, blockedPairs, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
 
 const toIds = (v) => [...new Set((Array.isArray(v) ? v : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
 

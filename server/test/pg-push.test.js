@@ -5,7 +5,7 @@ import { createTestDb } from './pg-helper.js';
 import {
   saveSubscription, removeSubscription, deleteSubscriptionByEndpoint, subscriptionsForUsers,
   messageCandidates, callCandidates, MAX_SUBSCRIPTIONS_PER_USER,
-} from '../src/repo/push.js';
+} from '../src/models/push.model.js';
 
 // Users: 1 Meg Manager, 2 Ann Agent, 3 Bob Sales, 4 Gone (inactive), 5 Cy Sales. #general = 1,2,3,5.
 const MEG = 1, ANN = 2, BOB = 3, GONE = 4, CY = 5;

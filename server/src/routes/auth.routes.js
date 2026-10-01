@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { wrap } from '../http-errors.js';
+import { wrap } from '../middleware/errors.js';
 
 const LOGIN_TIMEOUT_MS = 10000;
 

@@ -3,11 +3,11 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
-import { createChannel } from '../src/repo/channels.js';
+import { createChannel } from '../src/models/channels.model.js';
 import {
   createCall, getCall, getLiveCall, listCalls, listParticipants, participantNames, addParticipant,
   removeParticipant, activateCall, finishCall, setScreenShare, sweepStaleCalls,
-} from '../src/repo/calls.js';
+} from '../src/models/calls.model.js';
 
 const { db, close } = await createTestDb();
 after(() => close());

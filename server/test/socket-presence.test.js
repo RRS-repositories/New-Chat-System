@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { io as connect } from 'socket.io-client';
 import jwt from 'jsonwebtoken';
 import { createHttpStack } from '../src/server.js';
-import { loadConfig } from '../src/config.js';
+import { loadConfig } from '../src/config/index.js';
 import { createTestDb } from './pg-helper.js';
 
 const secret = 's'.repeat(40), aud = 'rrs-crm-session';

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { startDigest } from '../src/digest/index.js';
-import { createSmtpSender } from '../src/digest/mail.js';
+import { startDigest } from '../src/services/digest/digest.service.js';
+import { createSmtpSender } from '../src/services/digest/mail.js';
 
 test('digestEnabled false: no timer, no queries, nothing sent', async () => {
   const realSet = globalThis.setInterval; let timers = 0;

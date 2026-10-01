@@ -3,10 +3,10 @@ import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
-import { requireAuth } from '../src/auth.js';
-import { createPushRoutes } from '../src/routes/push.js';
+import { requireAuth } from '../src/middleware/auth.js';
+import { createPushRoutes } from '../src/routes/push.routes.js';
 import { createApp } from '../src/app.js';
-import { loadConfig } from '../src/config.js';
+import { loadConfig } from '../src/config/index.js';
 import { createTestDb } from './pg-helper.js';
 import { token, secret, aud } from './route-helper.js';
 

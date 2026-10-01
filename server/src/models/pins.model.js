@@ -1,4 +1,4 @@
-import { getMessage } from './messages.js';
+import { getMessage } from './messages.model.js';
 const fail = (code, message, status = 400) => Object.assign(new Error(message), { code, status });
 export const PIN_LIMIT = 50;
 

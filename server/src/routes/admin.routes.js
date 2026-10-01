@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { httpError, wrap } from '../http-errors.js';
-import { listRestrictions, addRestriction, removeRestriction, setAccess, listAdminUsers } from '../repo/restrictions.js';
+import { httpError, wrap } from '../middleware/errors.js';
+import { listRestrictions, addRestriction, removeRestriction, setAccess, listAdminUsers } from '../models/restrictions.model.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

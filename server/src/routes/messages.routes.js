@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { httpError, wrap } from '../http-errors.js';
-import { isMember, listMembers } from '../repo/channels.js';
-import { listMessages, createMessage, editMessage, deleteMessage, getMessage, listThread, listAround } from '../repo/messages.js';
-import { cleanMessageContent } from '../sanitize.js';
-import { parseMentions, insertMentions } from '../repo/mentions.js';
-import { pinMessage, unpinMessage, listPins } from '../repo/pins.js';
-import { addReaction, removeReaction } from '../repo/reactions.js';
-import { dmPostBlocked, DM_BLOCKED_MESSAGE } from '../repo/restrictions.js';
+import { httpError, wrap } from '../middleware/errors.js';
+import { isMember, listMembers } from '../models/channels.model.js';
+import { listMessages, createMessage, editMessage, deleteMessage, getMessage, listThread, listAround } from '../models/messages.model.js';
+import { cleanMessageContent } from '../utils/sanitize.js';
+import { parseMentions, insertMentions } from '../models/mentions.model.js';
+import { pinMessage, unpinMessage, listPins } from '../models/pins.model.js';
+import { addReaction, removeReaction } from '../models/reactions.model.js';
+import { dmPostBlocked, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
 
 export function createMessageRoutes({ db, emit, limiter, notifier = null }) {
   const r = Router();

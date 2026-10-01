@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { slugify, dmKey, createChannel, openDm, listChannelsForUser, isMember } from '../src/repo/channels.js';
+import { slugify, dmKey, createChannel, openDm, listChannelsForUser, isMember } from '../src/models/channels.model.js';
 
 function stubDb(handlers) {
   const calls = [];

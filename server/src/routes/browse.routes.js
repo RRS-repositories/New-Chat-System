@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { wrap } from '../http-errors.js';
-import { listPublicChannels, joinPublicChannel } from '../repo/browse.js';
+import { wrap } from '../middleware/errors.js';
+import { listPublicChannels, joinPublicChannel } from '../models/browse.model.js';
 
 /** Browse & join public channels. Mounted at /api/chat/channels BEFORE the channels router,
  * so /browse is handled here instead of being read as a channel id by GET /:id. */

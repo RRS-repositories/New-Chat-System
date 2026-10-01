@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addReaction, removeReaction, EMOJI_MAX } from '../src/repo/reactions.js';
-import { pinMessage } from '../src/repo/pins.js';
+import { addReaction, removeReaction, EMOJI_MAX } from '../src/models/reactions.model.js';
+import { pinMessage } from '../src/models/pins.model.js';
 
 const stub = (rows = {}) => { const calls = []; return { calls, async query(sql, p) { calls.push({ sql, p }); for (const [re, r] of Object.entries(rows)) if (new RegExp(re).test(sql)) return { rows: r, rowCount: r.length }; return { rows: [], rowCount: 0 }; } }; };
 

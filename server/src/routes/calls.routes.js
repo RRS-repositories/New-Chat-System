@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { httpError, sendError, wrap } from '../http-errors.js';
-import { buildIceServers } from '../calls/ice.js';
+import { httpError, sendError, wrap } from '../middleware/errors.js';
+import { buildIceServers } from '../services/calls/ice.js';
 
 /**
  * /calls/ice, /calls/:id, /calls/:id/(join|leave|decline|screen-share), /channels/:id/calls,

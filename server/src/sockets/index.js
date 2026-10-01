@@ -1,9 +1,9 @@
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
-import { socketAuth, loadSessionUser } from '../auth.js';
-import { isMember, markRead } from '../repo/channels.js';
-import { attachPresence } from './presence.js';
-import { attachCallSignalling } from './calls.js';
+import { socketAuth, loadSessionUser } from '../middleware/auth.js';
+import { isMember, markRead } from '../models/channels.model.js';
+import { attachPresence } from './presence.socket.js';
+import { attachCallSignalling } from './calls.socket.js';
 
 const TYPING_THROTTLE_MS = 3000;
 const SESSION_RECHECK_MS = 60_000;

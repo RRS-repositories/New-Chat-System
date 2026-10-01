@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import jwt from 'jsonwebtoken';
 import webpush from 'web-push';
-import { loadConfig } from '../src/config.js';
+import { loadConfig } from '../src/config/index.js';
 import { createHttpStack } from '../src/server.js';
 import { createTestDb } from '../test/pg-helper.js';
 

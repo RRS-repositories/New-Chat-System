@@ -2,10 +2,10 @@
 import { config as loadEnv } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig } from './src/config.js';
-import { createPool } from './src/db.js';
+import { loadConfig } from './src/config/index.js';
+import { createPool } from './src/models/db.js';
 import { createHttpStack } from './src/server.js';
-import { startDigest } from './src/digest/index.js';
+import { startDigest } from './src/services/digest/digest.service.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: path.join(here, '..', '.env') });

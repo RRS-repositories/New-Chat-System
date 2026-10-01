@@ -3,7 +3,7 @@
 //   printf '%s' '1759262400:7' | openssl dgst -sha1 -hmac 'coturn-test-secret' -binary | openssl base64
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildIceServers } from '../src/calls/ice.js';
+import { buildIceServers } from '../src/services/calls/ice.js';
 
 const NOW = Date.UTC(2025, 8, 30, 8, 0, 0); // 1759219200 s
 const stun = ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'];

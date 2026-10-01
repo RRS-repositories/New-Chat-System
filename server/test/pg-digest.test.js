@@ -2,7 +2,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
-import { startDigest } from '../src/digest/index.js';
+import { startDigest } from '../src/services/digest/digest.service.js';
 
 const MEG = 1, ANN = 2, BOB = 3, GONE = 4, CY = 5;
 const config = { digestEnabled: true, digestHourUtc: 8, publicUrl: 'https://crm.example/chat' };

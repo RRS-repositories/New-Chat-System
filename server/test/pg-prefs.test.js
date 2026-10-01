@@ -2,8 +2,8 @@
 import { test, before, beforeEach, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
-import { getPreferences, updatePreferences, setStatus, listStatuses, setChannelNotifyPref, DEFAULT_PREFERENCES } from '../src/repo/prefs.js';
-import { listChannelsForUser, createChannel, getChannel, openDm } from '../src/repo/channels.js';
+import { getPreferences, updatePreferences, setStatus, listStatuses, setChannelNotifyPref, DEFAULT_PREFERENCES } from '../src/models/prefs.model.js';
+import { listChannelsForUser, createChannel, getChannel, openDm } from '../src/models/channels.model.js';
 
 // One database (PGlite start-up is slow); the tables these tests write are reset before each.
 let t, db;

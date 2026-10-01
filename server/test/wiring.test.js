@@ -5,7 +5,7 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHttpStack } from '../src/server.js';
-import { loadConfig } from '../src/config.js';
+import { loadConfig } from '../src/config/index.js';
 
 const config = { ...loadConfig({ DB_HOST: 'h', DB_NAME: 'n', DB_USER: 'u', DB_PASSWORD: 'p', SESSION_JWT_SECRET: 'x'.repeat(40) }), uiDist: '/nonexistent' };
 const db = { async query() { return { rows: [], rowCount: 0 }; } };

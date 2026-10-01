@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { createPresence } from '../src/presence/registry.js';
-import { attachPresence } from '../src/socket/presence.js';
+import { createPresence } from '../src/services/presence/registry.js';
+import { attachPresence } from '../src/sockets/presence.socket.js';
 
 // Fake timers: run() fires every pending timer, as if graceMs had passed.
 function fakeTimers() {

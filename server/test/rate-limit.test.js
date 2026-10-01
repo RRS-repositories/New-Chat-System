@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { perUserLimiter } from '../src/rate-limit.js';
+import { perUserLimiter } from '../src/middleware/rate-limit.js';
 
 function run(mw, userId) {
   const r = { code: 200, body: null, status(c) { r.code = c; return r; }, json(b) { r.body = b; return r; } };

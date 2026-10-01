@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { httpError, wrap } from '../http-errors.js';
-import { saveSubscription, removeSubscription } from '../repo/push.js';
+import { httpError, wrap } from '../middleware/errors.js';
+import { saveSubscription, removeSubscription } from '../models/push.model.js';
 
 const MAX_ENDPOINT = 2000, MAX_KEY = 300, MAX_UA = 300;
 const BAD = 'That push subscription is not valid';

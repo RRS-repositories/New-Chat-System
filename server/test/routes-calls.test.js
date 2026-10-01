@@ -4,10 +4,10 @@ import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
-import { createCallService } from '../src/calls/service.js';
+import { createCallService } from '../src/services/calls/call.service.js';
 import { createTestDb } from './pg-helper.js';
-import { createChannel, openDm } from '../src/repo/channels.js';
-import { addRestriction } from '../src/repo/restrictions.js';
+import { createChannel, openDm } from '../src/models/channels.model.js';
+import { addRestriction } from '../src/models/restrictions.model.js';
 import { secret, aud } from './route-helper.js';
 import jwt from 'jsonwebtoken';
 

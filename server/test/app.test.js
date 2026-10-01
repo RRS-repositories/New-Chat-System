@@ -5,7 +5,7 @@ import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createApp } from '../src/app.js';
-import { loadConfig } from '../src/config.js';
+import { loadConfig } from '../src/config/index.js';
 
 const dist = mkdtempSync(join(tmpdir(), 'chat-ui-')); mkdirSync(join(dist, 'assets'));
 writeFileSync(join(dist, 'index.html'), '<!doctype html><title>Chat</title>');

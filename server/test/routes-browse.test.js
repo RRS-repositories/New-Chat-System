@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
-import { requireAuth } from '../src/auth.js';
-import { createBrowseRoutes } from '../src/routes/browse.js';
-import { createChannelRoutes } from '../src/routes/channels.js';
+import { requireAuth } from '../src/middleware/auth.js';
+import { createBrowseRoutes } from '../src/routes/browse.routes.js';
+import { createChannelRoutes } from '../src/routes/channels.routes.js';
 import { makeDb, token, secret, aud } from './route-helper.js';
 
 // Assembled the same way src/app.js mounts them: the browse router first, at the

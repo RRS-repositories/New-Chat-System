@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { listMessages, createMessage, editMessage, deleteMessage, parseCursor, listThread } from '../src/repo/messages.js';
+import { listMessages, createMessage, editMessage, deleteMessage, parseCursor, listThread } from '../src/models/messages.model.js';
 
 const row = (i) => ({ id: `m${i}`, channel_id: 'c1', user_id: 7, user_name: 'Ann', content: `msg ${i}`, type: 'message',
   created_at: new Date(Date.UTC(2026, 8, 28, 10, 0, i)).toISOString(), edited_at: null, reply_to_id: null, thread_id: null });
