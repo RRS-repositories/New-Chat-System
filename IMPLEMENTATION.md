@@ -103,8 +103,8 @@ New Chat System/
 │   │   ├── middleware/  (3+1)    sign-in check, errors, rate limit; security headers (PR #9)
 │   │   ├── sockets/     (3)      live events: core, presence, call signalling
 │   │   └── utils/       (8)      ids, file names, validators, mentions, message cleaning, search text; IP rules and file signatures (PR #9)
-│   ├── test/            (39 files, 395 tests)
-│   └── dev/                      local.mjs (local chat on PGlite) and e2e/ (6 scripts)
+│   ├── test/            (40 files, 396 tests)
+│   └── dev/                      local.mjs (local chat on PGlite) and e2e/ (7 scripts)
 └── web/
     ├── index.html  vite.config.ts  public/sw.js
     ├── src/
@@ -188,7 +188,7 @@ PostgreSQL schema `chat`, created by `server/migrations/chat_001_schema.sql`, `c
 | `push_subscriptions` | `user_id`, `endpoint` (unique), `keys` jsonb, `user_agent` | Up to 10 per person. |
 | `audit_log` | `actor_id`, `action`, `target_type`, `target_id`, `detail` jsonb | Access changes and message deletions by moderators. |
 
-The database connection sets `search_path` to `chat, public`. Pool size 10.
+Every database connection opens with `search_path` set to `chat, public` (a connection start-up option, so it is in place before the first query). Pool size 10.
 
 **Applying a database file:** `node server/migrations/apply.mjs` lists what would run; `--commit` applies; `--only=<file>` applies one. The deploy script never applies them.
 
@@ -547,7 +547,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 395, 39 files |
+| Server | `cd server && npm test` | 396, 40 files |
 | Web | `cd web && npm test` | 120, 16 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
@@ -556,10 +556,11 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: layout | `node server/dev/e2e/browser-polish.cjs` | 5 |
 | Real browser: admin panel | `node server/dev/e2e/browser-admin.cjs` | 7 |
 | Real browser: search, own-screen preview, host controls | `node server/dev/e2e/browser-host.cjs` | 16 |
+| Real browser, **real screen**: a two-person call sharing the PC's actual screen (opens a window; needs a desktop) | `node server/dev/e2e/browser-real-share.cjs` | 1 |
 | Deploy scripts | `bash deploy/rehearse.sh` | 51 |
 
 - Server tests run the real SQL against PGlite, which uses the same `user_role` enum as the CRM, so a missing `::text` cast is caught.
-- The browser checks drive the Microsoft Edge already installed on the PC, with fake microphone and screen-capture devices, two or three signed-in people at once.
+- The browser checks drive the Microsoft Edge already installed on the PC, with fake microphone and screen-capture devices, two or three signed-in people at once. `browser-real-share.cjs` is the exception: it captures the real screen, to prove the security headers do not block sharing.
 - Each end-to-end script needs a freshly started local chat.
 
 ---
@@ -576,7 +577,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 **Live since 1 Oct 2026, 16:22, waiting for the owner to try (Phase 5):** the search fix, the own-screen preview and the call host controls. Sections 9.4, 9.8 and 9.9 describe them.
 
-**Checked with a stand-in only.** The browser checks use a fake microphone and a fake screen. Real screen sharing under the new security headers should be tried once on chat2.
+**Real screen sharing under the security headers** was checked on 1 October 2026 with `browser-real-share.cjs`: the other person saw the real desktop. The browser prints a "camera is not allowed" notice when a share starts; that is the header refusing the camera, which the chat never uses, and it does not affect sharing.
 
 **Waiting on others (Phase 6):** router port forwarding for calls from outside the office — ports 3478 (UDP and TCP) and 49160–49200 (UDP) to the server.
 
