@@ -1,9 +1,11 @@
-import { useEffect, type Dispatch, type MutableRefObject } from 'react';
+import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import type { Socket } from 'socket.io-client';
 import type { ActiveCall } from '../context/callContext.ts';
 import type { CallAction, CallUiState, EndStatus, IncomingCall } from '../context/callState.ts';
 import type { CallApi } from '../services/callApi.ts';
 import type { CallManager } from '../services/callManager.ts';
+import type { JoinRequest } from '../types/index.ts';
+import { addJoinRequest, dropJoinRequest } from '../utils/joinRequests.ts';
 
 const MAX_HELD_EVENTS = 500;
 
@@ -33,6 +35,12 @@ type Deps = {
   /** Drops this tab's call locally (closes connections, releases the microphone). */
   teardown: () => void;
   setChannelCall: (channelId: string, update: (prev: ActiveCall | undefined) => ActiveCall | null) => void;
+  /** Host only: the people waiting to be let back in. */
+  setJoinRequests: Dispatch<SetStateAction<JoinRequest[]>>;
+  /** A short note shown in the call panel. */
+  setPanelNote: (note: string | null) => void;
+  /** Joins a call without asking the host (used once the host has let this person back in). */
+  joinDirect: (callId: string, channelId: string) => Promise<void>;
 };
 
 /** Listens for call events from the server and keeps this tab's call, and the per-channel "live call" list, in step. */
@@ -44,6 +52,9 @@ export function useCallSocketEvents({
   dispatch,
   teardown,
   setChannelCall,
+  setJoinRequests,
+  setPanelNote,
+  joinDirect,
 }: Deps): void {
   useEffect(() => {
     const { manager, callId, ui, joinedSocket, expectOwnJoin, rejoining, startBuffer, attempt } = session;
@@ -99,8 +110,10 @@ export function useCallSocketEvents({
         dropOut('The call continued in another tab');
         return;
       }
-      if (isMyCall(p.call_id)) manager.current!.addParticipant(joinerId, p.user_name || '');
-      else if (startInFlight()) hold(p.call_id, () => manager.current?.addParticipant(joinerId, p.user_name || ''));
+      if (isMyCall(p.call_id)) {
+        setJoinRequests((list) => dropJoinRequest(list, joinerId)); // they are in: no longer waiting
+        manager.current!.addParticipant(joinerId, p.user_name || '');
+      } else if (startInFlight()) hold(p.call_id, () => manager.current?.addParticipant(joinerId, p.user_name || ''));
     };
 
     const onLeft = (p: { call_id: string; channel_id: string; user_id: number }) => {
@@ -128,6 +141,45 @@ export function useCallSocketEvents({
     };
 
     const onDismissed = (p: { call_id: string }) => dispatch({ type: 'dismissed', callId: p.call_id });
+
+    // The host muted me. I can unmute myself; the host cannot.
+    const onMutedByHost = (p: { call_id: string; by_user_name?: string }) => {
+      if (!isMyCall(p.call_id)) return;
+      manager.current!.setMuted(true);
+      setPanelNote(`${p.by_user_name || 'The host'} muted you. You can unmute yourself.`);
+    };
+
+    // The host removed me. Every tab of mine learns it, so Join becomes "Ask to join" everywhere.
+    const onRemoved = (p: { call_id: string }) => {
+      dispatch({ type: 'removed', callId: p.call_id });
+      if (isMyCall(p.call_id) || callId.current === p.call_id) dropOut('The host removed you from the call');
+    };
+
+    const onJoinRequest = (p: { call_id: string; user_id: number; user_name?: string }) => {
+      if (!isMyCall(p.call_id)) return;
+      setJoinRequests((list) =>
+        addJoinRequest(list, { userId: Number(p.user_id), userName: p.user_name || 'Someone' }),
+      );
+    };
+
+    const onJoinRequestCancelled = (p: { call_id: string; user_id: number }) => {
+      if (isMyCall(p.call_id)) setJoinRequests((list) => dropJoinRequest(list, Number(p.user_id)));
+    };
+
+    // The host answered my request to come back.
+    const onJoinAnswer = (p: { call_id: string; channel_id: string; accepted: boolean; reason?: string }) => {
+      const waitingHere = ui.current.asking?.callId === p.call_id;
+      if (p.accepted) {
+        dispatch({ type: 'ask_done', callId: p.call_id, allowed: true });
+        if (waitingHere && ui.current.phase === 'idle') void joinDirect(p.call_id, p.channel_id);
+        return;
+      }
+      const notice =
+        p.reason === 'host_left'
+          ? 'The host left the call, so nobody can let you back in'
+          : 'The host did not let you back in';
+      dispatch({ type: 'ask_done', callId: p.call_id, allowed: false, notice });
+    };
 
     const onShare = (on: boolean) => (p: { call_id: string; user_id: number }) => {
       const sharerId = Number(p.user_id);
@@ -170,6 +222,11 @@ export function useCallSocketEvents({
       ['call_participant_left', onLeft],
       ['call_ended', onEnded],
       ['call_dismissed', onDismissed],
+      ['call_muted_by_host', onMutedByHost],
+      ['call_removed', onRemoved],
+      ['call_join_request', onJoinRequest],
+      ['call_join_request_cancelled', onJoinRequestCancelled],
+      ['call_join_answer', onJoinAnswer],
       ['call_screen_share_started', onShare(true)],
       ['call_screen_share_stopped', onShare(false)],
       ['webrtc_signal', onSignal],
@@ -179,5 +236,5 @@ export function useCallSocketEvents({
     return () => {
       for (const [event, handler] of handlers) socket.off(event, handler);
     };
-  }, [socket, callApi, userId, session, dispatch, teardown, setChannelCall]);
+  }, [socket, callApi, userId, session, dispatch, teardown, setChannelCall, setJoinRequests, setPanelNote, joinDirect]);
 }

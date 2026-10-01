@@ -14,5 +14,11 @@ export function createCallRoutes(deps) {
   r.post('/calls/:id/leave', calls.leave);
   r.post('/calls/:id/decline', calls.decline);
   r.post('/calls/:id/screen-share', calls.screenShare);
+  // Host controls (the person who started the call) and the removed person's request to come back.
+  r.post('/calls/:id/participants/:userId/mute', calls.hostMute);
+  r.post('/calls/:id/participants/:userId/remove', calls.hostRemove);
+  r.post('/calls/:id/join-requests', calls.askToJoin);
+  r.delete('/calls/:id/join-requests', calls.cancelAsk);
+  r.post('/calls/:id/join-requests/:userId', calls.answerJoinRequest);
   return r;
 }

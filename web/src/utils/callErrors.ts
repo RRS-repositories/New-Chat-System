@@ -8,6 +8,8 @@ const SERVER_MESSAGES: Record<string, string> = {
   call_ended: 'This call has ended',
   not_found: 'This call has ended',
   bad_socket: 'Not connected — try again in a moment',
+  not_host: 'Only the person who started the call can do that',
+  no_request: 'That person is no longer waiting',
 };
 
 /** What to tell the person when starting or joining a call fails. */

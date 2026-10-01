@@ -864,3 +864,17 @@ test('rejoin after a reconnect rebuilds every peer and keeps the microphone', as
   assert.equal(h.micTrack.stopped, false);
   assert.equal(h.peerOf(2).senders[0]!.track, h.micTrack);
 });
+
+test('the sharer gets their own screen back for a preview, and it goes when the share stops', async () => {
+  const h = setup({ me: 5 });
+  await h.mgr.connect(async () => ({ participants: people(2, 5), iceServers: ICE }));
+  assert.equal(h.mgr.snapshot().ownScreenTrack, null);
+  await h.mgr.startShare();
+  assert.equal(h.mgr.snapshot().ownScreenTrack, h.screens[0]);
+  h.mgr.stopShare();
+  assert.equal(h.mgr.snapshot().ownScreenTrack, null);
+  await h.mgr.startShare();
+  assert.equal(h.mgr.snapshot().ownScreenTrack, h.screens[1]);
+  h.mgr.leave();
+  assert.equal(h.mgr.snapshot().ownScreenTrack, null);
+});

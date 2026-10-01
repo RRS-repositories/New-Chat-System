@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp, Mic, MicOff, MonitorUp, MonitorOff, Phone, PhoneOff } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import { useCall } from '../../context/callContext.ts';
+import { HostActions } from './HostActions.tsx';
+import { JoinRequests } from './JoinRequests.tsx';
+import { OwnScreen } from './OwnScreen.tsx';
 import { RemoteAudio } from './RemoteAudio.tsx';
 import { RemoteScreen } from './RemoteScreen.tsx';
 
@@ -13,18 +16,31 @@ const canShare = () =>
 /** Docked call panel (right side on desktop, full screen under 720 px, collapsible there). Escape does not leave. */
 export function CallPanel() {
   const { state, user } = useChat();
-  const { call, snapshot, shareError, busy, toggleMute, toggleShare, leaveCall } = useCall();
+  const {
+    call,
+    snapshot,
+    panelError,
+    panelNote,
+    busy,
+    isHost,
+    joinRequests,
+    toggleMute,
+    toggleShare,
+    leaveCall,
+    muteParticipant,
+    removeParticipant,
+    answerJoinRequest,
+  } = useCall();
   const [collapsed, setCollapsed] = useState(false);
   if (!busy) return null;
   const channel = state.channels.find((c) => c.id === call.channelId);
-  const title = channel
-    ? channel.type === 'dm'
-      ? channel.dmUserName || 'Direct call'
-      : `#${channel.displayName}`
-    : 'Call';
+  const oneToOne = channel?.type === 'dm';
+  const title = channel ? (oneToOne ? channel.dmUserName || 'Direct call' : `#${channel.displayName}`) : 'Call';
   const others = snapshot.participants;
   const sharer = others.find((p) => p.screenTrack && p.state !== 'lost');
   const status = call.phase === 'joining' ? 'Connecting…' : others.length ? `${others.length + 1} in call` : 'Calling…';
+  const hostTag = (userId: number) =>
+    call.hostId === userId ? <span className="pill call-host-tag">host</span> : null;
   return (
     <aside className={`call-panel${collapsed ? ' collapsed' : ''}`} data-testid="call-panel" aria-label="Voice call">
       <div className="call-head">
@@ -43,10 +59,18 @@ export function CallPanel() {
       {!collapsed && (
         <div className="call-body">
           {sharer && <RemoteScreen track={sharer.screenTrack!} name={sharer.userName} />}
-          {snapshot.sharing && <p className="muted call-self-share">You are sharing your screen</p>}
+          {snapshot.ownScreenTrack ? (
+            <OwnScreen track={snapshot.ownScreenTrack} />
+          ) : (
+            snapshot.sharing && <p className="muted call-self-share">You are sharing your screen</p>
+          )}
+          {isHost && (
+            <JoinRequests requests={joinRequests} onAnswer={(id, accept) => void answerJoinRequest(id, accept)} />
+          )}
           <ul className="call-people" aria-label="People in the call">
             <li className="call-person" data-testid="call-participant" data-user-id={user.id} data-state="connected">
               <span className="call-name">{user.fullName} (you)</span>
+              {hostTag(user.id)}
               {snapshot.muted && <MicOff size={13} aria-label="muted" />}
               {snapshot.sharing && <MonitorUp size={13} aria-label="sharing" />}
             </li>
@@ -59,16 +83,31 @@ export function CallPanel() {
                 data-state={p.state}
               >
                 <span className="call-name">{p.userName}</span>
+                {hostTag(p.userId)}
                 {p.muted && <MicOff size={13} aria-label="muted" />}
                 {p.sharing && <MonitorUp size={13} aria-label="sharing" />}
                 {p.state === 'connecting' && <span className="muted">connecting…</span>}
                 {p.state === 'lost' && <span className="muted call-lost">connection lost</span>}
+                {isHost && (
+                  <HostActions
+                    name={p.userName}
+                    muted={p.muted}
+                    canRemove={!oneToOne}
+                    onMute={() => void muteParticipant(p.userId)}
+                    onRemove={() => void removeParticipant(p.userId)}
+                  />
+                )}
               </li>
             ))}
           </ul>
-          {shareError && (
+          {panelNote && (
+            <p className="muted call-note-line" role="status" data-testid="call-panel-note">
+              {panelNote}
+            </p>
+          )}
+          {panelError && (
             <p className="error" role="alert">
-              {shareError}
+              {panelError}
             </p>
           )}
         </div>

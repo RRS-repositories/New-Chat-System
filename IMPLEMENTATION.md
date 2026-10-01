@@ -16,11 +16,11 @@ A technical reference for the Rowan Rose team chat: every feature that exists, h
 | Text chat, files, search, presence, notifications, voice calls, screen sharing, admin panel | **Live** on chat2 |
 | Chat running from its own repository and folder (`/opt/chat`), with its own settings file | **Live** since 1 Oct 2026, 11:48 |
 | Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Merged to `main` (pull request #9), not deployed yet.** Goes live with the next run of the deploy script, which restarts the chat for a few seconds |
-| Search button fix, own-screen preview for the sharer, call host controls | **Not built** (Phase 5) |
+| Search that finds part of a word, people and channels; own-screen preview for the sharer; call host controls (mute, remove, ask to rejoin) | **Built and tested, not deployed yet** (Phase 5) |
 | Calls from outside the office | **Blocked** on the router port forwarding (Phase 6) |
 | Chat inside the CRM, Mattermost history import, phone install, camera video | **Not built**, by decision |
 
-Sections below mark anything that came in with pull request #9, and so is in `main` but not yet live, with **(PR #9)**.
+Sections below mark anything that came in with pull request #9, and so is in `main` but not yet live, with **(PR #9)**. Anything built in Phase 5 and not yet live is marked **(Phase 5)**.
 
 ---
 
@@ -98,32 +98,32 @@ New Chat System/
 │   │   ├── config/               the only place that reads environment settings
 │   │   ├── routes/      (11)     address → controller, no logic
 │   │   ├── controllers/ (11)     read the request, call services/models, send the reply
-│   │   ├── services/    (13)     the rules: messages, channels, access, calls, files, notifications, presence, digest, session
+│   │   ├── services/    (14)     the rules: messages, channels, access, calls, call host controls, files, notifications, presence, digest, session
 │   │   ├── models/      (16)     every SQL query
 │   │   ├── middleware/  (3+1)    sign-in check, errors, rate limit; security headers (PR #9)
 │   │   ├── sockets/     (3)      live events: core, presence, call signalling
-│   │   └── utils/       (5+2)    ids, file names, validators, mentions, message cleaning; IP rules and file signatures (PR #9)
-│   ├── test/            (36 files, 368 tests)
-│   └── dev/                      local.mjs (local chat on PGlite) and e2e/ (5 scripts)
+│   │   └── utils/       (8)      ids, file names, validators, mentions, message cleaning, search text; IP rules and file signatures (PR #9)
+│   ├── test/            (39 files, 395 tests)
+│   └── dev/                      local.mjs (local chat on PGlite) and e2e/ (6 scripts)
 └── web/
     ├── index.html  vite.config.ts  public/sw.js
     ├── src/
     │   ├── App.tsx  main.tsx
     │   ├── pages/        (6)     sign-in, chat, admin people, one person's access, restrictions, DM redirect
-    │   ├── components/   (37)    layout, channel, messages, dialogs, calls, admin, common
+    │   ├── components/   (40)    layout, channel, messages, dialogs, calls, admin, common
     │   ├── context/      (7)     chat state, call state, sign-out
-    │   ├── hooks/        (14+5)  screen logic; hooks/actions/ holds the chat actions
+    │   ├── hooks/        (15+5)  screen logic; hooks/actions/ holds the chat actions
     │   ├── services/     (9)     every call to the server, the socket, push, the call engine
-    │   ├── utils/        (15)    pure helpers
+    │   ├── utils/        (17)    pure helpers
     │   ├── config/  types/  styles/ (12 CSS files)
-    └── test/             (14 files, 107 tests)
+    └── test/             (16 files, 120 tests)
 ```
 
-About 13,800 lines of source in `server/src` and `web/src`.
+About 14,800 lines of source in `server/src` and `web/src`.
 
 **Layer rules that are kept everywhere:** routes hold no logic; SQL lives only in `models/`; rules live in `services/`; screens and hooks never call the server directly, they go through `web/src/services/`.
 
-**Four files are long on purpose:** `web/src/services/callManager.ts` (725 lines, the call engine), `server/src/services/calls/call.service.js` (495), `web/src/context/chatReducer.ts` (394), `web/src/context/CallProvider.tsx` (311). `Memory.md` gives the reason for each.
+**Four files are long on purpose:** `web/src/services/callManager.ts` (725 lines, the call engine), `server/src/services/calls/call.service.js` (521), `web/src/context/chatReducer.ts` (394), `web/src/context/CallProvider.tsx` (394). `Memory.md` gives the reason for each.
 
 ---
 
@@ -223,12 +223,15 @@ All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks
 | `POST /channels/:id/upload` | Upload up to 5 files of 20 MB each, with an optional caption. Limit: 5 uploads per minute per person. |
 | `GET /channels/:id/files` | Files shared in a channel. |
 | `GET /files/:id/download` · `GET /files/:id/thumb` | The file, or its thumbnail. Channel members only. |
-| `GET /search?q=&channelId=&page=` | Full-text search, 20 results per page. |
+| `GET /search?q=&channelId=&page=` | Message search, 20 results per page (see 9.4). |
 | `GET /push/key` · `POST /push/subscribe` · `POST /push/unsubscribe` | Web Push set-up. |
 | `GET /calls/ice` | STUN and TURN servers with a time-limited credential. |
 | `POST /channels/:id/calls` | Start a call. |
 | `GET /channels/:id/calls/active` · `GET /channels/:id/calls` | The live call, if any; call history. |
 | `GET /calls/:id` · `POST /calls/:id/join` · `/leave` · `/decline` · `/screen-share` | Call actions. |
+| `POST /calls/:id/participants/:userId/mute` · `/remove` **(Phase 5)** | Host only: mute or remove one person in the call. |
+| `POST /calls/:id/join-requests` · `DELETE /calls/:id/join-requests` **(Phase 5)** | A removed person asks the host to come back, or stops waiting. |
+| `POST /calls/:id/join-requests/:userId` `{ accept }` **(Phase 5)** | Host only: let a waiting person back in, or refuse. |
 | `GET /admin/users` | Management: everyone, their role, whether chat is on, blocked counts. |
 | `GET /admin/restrictions` · `GET /admin/restrictions/user/:userId` · `POST /admin/restrictions` · `DELETE /admin/restrictions/:id` | Management: who may not contact whom. |
 | `PUT /admin/users/:userId/access` | Management: set what one person may do towards up to 500 others in one call. |
@@ -266,6 +269,9 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 | `member_added`, `member_removed`, `channel_updated` | Membership and channel changes. |
 | `user_online`, `user_offline`, `user_away`, `user_status` | Presence and status. |
 | `call_started`, `call_participant_joined`, `call_participant_left`, `call_ended`, `call_dismissed` | Call lifecycle. |
+| `call_muted_by_host`, `call_removed` **(Phase 5)** | The host muted this person (sent to their call tab) or removed them (sent to all their tabs). |
+| `call_join_request`, `call_join_request_cancelled` **(Phase 5)** | To the host: someone asks to come back, or stopped waiting. |
+| `call_join_answer { accepted, reason }` **(Phase 5)** | To the person who asked: let in, refused, or the host left. |
 | `call_screen_share_started`, `call_screen_share_stopped` | Screen share. |
 | `webrtc_signal { call_id, from_user_id, signal_data }` | Call set-up message from another participant. |
 
@@ -303,9 +309,17 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 
 ### 9.4 Search
 
-PostgreSQL full-text search (`to_tsvector('english', content)`, GIN index), limited to channels the person is in, ranked by relevance then date, 20 results per page, with the matching words highlighted in a short excerpt. A result jumps to the message.
+**Live today:** PostgreSQL full-text search (`to_tsvector('english', content)`, GIN index), limited to channels the person is in, ranked by relevance then date, 20 results per page. It matches whole English words in message text only.
 
-**Known issue:** the search button was reported not working on the live site. Fixing or removing it is Phase 5.
+**What was wrong.** The button was reported as not working. The server log showed that every search people made returned nothing: they typed part of a word ("Syste") or a person's name ("System Administrator"), and neither can match whole words in message text.
+
+**(Phase 5) What search does now.** One box finds three things:
+
+- **Messages.** A message matches when every word typed appears in its text or in its sender's name. Part of a word counts, and letter case does not matter (`ILIKE`, with `%`, `_` and `\` in the query taken literally). The full-text match is kept as well, so "invoices" still finds "invoice". Best full-text matches first, then newest first. At most 8 words are used. The excerpt is cut around the first match and the typed text is highlighted.
+- **People.** Matched by name in the browser from the list already loaded. Choosing one opens the conversation with them.
+- **Channels.** Matched by name in the browser from the channels the person is in. Choosing one opens it.
+
+A name that starts with what was typed is listed before one that only contains it; five of each at most. "This channel only" narrows to messages in the open channel. Code: `server/src/models/search.model.js`, `server/src/utils/searchText.js`, `web/src/utils/quickFind.ts`, `web/src/components/channel/SearchPanel.tsx`.
 
 ### 9.5 Unread counts and read tracking
 
@@ -362,6 +376,16 @@ System, join, leave and call-summary messages never notify.
 
 **Fixed on 1 October:** the microphone prompt no longer lingers after a failed join; repeated screen shares no longer grow the connection; two people accepting at the same moment no longer deadlock.
 
+**(Phase 5) Host controls.** The host is the person who started the call, and only while they are in it themselves. Everyone sees a "host" tag beside that person.
+
+- **Mute.** The host presses mute beside a person. The server tells that person's call tab (`call_muted_by_host`), which switches its microphone off and shows "… muted you. You can unmute yourself." The host has no unmute: there is no such request on the server.
+- **Remove.** Asked twice ("Remove? Yes / No"). The person leaves the call and is told why. The others close their connection to them, and the server stops passing their set-up messages, so they cannot stay connected. Not offered in a one-to-one call, where leaving does the same.
+- **Coming back.** A removed person's Join button reads "Ask to join". Pressing it sends a request; they see "Waiting for the host to let you back in…" with Cancel. The host sees "… asks to rejoin" with Let in and Refuse. Let in lifts the removal and the person's browser joins on its own. After a refusal they must wait 60 seconds before asking again.
+- **Disconnected is not removed.** Someone who left or lost their connection joins back with no request.
+- **Host gone.** If the host leaves while the call goes on, nobody has host controls. A removed person cannot be let back in, and anyone waiting is told so. If the host comes back they are the host again and see who is still waiting.
+- **Where it lives.** In the server's memory for the life of the call (`server/src/services/calls/host.controls.js`), like the call devices. A new call starts clean.
+- **Limit to know.** Mute is carried out by the muted person's own browser. A person using the normal app cannot avoid it; the server cannot silence audio that travels directly between browsers.
+
 ### 9.9 Screen sharing
 
 - One person shares at a time ("Someone is already sharing").
@@ -370,7 +394,7 @@ System, join, leave and call-summary messages never notify.
 - Viewers can go **full screen** or **open the shared screen in its own window**.
 - On wide screens the call panel docks on the right and the page makes room.
 
-**Not built yet:** the person sharing does not see a preview of their own screen (Phase 5).
+**(Phase 5) Own-screen preview.** The person sharing sees their own shared screen, small, in the call panel, with "This is what the others see". It plays the capture that is already running, so nothing extra is sent.
 
 ### 9.10 Admin panel (Management only)
 
@@ -398,7 +422,7 @@ Per person: notification level, sound on or off, Enter-to-send, status message. 
 - **Live events:** `hooks/useChatSocketEvents.ts` and `hooks/useCallSocketEvents.ts` turn socket events into state changes. Events that arrive while a call is still being created are held (500 at most) and applied once the call id is known.
 - **Styles:** plain CSS in 12 files, one per area. Every colour and size is a variable in `tokens.css`; `theme.css` loads last.
 - **Design:** accent violet `#6C4DE6`; sidebar deep indigo `#1B1F3A`; online green `#22C55E`, away amber `#F59E0B`, attention red `#DC2626`. System font, 14 px base, 16 px in inputs so phones do not zoom. Sidebar 240 px. Below 768 px wide the layout becomes a single column. Full list in `Design.md`.
-- **Build:** `tsc --noEmit && vite build` → `web/dist` (about 365 KB of script, 113 KB compressed; 21 KB of CSS). Served by the chat server itself, cached for 1 hour except the service worker.
+- **Build:** `tsc --noEmit && vite build` → `web/dist` (about 375 KB of script, 116 KB compressed; 22 KB of CSS). Served by the chat server itself, cached for 1 hour except the service worker.
 
 ---
 
@@ -444,6 +468,8 @@ Per person: notification level, sound on or off, Enter-to-send, status message. 
 | Pins per channel | 50 |
 | People in a call | 8 |
 | Ring time | 30 seconds |
+| Wait before a refused person may ask the host again **(Phase 5)** | 60 seconds |
+| Words used from one search **(Phase 5)** | 8 |
 | Reconnect grace in a call | 10 seconds |
 | Offline grace for presence | 5 seconds |
 | Away after | 5 minutes without input |
@@ -477,7 +503,7 @@ Read in one place, `server/src/config/index.js`, from `/opt/chat/.env` on the se
 | `CHAT_TURN_URLS`, `CHAT_TURN_SECRET` | Our coturn relay and its shared secret. | relay off if empty |
 | `CHAT_DIGEST_ENABLED`, `SMTP_*`, `MAIL_FROM`, `MAIL_FROM_NAME` | Daily mention digest. | off |
 
-Fixed in code: ring time 30 s, 8 people per call, call reconnect grace 10 s, presence grace 5 s, digest hour 08:00 UTC, TURN credential 12 h.
+Fixed in code: ring time 30 s, 8 people per call, call reconnect grace 10 s, wait before asking the host again 60 s, presence grace 5 s, digest hour 08:00 UTC, TURN credential 12 h.
 
 ---
 
@@ -521,14 +547,15 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 368, 36 files |
-| Web | `cd web && npm test` | 107, 14 files |
+| Server | `cd server && npm test` | 395, 39 files |
+| Web | `cd web && npm test` | 120, 16 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
 | Real browser: calls and screen share | `node server/dev/e2e/browser-calls.cjs` | 14 |
 | Real browser: layout | `node server/dev/e2e/browser-polish.cjs` | 5 |
 | Real browser: admin panel | `node server/dev/e2e/browser-admin.cjs` | 7 |
+| Real browser: search, own-screen preview, host controls | `node server/dev/e2e/browser-host.cjs` | 16 |
 | Deploy scripts | `bash deploy/rehearse.sh` | 51 |
 
 - Server tests run the real SQL against PGlite, which uses the same `user_role` enum as the CRM, so a missing `::text` cast is caught.
@@ -545,14 +572,11 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 - Any change in a call redraws the whole message list.
 - Signing out during a call is tidied up by the server after 10 seconds, not at once.
 - A new restriction does not remove two people from a private channel they already share.
-- The search button is reported not working on the live site.
 - `addRestriction` in `models/restrictions.model.js` still checks its own input; those checks belong in `services/access.service.js`.
 
-**Requested, not built (Phase 5)**
+**Built, waiting to be deployed and tried (Phase 5):** the search fix, the own-screen preview and the call host controls. Sections 9.4, 9.8 and 9.9 describe them.
 
-1. Search button: find the cause; fix if simple, otherwise remove.
-2. The person sharing sees their own shared screen.
-3. Call host controls: the person who started the call can mute and remove others, and cannot unmute anyone. A disconnected person can join back freely; a removed person sends a join request the host accepts or refuses.
+**Checked with a stand-in only.** The browser checks use a fake microphone and a fake screen. Real screen sharing under the new security headers (pull request #9) should be tried once on chat2 right after the deploy.
 
 **Waiting on others (Phase 6):** router port forwarding for calls from outside the office — ports 3478 (UDP and TCP) and 49160–49200 (UDP) to the server.
 
@@ -569,3 +593,4 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | 28–29 Sep 2026 | Text chat, rich messaging, the access switch, restrictions, browse and join. Built inside the CRM repository. |
 | 30 Sep 2026 | Presence, notifications, voice calls, screen sharing. Chat removed from the CRM's menu; chat2 only. Layout improvements. Admin panel. |
 | 1 Oct 2026 | Three call fixes and the colour theme. Chat moved to this repository (pull requests #1–#3). Code reshaped to the folder structure (#4). Own deploy script, settings file and server folder; chat2 switched to `/opt/chat` (#5–#8). Security items built and merged (#9), not deployed yet. |
+| 1 Oct 2026 (later) | Phase 5 built: search finds part of a word, people and channels; the sharer sees their own screen; call host controls. Not deployed yet. |

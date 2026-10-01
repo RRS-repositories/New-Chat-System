@@ -41,6 +41,7 @@ export function loadConfig(env = process.env) {
     callRingMs: 30_000,
     callMaxParticipants: 8,
     callDisconnectGraceMs: 10_000,
+    callAskAgainMs: 60_000, // after the host refuses a removed person, how long before they may ask again
     presenceOfflineGraceMs: 5000,
     // Daily digest of unread mentions — off unless explicitly enabled.
     digestEnabled: env.CHAT_DIGEST_ENABLED === 'true',
