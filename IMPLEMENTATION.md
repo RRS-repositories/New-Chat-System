@@ -15,12 +15,12 @@ A technical reference for the Rowan Rose team chat: every feature that exists, h
 |---|---|
 | Text chat, files, search, presence, notifications, voice calls, screen sharing, admin panel | **Live** on chat2 |
 | Chat running from its own repository and folder (`/opt/chat`), with its own settings file | **Live** since 1 Oct 2026, 11:48 |
-| Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Merged to `main` (pull request #9), not deployed yet.** Goes live with the next run of the deploy script, which restarts the chat for a few seconds |
-| Search that finds part of a word, people and channels; own-screen preview for the sharer; call host controls (mute, remove, ask to rejoin) | **Built and tested, not deployed yet** (Phase 5) |
+| Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Live** since 1 Oct 2026, 16:22 |
+| Search that finds part of a word, people and channels; own-screen preview for the sharer; call host controls (mute, remove, ask to rejoin) | **Live** since 1 Oct 2026, 16:22. Waiting for the owner to try them (Phase 5) |
 | Calls from outside the office | **Blocked** on the router port forwarding (Phase 6) |
 | Chat inside the CRM, Mattermost history import, phone install, camera video | **Not built**, by decision |
 
-Sections below mark anything that came in with pull request #9, and so is in `main` but not yet live, with **(PR #9)**. Anything built in Phase 5 and not yet live is marked **(Phase 5)**.
+The marks **(PR #9)** and **(Phase 5)** below show what went live together in the deploy of 1 Oct 2026, 16:22.
 
 ---
 
@@ -64,7 +64,7 @@ Browser ◄──────── audio / screen (WebRTC, peer to peer) ──
 | Uploads | `multer` (memory storage) | 2.4 |
 | Image thumbnails | `sharp` | 0.35 |
 | Push notifications | `web-push` (VAPID) | 3.6 |
-| Email (optional digest) | `nodemailer` | 10.x in `main` · 6.x still running until the next deploy |
+| Email (optional digest) | `nodemailer` | 10.x |
 | Front end | React, React Router, TypeScript, Vite | 18.2 / 7.13 / 5.8 / 6.2 |
 | Icons | `lucide-react` | 0.462 |
 | Calls | The browser's own WebRTC. No wrapper library. | — |
@@ -309,7 +309,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 
 ### 9.4 Search
 
-**Live today:** PostgreSQL full-text search (`to_tsvector('english', content)`, GIN index), limited to channels the person is in, ranked by relevance then date, 20 results per page. It matches whole English words in message text only.
+**Before Phase 5:** PostgreSQL full-text search (`to_tsvector('english', content)`, GIN index), limited to channels the person is in, ranked by relevance then date, 20 results per page. It matched whole English words in message text only.
 
 **What was wrong.** The button was reported as not working. The server log showed that every search people made returned nothing: they typed part of a word ("Syste") or a person's name ("System Administrator"), and neither can match whole words in message text.
 
@@ -441,7 +441,7 @@ Per person: notification level, sound on or off, Enter-to-send, status message. 
 - Call set-up messages are capped at 64 KB and only relayed between participants of the same call.
 - The settings file on the server is readable by its owner only and holds only what the chat needs. No secret is in the repository, which is public.
 
-**(PR #9), merged to `main`, not deployed yet**
+**(PR #9), live since 1 Oct 2026, 16:22**
 
 - Per-person **IP restriction**, the same rule the CRM enforces.
 - **Upload content checks** (first bytes must match the type).
@@ -574,9 +574,9 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 - A new restriction does not remove two people from a private channel they already share.
 - `addRestriction` in `models/restrictions.model.js` still checks its own input; those checks belong in `services/access.service.js`.
 
-**Built, waiting to be deployed and tried (Phase 5):** the search fix, the own-screen preview and the call host controls. Sections 9.4, 9.8 and 9.9 describe them.
+**Live since 1 Oct 2026, 16:22, waiting for the owner to try (Phase 5):** the search fix, the own-screen preview and the call host controls. Sections 9.4, 9.8 and 9.9 describe them.
 
-**Checked with a stand-in only.** The browser checks use a fake microphone and a fake screen. Real screen sharing under the new security headers (pull request #9) should be tried once on chat2 right after the deploy.
+**Checked with a stand-in only.** The browser checks use a fake microphone and a fake screen. Real screen sharing under the new security headers should be tried once on chat2.
 
 **Waiting on others (Phase 6):** router port forwarding for calls from outside the office — ports 3478 (UDP and TCP) and 49160–49200 (UDP) to the server.
 
@@ -593,4 +593,4 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | 28–29 Sep 2026 | Text chat, rich messaging, the access switch, restrictions, browse and join. Built inside the CRM repository. |
 | 30 Sep 2026 | Presence, notifications, voice calls, screen sharing. Chat removed from the CRM's menu; chat2 only. Layout improvements. Admin panel. |
 | 1 Oct 2026 | Three call fixes and the colour theme. Chat moved to this repository (pull requests #1–#3). Code reshaped to the folder structure (#4). Own deploy script, settings file and server folder; chat2 switched to `/opt/chat` (#5–#8). Security items built and merged (#9), not deployed yet. |
-| 1 Oct 2026 (later) | Phase 5 built: search finds part of a word, people and channels; the sharer sees their own screen; call host controls. Not deployed yet. |
+| 1 Oct 2026 (later) | Phase 5 built (#11): search finds part of a word, people and channels; the sharer sees their own screen; call host controls. Deployed with the security items at 16:22. |

@@ -81,16 +81,16 @@ Steps, in order:
 
 ---
 
-## Security items from the checklist review ✅ (built 1 October 2026, waiting to be deployed)
+## Security items from the checklist review ✅ (built and deployed 1 October 2026)
 
 Done outside the numbered phases, at the owner's request ("implement all other", MFA later):
 per-person IP restriction, upload content checks, security headers, a general request limit, and the mail library upgrade. Details in `Memory.md`.
 
-**Done when:** deployed on the owner's word, and chat2 still works for sign-in, messages, files and calls.
+**Done when:** deployed on the owner's word ✅, and chat2 still works for sign-in, messages, files and calls (the owner's check).
 
 ---
 
-## Phase 5 — The three requested items ▶ (built and tested locally, waiting to be deployed and tried)
+## Phase 5 — The three requested items ▶ (deployed 1 October 2026, 16:22; waiting for the owner to try them)
 
 1. ✅ **Search button:** the cause was found in the server log. Every search returned nothing, because search only matched whole words inside message text, and people typed part of a word or a person's name. Fixed: part of a word now matches, a person's name finds what they wrote, and the same box also finds people and channels.
 2. ✅ **Own screen preview:** the person sharing sees their own shared screen in the call panel.
@@ -106,7 +106,7 @@ per-person IP restriction, upload content checks, security headers, a general re
 - After a refusal the person waits one minute before asking again.
 - If the host leaves and the call goes on, nobody has host controls, and a removed person cannot come back. The host is the host again when they return.
 
-**Done when:** each works locally in the browser tests ✅ (16 of 16), is deployed, and the owner has tried it.
+**Done when:** each works locally in the browser tests ✅ (16 of 16), is deployed ✅, and the owner has tried it.
 
 ---
 

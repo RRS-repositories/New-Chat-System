@@ -9,8 +9,8 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | **Phase 5 — the three requested items**: built and tested locally on 1 Oct 2026, **waiting to be deployed and tried by the owner**. Phase 4 has one step left (the CRM clean-up part 2, after the owner has checked chat2); steps 1 to 3 are done. |
-| **Waiting to be deployed** | Two things, in one run of the deploy script (it restarts the chat for a few seconds and ends any call in progress): the security items (pull request #9, merged) and Phase 5. Deploy only on the owner's word. Afterwards try a real screen share on chat2. |
+| **Current phase** | **Phase 5 — the three requested items**: built, tested and **deployed on 1 Oct 2026, 16:22**. Waiting for the owner to try them on chat2. Phase 4 has one step left (the CRM clean-up part 2, after the owner has checked chat2); steps 1 to 3 are done. |
+| **Waiting to be deployed** | Nothing. chat2 runs commit `e150b6b` (pull request #11), which includes the security items from pull request #9. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -156,7 +156,16 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
-### 1 Oct 2026 — Phase 5 built: search, own-screen preview, call host controls ✅ (not deployed yet)
+### 1 Oct 2026, 16:22 — security items and Phase 5 deployed to chat2 ✅
+- The owner merged pull request #11. One run of `/opt/chat/deploy/deploy.sh` put four commits on the server: the security items (#9), the technical reference (#10) and Phase 5 (#11).
+- Checked before: nobody was on a call, nobody had used chat2 in the previous five minutes, and no active person has an IP restriction set, so the new IP rule refuses nobody today.
+- The deploy installed the upgraded mail library, rebuilt the web app and restarted the chat once. Health check passed.
+- Checked after, on the server and from the public address: health answers; the new web build is served; the security headers are on every response; a request with no sign-in is refused; the error log holds only an old start-up warning (below).
+- **Still to do by a person:** sign in on chat2, search for part of a word and for a name, make a call, share a real screen (the checks used a fake one), and try mute, remove and ask-to-join.
+- **Small thing seen:** on every start the chat logs a deprecation warning from the database library (`client.query()` while a query is running; it comes from setting `search_path` in `models/db.js`). Harmless today. It must be changed before the library's next major version.
+- **Way back, if ever needed:** as `deploy/SERVER.md` says: revert the pull request on GitHub, then run the deploy script. The IP rule alone can be switched to log-only with `IP_RESTRICTION_ENFORCE=false` in `/opt/chat/.env` and a restart.
+
+### 1 Oct 2026 — Phase 5 built: search, own-screen preview, call host controls ✅ (deployed, see above)
 The owner said to carry on with the chat system only. Phase 4's last step is a CRM clean-up that waits for his check of chat2, so the next chat work was Phase 5.
 - **Search.** Cause found in the live server log: all 12 searches people made returned an empty list. Search matched whole English words in message text only; people typed part of a word ("Syste") or a person's name ("System Administrator", "akan"). Now: part of a word matches; every word typed must be in the text or the sender's name; the old full-text match is kept too ("invoices" finds "invoice"); the same box lists matching people (opens the conversation) and channels (opens the channel).
 - **Own-screen preview.** The sharer sees their own screen, small, in the call panel. It plays the capture already running; nothing extra is sent.
@@ -175,7 +184,7 @@ The owner said to carry on with the chat system only. Phase 4's last step is a C
 - **Keep it up to date:** when a feature, address, table, limit or setting changes, change that file in the same pull request.
 - It holds no secret and no server address beyond what `deploy/SERVER.md` already has (the repository is public).
 
-### 1 Oct 2026 — security items from the checklist review ✅ (not deployed yet)
+### 1 Oct 2026 — security items from the checklist review ✅ (deployed with Phase 5, see above)
 The owner gave a security checklist (kept in `Tasks/`, which is not in git). Checked against the chat, four gaps applied to it. All four are fixed in one pull request:
 - **Per-person IP restriction.** A manager can limit a person to certain addresses in the CRM. The CRM now enforces that, and the chat does too: on every request, when a live connection starts, and at the once-a-minute re-check. Nobody has a restriction saved today, so nobody is affected until a manager sets one. Switch: `IP_RESTRICTION_ENFORCE=false` in the chat's settings file only logs what would be refused.
 - **Uploads are checked by content.** A file must begin the way its type does (a real JPEG, PDF, Word file and so on). A program renamed to `photo.jpg` is refused with "the file's content does not match its type".
