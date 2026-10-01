@@ -69,7 +69,7 @@ cd server && npm ci
 cd ../web && npm ci && npm run build
 
 # automated tests
-cd server && npm test                    # 353 tests
+cd server && npm test                    # 368 tests
 cd web && npm test && npx tsc --noEmit   # 107 tests + type check
 
 # local chat in a browser
@@ -125,6 +125,8 @@ The browser checks use the Microsoft Edge already installed on the PC.
 - **The `Tasks/` folder is not in git** (the repository is public and the notes there can describe security gaps). It lives only on the developer's PC.
 - **A web-only deploy does not restart the chat**, so calls are not cut. A server-code deploy restarts it (a few seconds).
 - **The CRM's `deploy.sh --all` restarts every pm2 process, chat included.**
+- **Sign-in for a request goes through `sessionUser`** (`services/session.service.js`), not `loadSessionUser` directly: it applies the IP restriction and removes the list before the person is passed on.
+- **A new allowed upload type needs a content check** in `utils/fileSignature.js`; a test fails if the two lists differ.
 - **Tests build small apps from the route files** (`createXRoutes({ db, emit, … })`). Keep that factory shape: routes take their dependencies as arguments.
 - **Dependencies added, with reasons:**
   - `playwright-core` (server, development only) — drives the real-browser checks using the installed Edge. No browser download.
@@ -153,6 +155,17 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 1 Oct 2026 — security items from the checklist review ✅ (not deployed yet)
+The owner gave a security checklist (kept in `Tasks/`, which is not in git). Checked against the chat, four gaps applied to it. All four are fixed in one pull request:
+- **Per-person IP restriction.** A manager can limit a person to certain addresses in the CRM. The CRM now enforces that, and the chat does too: on every request, when a live connection starts, and at the once-a-minute re-check. Nobody has a restriction saved today, so nobody is affected until a manager sets one. Switch: `IP_RESTRICTION_ENFORCE=false` in the chat's settings file only logs what would be refused.
+- **Uploads are checked by content.** A file must begin the way its type does (a real JPEG, PDF, Word file and so on). A program renamed to `photo.jpg` is refused with "the file's content does not match its type".
+- **Security headers on every response**, including a content policy: only our own scripts, our own API and live connection; nothing may frame the chat; camera and location off; microphone and screen capture allowed for this site only (calls need them).
+- **A general limit** of 600 requests a minute per person, on top of the tighter limits on sending messages and uploading.
+- **Mail library** upgraded to version 10 (the old one had a known high-severity issue; it is only used by the optional digest email, which is off). `npm audit` now reports 0 issues.
+- Where: `server/src/utils/ipRestriction.js`, `utils/fileSignature.js`, `middleware/securityHeaders.js`, `services/session.service.js` (`sessionUser`), `middleware/auth.js`, `sockets/index.js`, `services/files/upload.service.js`, `app.js`, `config/index.js`. Tests: `server/test/security.test.js` (15).
+- Checked: server tests 368 of 368; web build; end-to-end 13 of 13; browser checks 10, 14, 5 and 7 (the content policy did not break calls, screen share, notifications or the admin panel).
+- **Dependency changed, with reason:** `nodemailer` 6 → 10 (security fix).
 
 ### 1 Oct 2026 — Phase 4, step 2: the server now runs the chat from this repository ✅
 - Put the repository in `/opt/chat`, created the chat's own settings file with `deploy/make-env.sh` (22 settings copied, none shown), installed the libraries and built the web app there at low priority. The live chat was not touched during this.

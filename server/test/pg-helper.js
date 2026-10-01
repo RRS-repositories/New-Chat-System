@@ -15,6 +15,7 @@ export async function createTestDb() {
     INSERT INTO users (email, full_name, role) VALUES ('m@x', 'Meg Manager', 'Management'), ('a@x', 'Ann Agent', 'cs_agent'), ('b@x', 'Bob Sales', 'Sales');
     INSERT INTO users (email, full_name, role, is_active) VALUES ('gone@x', 'Gone User', 'Sales', FALSE);
     INSERT INTO users (email, full_name, role) VALUES ('c@x', 'Cy Sales', 'Sales');
+    ALTER TABLE users ADD COLUMN ip_restriction TEXT[] NOT NULL DEFAULT '{}';
     CREATE TABLE account_locks (user_id INT, unlocked_at TIMESTAMPTZ);
     CREATE TABLE permissions (key TEXT PRIMARY KEY, category TEXT, label TEXT, is_sensitive BOOLEAN DEFAULT FALSE);
     CREATE TABLE roles (id SERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL);

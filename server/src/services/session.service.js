@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
+import { loadSessionUser } from '../models/users.model.js';
+import { ipAllowedBy } from '../utils/ipRestriction.js';
 
-/** A sign-in problem. `code` is one of token_missing, token_invalid, token_expired. */
+/** A sign-in problem. `code` is one of token_missing, token_invalid, token_expired, ip_not_allowed. */
 export class AuthError extends Error {
   constructor(code, message) {
     super(message || code);
@@ -25,4 +27,26 @@ export function verifySessionToken(token, { secret, aud }) {
       expired ? 'Session expired — please sign in again' : 'Not authenticated',
     );
   }
+}
+
+export const IP_REFUSED_MESSAGE =
+  'Access from this network is not allowed for your account. Ask a manager to check your access settings.';
+
+/**
+ * The signed-in person for these token claims, or null when the session is no longer good.
+ * Applies the per-person IP restriction the CRM also applies: a person limited to certain
+ * addresses is refused from anywhere else (AuthError `ip_not_allowed`).
+ * `enforceIp: false` (setting IP_RESTRICTION_ENFORCE=false) only logs what would be refused.
+ */
+export async function sessionUser({ db, claims, ip, enforceIp = true, log = console.warn }) {
+  const found = await loadSessionUser(db, claims);
+  if (!found) return null;
+  const { ipRestriction, ...user } = found;
+  if (!ipAllowedBy(ipRestriction, ip)) {
+    log(
+      `[chat] ip restriction: ${enforceIp ? 'refused' : 'would refuse'} user #${user.id} from ${ip || 'an unknown address'}`,
+    );
+    if (enforceIp) throw new AuthError('ip_not_allowed', IP_REFUSED_MESSAGE);
+  }
+  return user;
 }

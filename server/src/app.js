@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { requireAuth } from './middleware/auth.js';
 import { perUserLimiter } from './middleware/rate-limit.js';
+import { securityHeaders } from './middleware/securityHeaders.js';
 import { createChannelRoutes } from './routes/channels.routes.js';
 import { createMessageRoutes } from './routes/messages.routes.js';
 import { createBrowseRoutes } from './routes/browse.routes.js';
@@ -18,6 +19,7 @@ import { createCallRoutes } from './routes/calls.routes.js';
 import { createPresence } from './services/presence/registry.js';
 import { createNotifier } from './services/notifications/notifier.js';
 
+const GENERAL_REQUESTS_PER_MINUTE = 600;
 const DEFAULT_DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'web', 'dist');
 
 export function createApp({
@@ -32,6 +34,7 @@ export function createApp({
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
+  app.use(securityHeaders);
   if (config.corsOrigins.length) app.use(cors({ origin: config.corsOrigins, credentials: false }));
   app.use(express.json({ limit: '64kb' }));
 
@@ -42,6 +45,7 @@ export function createApp({
     secret: config.sessionSecret,
     aud: config.sessionAud,
     requireBeta: config.requireBeta,
+    enforceIp: config.enforceIpRestriction,
   });
   app.use('/api/chat/auth', createAuthRoutes({ crmInternalUrl: config.crmInternalUrl, fetchImpl }));
   // Auth is scoped to the prefixes that exist, so an unknown /api/chat path
@@ -58,6 +62,9 @@ export function createApp({
       '/api/chat/calls',
     ],
     auth,
+    // A ceiling on how fast one person can call the API at all. Normal use is far below it;
+    // sending messages and uploading files have their own tighter limits further down.
+    perUserLimiter({ windowMs: 60_000, max: GENERAL_REQUESTS_PER_MINUTE }),
   );
   app.use('/api/chat/admin', createAdminRoutes({ db, presence }));
   app.use('/api/chat/search', createSearchRoutes({ db }));

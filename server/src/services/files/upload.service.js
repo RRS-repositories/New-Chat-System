@@ -3,15 +3,18 @@ import { httpError } from '../../middleware/errors.js';
 import { createMessage, getMessage } from '../../models/messages.model.js';
 import { insertFile } from '../../models/files.model.js';
 import { utf8Name } from '../../utils/filenames.js';
+import { contentMatchesType } from '../../utils/fileSignature.js';
 import { ALLOWED_MIME, saveUpload, makeThumbnail, removeUpload } from './storage.js';
 
-/** Fixes the names and refuses an empty upload or a file type that is not allowed. */
+/** Fixes the names and refuses an empty upload, a file type that is not allowed, or content that is not that type. */
 export function checkUploads(files) {
   if (!files.length) throw httpError(400, 'no_files', 'Attach at least one file');
   for (const file of files) file.originalname = utf8Name(file.originalname);
   for (const file of files) {
     if (!ALLOWED_MIME.has(file.mimetype))
       throw httpError(400, 'file_type', `${file.originalname}: file type not allowed`);
+    if (!contentMatchesType(file.mimetype, file.buffer))
+      throw httpError(400, 'file_content', `${file.originalname}: the file's content does not match its type`);
   }
 }
 
