@@ -155,6 +155,10 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 - Rehearsed locally: 43 of 43 checks. The real web build into a side folder was also tried. Server tests 353 of 353.
 - The default address in the mention-digest email now points at chat2 (it still pointed at the removed CRM page). The digest is off, so nothing visible changed.
 - **Not done yet:** the switch itself. The server did not answer from the developer's PC (network), so nothing on the server was touched.
+- **CRM repository clean-up is prepared but not merged.** Two branches are pushed to `CRM-Finalised`, with no pull request yet:
+  - `chore/chat-moved-out-1-deploy-hook` — removes the chat step from the CRM's `deploy.sh` and the chat process from its `ecosystem.config.cjs`. Merge only **after** the switch works (until then the old process is the way back).
+  - `chore/chat-moved-out-2-remove-folders` — built on the first; deletes `chat-server/`, `chat-ui/`, the three chat database files and the old apply script, and updates two CRM tests. Merge only after part 1 is on the server and the owner has checked chat2.
+- The scripts for the switch are written: one prepares `/opt/chat` without touching the live chat; one swaps the process and goes back to the old one by itself if the new one does not answer within 30 seconds.
 
 ### 1 Oct 2026 — Phase 3: code reshaped to the rules ✅
 - **Server:** every route file is now a short list of addresses. Request handling moved to `controllers/`, the rules to `services/`, and all database queries to `models/`. Sign-in checking is in `middleware/`. Shared helpers are in `utils/`.
