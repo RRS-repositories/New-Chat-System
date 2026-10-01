@@ -17,6 +17,8 @@ A technical reference for the Rowan Rose team chat: every feature that exists, h
 | Chat running from its own repository and folder (`/opt/chat`), with its own settings file | **Live** since 1 Oct 2026, 11:48 |
 | Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Live** since 1 Oct 2026, 16:22 |
 | Search that finds part of a word, people and channels; own-screen preview for the sharer; call host controls (mute, remove, ask to rejoin) | **Live** since 1 Oct 2026, 16:22. Waiting for the owner to try them (Phase 5) |
+| Lightweight with very long channels (a window of messages on the page, indexed search); clickable links; simple formatting; channel rename, leave and archive | **Live** since 1 Oct 2026, 17:34. Waiting for the owner to try them (Phase 7) |
+| The CRM's automatic messages posted into the chat | **Approved, not started** (Phase 8). About 150 places in the CRM, not forty |
 | Calls from outside the office | **Blocked** on the router port forwarding (Phase 6) |
 | Chat inside the CRM, Mattermost history import, phone install, camera video | **Not built**, by decision |
 
@@ -103,27 +105,27 @@ New Chat System/
 │   │   ├── middleware/  (3+1)    sign-in check, errors, rate limit; security headers (PR #9)
 │   │   ├── sockets/     (3)      live events: core, presence, call signalling
 │   │   └── utils/       (8)      ids, file names, validators, mentions, message cleaning, search text; IP rules and file signatures (PR #9)
-│   ├── test/            (40 files, 396 tests)
-│   └── dev/                      local.mjs (local chat on PGlite) and e2e/ (7 scripts)
+│   ├── test/            (43 files, 424 tests)
+│   └── dev/                      local.mjs (local chat on PGlite) seed-heavy.mjs (heavy test data) and e2e/ (9 scripts)
 └── web/
     ├── index.html  vite.config.ts  public/sw.js
     ├── src/
     │   ├── App.tsx  main.tsx
     │   ├── pages/        (6)     sign-in, chat, admin people, one person's access, restrictions, DM redirect
-    │   ├── components/   (40)    layout, channel, messages, dialogs, calls, admin, common
+    │   ├── components/   (42)    layout, channel, messages, dialogs, calls, admin, common
     │   ├── context/      (7)     chat state, call state, sign-out
     │   ├── hooks/        (15+5)  screen logic; hooks/actions/ holds the chat actions
     │   ├── services/     (9)     every call to the server, the socket, push, the call engine
-    │   ├── utils/        (17)    pure helpers
+    │   ├── utils/        (19)    pure helpers
     │   ├── config/  types/  styles/ (12 CSS files)
-    └── test/             (16 files, 120 tests)
+    └── test/             (18 files, 142 tests)
 ```
 
-About 14,800 lines of source in `server/src` and `web/src`.
+About 15,700 lines of source in `server/src` and `web/src`.
 
 **Layer rules that are kept everywhere:** routes hold no logic; SQL lives only in `models/`; rules live in `services/`; screens and hooks never call the server directly, they go through `web/src/services/`.
 
-**Four files are long on purpose:** `web/src/services/callManager.ts` (725 lines, the call engine), `server/src/services/calls/call.service.js` (521), `web/src/context/chatReducer.ts` (394), `web/src/context/CallProvider.tsx` (394). `Memory.md` gives the reason for each.
+**Four files are long on purpose:** `web/src/services/callManager.ts` (725 lines, the call engine), `server/src/services/calls/call.service.js` (521), `web/src/context/chatReducer.ts` (467), `web/src/context/CallProvider.tsx` (394). `Memory.md` gives the reason for each.
 
 ---
 
@@ -170,7 +172,7 @@ Routes under `/api/chat/admin` additionally require role `Management` (`requireM
 
 ## 6. Data model
 
-PostgreSQL schema `chat`, created by `server/migrations/chat_001_schema.sql`, `chat_002_rich.sql`, `chat_003_notify_calls.sql`. People come from the CRM's `public.users`; the chat only reads that table.
+PostgreSQL schema `chat`, created by `server/migrations/chat_001_schema.sql`, `chat_002_rich.sql`, `chat_003_notify_calls.sql` and `chat_004_search_speed.sql` (indexes only). People come from the CRM's `public.users`; the chat only reads that table.
 
 | Table | Key columns | Notes |
 |---|---|---|
@@ -189,6 +191,8 @@ PostgreSQL schema `chat`, created by `server/migrations/chat_001_schema.sql`, `c
 | `audit_log` | `actor_id`, `action`, `target_type`, `target_id`, `detail` jsonb | Access changes and message deletions by moderators. |
 
 Every database connection opens with `search_path` set to `chat, public` (a connection start-up option, so it is in place before the first query). Pool size 10.
+
+**Indexes that keep it fast as it grows:** messages by channel and time (paging in both directions), by time alone (newest-first search), by sender, a full-text index, and a trigram index on the text (part-of-a-word search). On the live database the trigram extension `pg_trgm` was already installed by the CRM.
 
 **Applying a database file:** `node server/migrations/apply.mjs` lists what would run; `--commit` applies; `--only=<file>` applies one. The deploy script never applies them.
 
@@ -210,11 +214,13 @@ All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks
 | `POST /channels` | Create a public, private or group channel. |
 | `POST /channels/dm` | Open (or find) a direct message with one person. |
 | `GET /channels/:id` | Channel details and members. |
+| `PATCH /channels/:id` `{ displayName, purpose }` | Rename the channel and/or set its purpose. Channel owner or admin, or Management. Not for a direct message. |
+| `POST /channels/:id/archive` | Hide the channel for everyone; messages are kept. Channel owner or admin, or Management. Not General, not a direct message, not while a call is live. |
 | `POST /channels/:id/members` · `DELETE /channels/:id/members/:userId` | Add or remove members. Removing needs channel admin. |
 | `POST /channels/:id/read` | Mark read. |
 | `PATCH /channels/:id/notify` | Per-channel notification level. |
 | `GET /channels/browse` · `POST /channels/:id/join` | List public channels; join one. |
-| `GET /channels/:id/messages` | A page of messages (50 by default, 100 at most, cursor = `created_at|id`). Also "around a message" for jumps. |
+| `GET /channels/:id/messages` | A page of messages, oldest first (50 by default, 100 at most). No cursor: the newest page. `before=<cursor>`: the page older than it. `after=<cursor>`: the page newer than it, with `hasNewer`. `around=<message id>`: a window around one message. Every message carries its own `cursor`. |
 | `POST /channels/:id/messages` | Send. Limit: 1 per second per person. |
 | `PATCH /messages/:id` · `DELETE /messages/:id` | Edit own message; delete own, or any as a channel admin. |
 | `GET /messages/:id/thread` | A thread: the root and its replies. |
@@ -266,7 +272,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 | `message_pinned`, `message_unpinned`, `reaction_added`, `reaction_removed` | |
 | `typing` | Someone is typing. Shown for 5 seconds. |
 | `unread_update { channel_id, unread_count, mention_count }` | Badge changes for this person. |
-| `member_added`, `member_removed`, `channel_updated` | Membership and channel changes. |
+| `member_added`, `member_removed`, `channel_updated`, `channel_archived` | Membership and channel changes: joined, left or removed, renamed, archived. |
 | `user_online`, `user_offline`, `user_away`, `user_status` | Presence and status. |
 | `call_started`, `call_participant_joined`, `call_participant_left`, `call_ended`, `call_dismissed` | Call lifecycle. |
 | `call_muted_by_host`, `call_removed` **(Phase 5)** | The host muted this person (sent to their call tab) or removed them (sent to all their tabs). |
@@ -286,16 +292,18 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 - A direct message cannot be opened with yourself, or with someone you are blocked from messaging.
 - A private channel cannot be created, or added to, with two people who are blocked from sharing private channels.
 - The sidebar has two sections, Channels and Direct messages, each foldable; the folded state is kept in the browser (`chat.collapsed`). The last open channel is remembered (`chat_last_channel`).
+- **Housekeeping** (Details → Options). The owner, a channel admin or Management can **rename** a channel and set its purpose (name up to 80 characters, purpose up to 250), and **archive** it. An archived channel disappears from everyone's list at once; its messages stay in the database, but nothing in it can be read or posted. Anyone can **leave** a channel, after a "Yes, leave" confirmation. Nobody leaves General (everyone is always in it) or a direct message. A private channel whose last member leaves is archived. Renames and archives are written to `audit_log`. There is no un-archive button; it is one database update if ever needed.
 
 ### 9.2 Messages
 
-- Plain text, up to **4,000 characters**. HTML tags are removed and their text kept ("3 < 5" stays as written). Trailing spaces and runs of spaces are tidied.
+- Plain text, up to **4,000 characters**. HTML tags are removed and their text kept ("3 < 5" stays as written). Trailing spaces and runs of spaces are tidied. **Code is the exception:** a fenced block and `inline code` are stored exactly as typed.
+- **Formatting** (shown when the message is drawn, never stored as HTML): `**bold**`, `` `code` ``, fenced code blocks, lists (lines starting with `-`, `*` or `1.`), and web addresses as links. Links are `http` and `https` only, open in a new tab, and pass no referrer. A full stop or bracket after an address is not part of it. Code: `web/src/utils/richText.ts` (pure parser) and `web/src/components/messages/RichText.tsx`.
 - **Edit** your own message (shows as edited). **Delete** is soft; a channel admin can delete anyone's message, and that is written to `audit_log`.
 - **Reply** quotes one message. **Threads** hang replies off a root message and open in a side panel.
 - **Reactions:** any emoji, one per person per emoji.
 - **Pins:** up to 50 per channel, shown in a bar at the top.
 - **Mentions:** `@Full Name`, `@FirstName` (only when that first name is unique in the channel), `@all`, `@channel`. Longest names are matched first, so "@Ann Agent" is not read as "@Ann". The input offers an autocomplete list.
-- **Paging:** newest 50 first; older pages load as you scroll up. Jumping to a message from search or a pin loads the messages around it and highlights it.
+- **Paging and the window.** The newest 50 load first. Scrolling up loads older pages; in old history, scrolling down loads newer ones. The page never holds more than **400 messages of one channel**: past that, the far end is let go and fetched again if the person scrolls back. What is being read stays exactly where it is on screen while pages come and go. Channels that are not open keep only their newest page. Jumping to a message from search or a pin loads the messages around it and highlights it.
 - **Sending limit:** one message per second per person. Enter sends by default (a preference).
 
 ### 9.3 Files
@@ -315,7 +323,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 
 **(Phase 5) What search does now.** One box finds three things:
 
-- **Messages.** A message matches when every word typed appears in its text or in its sender's name. Part of a word counts, and letter case does not matter (`ILIKE`, with `%`, `_` and `\` in the query taken literally). The full-text match is kept as well, so "invoices" still finds "invoice". Best full-text matches first, then newest first. At most 8 words are used. The excerpt is cut around the first match and the typed text is highlighted.
+- **Messages.** A message matches when every word typed appears in its text or in its sender's name. Part of a word counts, and letter case does not matter (`ILIKE`, with `%`, `_` and `\` in the query taken literally). The full-text match is kept as well, so "invoices" still finds "invoice". **Newest first.** At most 8 words are used. The excerpt is cut around the first match and the typed text is highlighted. Three indexes keep this fast on a large table: a trigram index on the text, an index by sender, and an index by time.
 - **People.** Matched by name in the browser from the list already loaded. Choosing one opens the conversation with them.
 - **Channels.** Matched by name in the browser from the channels the person is in. Choosing one opens it.
 
@@ -420,9 +428,10 @@ Per person: notification level, sound on or off, Enter-to-send, status message. 
 - **Talking to the server:** `services/apiClient.ts` (fetch with the token; a 401 signs out), `chatApi.ts`, `callApi.ts`, `authApi.ts`, `socket.ts`, `push.ts`.
 - **The call engine:** `services/callManager.ts`, written without React and with the browser pieces injected, so it is tested with fakes (36 tests).
 - **Live events:** `hooks/useChatSocketEvents.ts` and `hooks/useCallSocketEvents.ts` turn socket events into state changes. Events that arrive while a call is still being created are held (500 at most) and applied once the call id is known.
+- **Staying light.** The message list (`MessageFeed`) and each message (`Message`) are wrapped in `memo`, and every callback passed to them is kept stable, so a keystroke, a presence change or one new message does not redraw the messages already on screen. The window rules are in `utils/messageWindow.ts`; the state keeps at most 400 messages for the open channel and 50 to 100 for the others.
 - **Styles:** plain CSS in 12 files, one per area. Every colour and size is a variable in `tokens.css`; `theme.css` loads last.
 - **Design:** accent violet `#6C4DE6`; sidebar deep indigo `#1B1F3A`; online green `#22C55E`, away amber `#F59E0B`, attention red `#DC2626`. System font, 14 px base, 16 px in inputs so phones do not zoom. Sidebar 240 px. Below 768 px wide the layout becomes a single column. Full list in `Design.md`.
-- **Build:** `tsc --noEmit && vite build` → `web/dist` (about 375 KB of script, 116 KB compressed; 22 KB of CSS). Served by the chat server itself, cached for 1 hour except the service worker.
+- **Build:** `tsc --noEmit && vite build` → `web/dist` (about 385 KB of script, 119 KB compressed; 23 KB of CSS). Served by the chat server itself, cached for 1 hour except the service worker.
 
 ---
 
@@ -434,7 +443,7 @@ Per person: notification level, sound on or off, Enter-to-send, status message. 
 - Sessions are re-checked against the CRM's user table on every request and every 60 seconds on a live connection.
 - All SQL uses parameters. No user input is ever placed in query text.
 - One error handler; server faults reveal nothing ("Something went wrong").
-- Message content is plain text with tags removed.
+- Message content is plain text with tags removed. Formatting and links are built on screen from text pieces, never from HTML, so nothing typed in a message can run as code. Links are `http`/`https` only.
 - Files: type allowlist, size and count limits, cleaned names, members-only downloads, SVG never rendered.
 - Request body limit 64 KB. `X-Powered-By` removed. CORS is off unless origins are listed.
 - Push subscription endpoints are validated (https only, a public host, never localhost or a private address) and capped at 10 per person.
@@ -464,6 +473,7 @@ Per person: notification level, sound on or off, Enter-to-send, status message. 
 | All requests **(PR #9)** | 600 per minute per person |
 | JSON request body | 64 KB |
 | Messages per page | 50 (100 at most) |
+| Messages of one channel kept on the page | 400 |
 | Search results per page | 20 |
 | Pins per channel | 50 |
 | People in a call | 8 |
@@ -547,8 +557,8 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 396, 40 files |
-| Web | `cd web && npm test` | 120, 16 files |
+| Server | `cd server && npm test` | 424, 43 files |
+| Web | `cd web && npm test` | 142, 18 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
@@ -557,6 +567,8 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: admin panel | `node server/dev/e2e/browser-admin.cjs` | 7 |
 | Real browser: search, own-screen preview, host controls | `node server/dev/e2e/browser-host.cjs` | 16 |
 | Real browser, **real screen**: a two-person call sharing the PC's actual screen (opens a window; needs a desktop) | `node server/dev/e2e/browser-real-share.cjs` | 1 |
+| Real browser: links, formatting, channel rename, leave and archive | `node server/dev/e2e/browser-features.cjs` | 12 |
+| Speed with heavy data (needs `SEED_HEAVY=1`) | `node server/dev/e2e/browser-perf.cjs` | 31 measurements |
 | Deploy scripts | `bash deploy/rehearse.sh` | 51 |
 
 - Server tests run the real SQL against PGlite, which uses the same `user_role` enum as the CRM, so a missing `::text` cast is caught.
@@ -565,12 +577,39 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 ---
 
+### Speed with heavy data
+
+The owner's requirement (1 October 2026): the chat must stay light, with no freezing, however long the channels get. It is measured, not assumed.
+
+```
+SEED_HEAVY=1 node server/dev/local.mjs      # 100,000 messages in one channel, 300 more channels, 120 more people
+node server/dev/e2e/browser-perf.cjs        # 31 measurements, each with a limit; fails if one is broken
+```
+
+| What was measured | Before | After |
+|---|---|---|
+| Open the 100,000-message channel | 0.4 s | 0.3 s |
+| Scrolled back 2,000 messages: messages kept on the page | 2,050 | 400 |
+| Page elements at that point | 59,668 | 13,681 |
+| Memory used by the page | 124 MB | 14 MB |
+| Longest freeze while scrolling back | 467 ms | 67 ms |
+| Longest freeze while typing, with all that loaded | 450 ms | 17 ms |
+| Longest freeze when 12 messages arrive | 500 ms | 33 to 50 ms |
+| Search for part of a word | 677 ms | 15 ms |
+| Search for a person's name | 848 ms | 17 to 27 ms |
+| Channel list with 301 channels | 47 ms | 47 ms |
+
+Measured on the developer PC against the in-memory test database, which is slower than the real one. Files were already light: the list shows small thumbnails only, and a document is fetched only when someone presses download.
+
+**Run the speed check again after any change to the message list, the message state, paging or search.**
+
+---
+
 ## 16. Known issues and not built
 
 **Known small issues**
 
 - Accepting the same call in two tabs at once can make both drop out.
-- Any change in a call redraws the whole message list.
 - Signing out during a call is tidied up by the server after 10 seconds, not at once.
 - A new restriction does not remove two people from a private channel they already share.
 - `addRestriction` in `models/restrictions.model.js` still checks its own input; those checks belong in `services/access.service.js`.
@@ -579,11 +618,13 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 **Real screen sharing under the security headers** was checked on 1 October 2026 with `browser-real-share.cjs`: the other person saw the real desktop. The browser prints a "camera is not allowed" notice when a share starts; that is the header refusing the camera, which the chat never uses, and it does not affect sharing.
 
+**Approved by the owner, not built yet:** the CRM's automatic messages posted into the chat, so Mattermost can be switched off (Phase 8). A survey found about 150 places in the CRM that post to Mattermost, through about 25 separate pieces of sending code, with no buttons anywhere. It needs the owner's decisions on channels before work starts.
+
 **Waiting on others (Phase 6):** router port forwarding for calls from outside the office — ports 3478 (UDP and TCP) and 49160–49200 (UDP) to the server.
 
 **Only on the owner's word:** the chat inside the CRM, moving the CRM's automatic messages off Mattermost, importing Mattermost history, phone install.
 
-**Decided against:** camera video; any paid service.
+**Decided against (owner, 1 October 2026):** camera video; any paid service; "seen" marks on direct messages; a "mute everyone" button and passing the host role on; an audit screen; importing old Mattermost conversations; installing the chat as an app; dark mode. Link previews are also out: the server would have to fetch outside web pages.
 
 ---
 
@@ -595,3 +636,4 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | 30 Sep 2026 | Presence, notifications, voice calls, screen sharing. Chat removed from the CRM's menu; chat2 only. Layout improvements. Admin panel. |
 | 1 Oct 2026 | Three call fixes and the colour theme. Chat moved to this repository (pull requests #1–#3). Code reshaped to the folder structure (#4). Own deploy script, settings file and server folder; chat2 switched to `/opt/chat` (#5–#8). Security items built and merged (#9), not deployed yet. |
 | 1 Oct 2026 (later) | Phase 5 built (#11): search finds part of a word, people and channels; the sharer sees their own screen; call host controls. Deployed with the security items at 16:22. |
+| 1 Oct 2026 (evening) | Phase 7: kept light with very long channels (measured with 100,000 messages), clickable links, simple formatting, channel rename, leave and archive. Deployed at 17:34 with one new database file (indexes). |

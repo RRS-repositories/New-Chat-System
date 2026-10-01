@@ -37,6 +37,7 @@ If a rule here and an instruction from the owner disagree, the owner's latest in
 10. **Clean up before calling a feature complete:** no unused imports, dead code, duplicates, needless comments or leftover debugging lines.
 11. **Review after each significant feature** for duplication, needless complexity, poor separation and bugs, and tidy what you find.
 12. The codebase should read like a professionally engineered production project.
+13. **Keep it light.** The page must not lag or freeze however much data there is. Do not keep unbounded lists on the page or in memory, do not redraw what did not change, and do not add a heavy library for a small need. After any change to the message list, the message state, paging or search, run the speed check with heavy data (`SEED_HEAVY=1 node server/dev/local.mjs`, then `node server/dev/e2e/browser-perf.cjs`); every measurement must stay within its limit.
 
 ## 4. Libraries
 

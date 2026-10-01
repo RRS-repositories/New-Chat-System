@@ -9,8 +9,8 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | **Phase 5 — the three requested items**: built, tested and **deployed on 1 Oct 2026, 16:22**. Waiting for the owner to try them on chat2. Phase 4 has one step left (the CRM clean-up part 2, after the owner has checked chat2); steps 1 to 3 are done. |
-| **Waiting to be deployed** | Nothing. chat2 runs commit `7acd985` (pull request #13) since 1 Oct 2026, 16:47. |
+| **Current phase** | **Phase 7 — lightweight, links, formatting, channel housekeeping**: built, tested and **deployed on 1 Oct 2026, 17:34**. Waiting for the owner to try it (and Phase 5) on chat2. Next is Phase 8 (the CRM's automatic messages), which needs his decisions first. Phase 4 still has one step left (CRM clean-up part 2, after his check of chat2). Phase 6 waits for the router rules. |
+| **Waiting to be deployed** | Nothing. chat2 runs commit `cdbb7ac`. All four database files are applied. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -30,7 +30,7 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | `src/middleware/` | Sign-in check, Management-only check, the one error handler, rate limits. |
 | `src/sockets/` | Live events: presence, typing, read receipts, call signalling. |
 | `src/utils/` | Small pure helpers: ids, file names, validators, mention parsing, message cleaning. |
-| `migrations/` | The three database files for the `chat` schema, and `apply.mjs`, which applies them (dry run unless `--commit`). |
+| `migrations/` | The four database files for the `chat` schema, and `apply.mjs`, which applies them (dry run unless `--commit`). |
 | `test/` | Automated tests. |
 | `dev/local.mjs`, `dev/e2e/` | The local test server and the end-to-end and browser checks. |
 
@@ -83,6 +83,13 @@ node server/dev/e2e/browser-notify.cjs   # 10 checks
 node server/dev/e2e/browser-calls.cjs    # 14 checks
 node server/dev/e2e/browser-polish.cjs   # 5 checks
 node server/dev/e2e/browser-admin.cjs    # 7 checks
+node server/dev/e2e/browser-host.cjs     # 16 checks: search, own-screen preview, call host controls
+node server/dev/e2e/browser-features.cjs # 12 checks: links, formatting, channel rename/leave/archive
+node server/dev/e2e/browser-real-share.cjs  # a call sharing the PC's real screen (opens a window)
+
+# Speed with heavy data (start the local chat with SEED_HEAVY=1 first; loading takes about 20 seconds):
+#   SEED_HEAVY=1 node server/dev/local.mjs
+node server/dev/e2e/browser-perf.cjs     # 31 measurements, each with a limit
 
 # the deploy script, rehearsed with stand-ins (nothing real is installed or restarted)
 bash deploy/rehearse.sh                  # 51 checks
@@ -110,6 +117,8 @@ The browser checks use the Microsoft Edge already installed on the PC.
 | 1 Oct 2026 | The chat gets its own separate settings file on the server (not a link to the CRM's). |
 | 1 Oct 2026 | Call host controls: a disconnected person can join back freely; a person the host removed sends a join request that the host accepts or refuses. |
 | 1 Oct 2026 | Work in this repository goes straight to `main`: no branch, no pull request. Only the owner and the developer work here. Other repositories are unchanged. |
+| 1 Oct 2026 | **The chat must stay lightweight and lag-free**, however long the channels get and however large the files. Measure with heavy data before saying something is fast. |
+| 1 Oct 2026 | To add: calls from outside the office, the CRM's automatic messages, clickable links, channel housekeeping, simple formatting. **Not** to add: "seen" marks, a mute-everyone button or host handover, an audit screen, Mattermost history import, install as an app, dark mode. |
 
 ## Blockers
 
@@ -142,13 +151,12 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 |---|---|---|
 | `web/src/services/callManager.ts` | ~725 | One class that runs the browser-to-browser connections. Covered by 21 unit tests and the browser call checks. |
 | `server/src/services/calls/call.service.js` | ~521 | The call lifecycle on the server, built around one set of timers and locks. Covered by the call service tests. |
-| `web/src/context/chatReducer.ts` | ~394 | One pure function: every way the chat state can change. |
+| `web/src/context/chatReducer.ts` | ~467 | One pure function: every way the chat state can change. |
 | `web/src/context/CallProvider.tsx` | ~394 | Start, join and leave share the same handful of working values. |
 
 ## Known small issues (also listed in `Phases.md`)
 
 - Accepting the same call in two tabs at once can make both drop out.
-- Any change in a call redraws the whole message list.
 - Signing out during a call is tidied up by the server after 10 seconds, not at once.
 - A new restriction does not remove two people from a private channel they already share.
 - `addRestriction` in `models/restrictions.model.js` still checks its own input. Moving those checks into `services/access.service.js` would complete the split.
@@ -156,6 +164,19 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 1 Oct 2026, 17:34 — Phase 7 deployed: lightweight, links, formatting, channel housekeeping ✅
+The owner chose what to add (yes: calls from outside, CRM automatic messages, clickable links, channel housekeeping, simple formatting; no: "seen" marks, call extras, audit screen, Mattermost import, install as an app, dark mode) and asked whether the chat stays lag-free with very long chats and large files.
+- **Measured first.** New tools: `SEED_HEAVY=1 node server/dev/local.mjs` loads 100,000 messages, 300 channels and 120 more people; `server/dev/e2e/browser-perf.cjs` takes 31 measurements, each with a limit. Normal use was already fast. The weak points were real: after scrolling back 2,000 messages the page held about 60,000 elements, typing froze up to 450 ms a key, arriving messages froze it 500 ms, and search took 0.5 to 0.85 s.
+- **Fixed.** The page keeps at most 400 messages of a channel and pages both ways (`utils/messageWindow.ts`, `chatReducer.ts`, `MessageFeed.tsx`); the list and each message are redrawn only when they change (`memo` and stable callbacks); channels that are not open keep only their newest page; search is newest-first and uses three new indexes (`migrations/chat_004_search_speed.sql`). After: freezes under 70 ms, typing costs nothing extra, search 15 to 30 ms, memory 14 MB instead of 124 MB.
+- **Files were already light:** the list shows thumbnails only; a document is fetched only on download.
+- **Clickable links and formatting.** `utils/richText.ts` (pure parser, 13 tests) and `components/messages/RichText.tsx`. Bold, inline code, code blocks, lists, links. Text pieces only, never HTML. The server now stores code exactly as typed (`utils/sanitize.js`); before, it squeezed the indentation out of a code block.
+- **Channel housekeeping.** `PATCH /channels/:id`, `POST /channels/:id/archive`, live event `channel_archived`, and rules on leaving (not General, not a direct message; a private channel whose last member leaves is archived). Screen: Details → Options (`components/channel/ChannelOptions.tsx`). An archived channel counts as having no members, so every route refuses it (`isMember` in `models/channels.model.js`).
+- **Checked:** server tests 424 of 424; web tests 142 of 142; end-to-end 13 of 13; browser checks 14, 10, 5, 7, 16, the new `browser-features.cjs` 12 of 12, and the speed check 31 of 31; deploy rehearsal 51 of 51.
+- **Deployed** after checking no call was live. The chat restarted once. Database file 004 applied on the live database (dry run first): three indexes on `chat.messages`. The trigram extension was already installed there by the CRM. Health, the new build and a refused unsigned request were checked from the public address; no new line in the error log.
+- **Fixed along the way:** "any change in a call redraws the whole message list" (the list no longer redraws for that).
+- **Phase 8 survey done** (CRM automatic messages): about 150 places, no buttons, 25 sending implementations. Kept in `Tasks/CRM-Mattermost-Survey.md` (local only). Needs the owner's decisions before work starts; see `Phases.md`.
+- **Decisions made while building, for the owner to confirm:** search results newest first; nobody leaves General; a private channel whose last member leaves is archived; no un-archive button yet; leave and archive ask first.
 
 ### 1 Oct 2026, 16:47 — pull request #13 deployed; work now goes straight to `main` ✅
 - The owner merged #13 and said: in this repository only the two of us work, so push directly to `main`. `Rules.md` (Git rule) now says so. Tests before every push and no force-push still apply. Other repositories keep branches and pull requests.
