@@ -10,7 +10,8 @@ export function createPool(config) {
     ssl: config.dbSsl,
     max: 10,
     idleTimeoutMillis: 30000,
+    // Chat tables first, then the CRM's. Set as the connection opens, so it is in place before the first query.
+    options: '-c search_path=chat,public',
   });
-  pool.on('connect', (client) => client.query('SET search_path TO chat, public'));
   return pool;
 }

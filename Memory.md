@@ -10,7 +10,7 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | Item | State |
 |---|---|
 | **Current phase** | **Phase 5 — the three requested items**: built, tested and **deployed on 1 Oct 2026, 16:22**. Waiting for the owner to try them on chat2. Phase 4 has one step left (the CRM clean-up part 2, after the owner has checked chat2); steps 1 to 3 are done. |
-| **Waiting to be deployed** | Nothing. chat2 runs commit `e150b6b` (pull request #11), which includes the security items from pull request #9. |
+| **Waiting to be deployed** | One small server change: the database connection setting (see the log, 1 Oct). No hurry: it only removes a start-up warning. It restarts the chat, so it should ride with the next real change or a quiet moment. Everything else is live. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -155,6 +155,12 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 1 Oct 2026 — real screen share proven; start-up warning removed ✅ (the code change is not deployed yet)
+- **Real screen share under the security headers: works.** New check `server/dev/e2e/browser-real-share.cjs` runs a two-person call against the local chat with the PC's real screen (no fake device; the microphone is a generated tone). The other person saw the real desktop at 1280 by 720. The "camera is not allowed" notice still appears in the browser console when a share starts. The chat never asks for the camera; the notice is the browser reporting that the header refuses it, and sharing is not affected.
+- **Start-up warning removed.** `models/db.js` set `search_path` with a query each time a connection opened, which could overlap the first real query and made the database library print a deprecation warning. It is now a connection start-up option (`-c search_path=chat,public`). Checked against the real database, read only: six queries over three fresh connections all saw `chat,public` and found the chat tables. New test `test/db-pool.test.js`.
+- Checked: server tests 396 of 396; deploy rehearsal 51 of 51.
+- The owner still has to try chat2 by hand (search, a call, mute, remove, ask to join).
 
 ### 1 Oct 2026, 16:22 — security items and Phase 5 deployed to chat2 ✅
 - The owner merged pull request #11. One run of `/opt/chat/deploy/deploy.sh` put four commits on the server: the security items (#9), the technical reference (#10) and Phase 5 (#11).
