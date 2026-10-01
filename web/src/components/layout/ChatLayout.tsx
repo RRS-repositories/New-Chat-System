@@ -1,5 +1,9 @@
-import { useState, type ReactNode } from 'react';
-export function ChatLayout({ sidebar, main, panel, sidebarOpen, onCloseSidebar }: { sidebar: ReactNode; main: ReactNode; panel?: ReactNode; sidebarOpen: boolean; onCloseSidebar: () => void }) {
+import type { ReactNode } from 'react';
+
+type Props = { sidebar: ReactNode; main: ReactNode; panel?: ReactNode; sidebarOpen: boolean; onCloseSidebar: () => void };
+
+/** The page frame: sidebar on the left, the main area, and an optional panel on the right. */
+export function ChatLayout({ sidebar, main, panel, sidebarOpen, onCloseSidebar }: Props) {
   return (
     <div className={`chat-shell${sidebarOpen ? ' sidebar-open' : ''}${panel ? ' panel-open' : ''}`}>
       <aside className="chat-sidebar">{sidebar}</aside>
@@ -9,4 +13,3 @@ export function ChatLayout({ sidebar, main, panel, sidebarOpen, onCloseSidebar }
     </div>
   );
 }
-export function useSidebar() { const [open, setOpen] = useState(false); return { open, openSidebar: () => setOpen(true), closeSidebar: () => setOpen(false) }; }

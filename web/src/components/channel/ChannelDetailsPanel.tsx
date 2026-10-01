@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, X, FileText } from 'lucide-react';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { ChannelFileRow } from '../../types/index.ts';
 import { formatBytes } from '../../utils/files.ts';
 import { formatTime } from '../../utils/format.ts';

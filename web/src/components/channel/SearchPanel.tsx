@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { SearchHit } from '../../types/index.ts';
 import { snippetParts } from '../../utils/snippet.ts';
 import { formatTime } from '../../utils/format.ts';

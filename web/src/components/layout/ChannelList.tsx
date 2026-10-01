@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { BellOff, ChevronDown, ChevronRight, Hash, Lock } from 'lucide-react';
+import { STORAGE_KEYS } from '../../config/constants.ts';
 import type { Channel } from '../../types/index.ts';
 import { presenceOf, type Presence } from '../../utils/presence.ts';
 import { PresenceDot, StatusBadge } from '../common/PresenceDot.tsx';
 const NOBODY: Presence = { online: {}, away: {}, statuses: {} };
 type Collapsed = { rooms?: boolean; dms?: boolean };
-const KEY = 'chat.collapsed';
+const KEY = STORAGE_KEYS.collapsedSections;
 const loadCollapsed = (): Collapsed => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; } };
 /** A collapsed section still shows the open channel and anything unread, so nothing is missed. */
 export const visibleWhenCollapsed = (c: Channel, currentId: string | null) => c.id === currentId || c.unreadCount > 0 || c.mentionCount > 0;

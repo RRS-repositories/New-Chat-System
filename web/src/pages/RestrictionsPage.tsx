@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AdminHead } from './AdminPeoplePage.tsx';
-import { useChat } from '../context/ChatProvider.tsx';
+import { AdminFrame } from '../components/admin/AdminFrame.tsx';
+import { useChat } from '../context/chatContext.ts';
 import type { Restriction, RestrictionType, UserOption } from '../types/index.ts';
 import { RESTRICTION_TYPES, isManagement, restrictionRow, toRestrictionInput, typeLabel, validateRestrictionForm } from '../utils/restrictions.ts';
 
 export const PICKER_FOOTNOTE = 'The people lists come from the chat user list, which leaves out anyone you yourself are restricted from contacting, so they cannot be picked here. Every restriction is still listed in the table.';
 
 /** Management-only page: who is blocked from contacting whom (/admin/restrictions). */
-export function RestrictionsAdmin({ onClose, onOpenSidebar, onTab }: { onClose: () => void; onOpenSidebar: () => void; onTab: (t: 'people' | 'restrictions') => void }) {
+export function RestrictionsPage() {
   const { user, actions } = useChat();
   const allowed = isManagement(user);
   const [rows, setRows] = useState<Restriction[] | null>(null); const [users, setUsers] = useState<UserOption[]>([]);
@@ -48,9 +48,7 @@ export function RestrictionsAdmin({ onClose, onOpenSidebar, onTab }: { onClose: 
 
   const pick = (v: string) => (v ? Number(v) : null);
   return (
-    <div className="admin-page">
-      <AdminHead title="Admin" tab="restrictions" onTab={onTab} onClose={onClose} onOpenSidebar={onOpenSidebar} />
-      {!allowed ? <div className="admin-body"><p className="muted">Management only</p></div> : (
+    <AdminFrame title="Admin" tab="restrictions">
         <div className="admin-body">
           <section className="admin-form" aria-label="Add restriction">
             <h2>Add a restriction</h2>
@@ -101,7 +99,6 @@ export function RestrictionsAdmin({ onClose, onOpenSidebar, onTab }: { onClose: 
           </div>
           <p className="muted admin-foot">{PICKER_FOOTNOTE}</p>
         </div>
-      )}
-    </div>
+    </AdminFrame>
   );
 }

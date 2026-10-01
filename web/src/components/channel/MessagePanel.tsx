@@ -3,7 +3,7 @@ import { ReactionBar } from '../messages/ReactionBar.tsx';
 import { PinnedList } from './PinnedMessagesBar.tsx';
 import { FileList } from '../messages/FileAttachment.tsx';
 import type { MessageInputHandle } from '../messages/MessageInput.tsx';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { Message } from '../../types/index.ts';
 import { renderWithMentions } from '../../utils/mentions.ts';
 import { presenceOf } from '../../utils/presence.ts';

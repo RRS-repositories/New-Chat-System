@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { NotifyLevel } from '../../types/index.ts';
 import { allowDesktop, currentPushState, desktopSupported, disablePush, enablePush, loadPushKey, pushSupported, type PushState } from '../../services/push.ts';
 

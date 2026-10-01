@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { ChatUser } from '../../types/index.ts';
 export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
-  const { api, actions } = useChat();
+  const { actions } = useChat();
   const [name, setName] = useState(''); const [type, setType] = useState<'public' | 'private'>('public'); const [users, setUsers] = useState<ChatUser[]>([]);
   const [picked, setPicked] = useState<number[]>([]); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false);
-  useEffect(() => { api.get<{ users: ChatUser[] }>('/api/chat/users').then((r) => setUsers(r.users)).catch(() => setUsers([])); }, [api]);
+  useEffect(() => { actions.listUsers().then(setUsers).catch(() => setUsers([])); }, [actions]);
   // A refused private channel (403 restricted: "Some of these people cannot
   // share a private channel") is shown inline in the error line below.
   async function create() {

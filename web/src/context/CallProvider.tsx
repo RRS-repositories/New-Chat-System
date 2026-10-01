@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import type { Socket } from 'socket.io-client';
 import { ApiError } from '../services/apiClient.ts';
 import type { CallJoinResponse, CallParticipant } from '../types/index.ts';
-import { useChat } from './ChatProvider.tsx';
+import { useChat } from './chatContext.ts';
 import { callReducer, initialCallState, type CallUiState, type EndStatus, type IncomingCall } from './callState.ts';
 import { CallError, CallManager, MIC_CONSTRAINTS, type CallSnapshot, type PeerLike, type StreamLike } from '../services/callManager.ts';
 import { startRingtone, stopRingtone } from '../utils/ringtone.ts';

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { BrowseChannel } from '../../types/index.ts';
 export function BrowseChannelsDialog({ onClose, onJoined }: { onClose: () => void; onJoined: (id: string) => void }) {
   const { actions } = useChat();

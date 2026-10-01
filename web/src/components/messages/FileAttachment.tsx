@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FileText, Download, Play } from 'lucide-react';
 import type { ChatFile } from '../../types/index.ts';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import { formatBytes, isImage, isVideo } from '../../utils/files.ts';
 import { Lightbox } from './Lightbox.tsx';
 

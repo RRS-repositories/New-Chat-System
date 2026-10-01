@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { ArrowLeft, X } from 'lucide-react';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { Message as M } from '../../types/index.ts';
 import { Message } from '../messages/Message.tsx';
 import { MessageInput } from '../messages/MessageInput.tsx';

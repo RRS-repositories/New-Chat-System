@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { useChat } from '../../context/ChatProvider.tsx';
+import { useChat } from '../../context/chatContext.ts';
 import type { ChatUser } from '../../types/index.ts';
 export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpened: (channelId: string) => void }) {
-  const { api, actions } = useChat();
+  const { actions } = useChat();
   const [users, setUsers] = useState<ChatUser[]>([]); const [q, setQ] = useState(''); const [error, setError] = useState<string | null>(null);
-  useEffect(() => { api.get<{ users: ChatUser[] }>('/api/chat/users').then((r) => setUsers(r.users)).catch(() => setUsers([])); }, [api]);
+  useEffect(() => { actions.listUsers().then(setUsers).catch(() => setUsers([])); }, [actions]);
   const shown = users.filter((u) => u.fullName.toLowerCase().includes(q.toLowerCase()));
   const [busy, setBusy] = useState(false);
   // A refused DM (403 restricted: "You cannot message this person") is shown

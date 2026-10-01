@@ -1,15 +1,16 @@
 import { Phone, PhoneOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { paths } from '../../config/routes.ts';
 import { useCall } from '../../context/CallProvider.tsx';
 
 /** "<Name> is calling" with Accept / Decline. The ringtone and desktop notification are run by CallProvider. */
-export function IncomingCallModal({ basePath = '' }: { basePath?: string }) {
+export function IncomingCallModal() {
   const { call, joinCall, declineCall } = useCall();
   const nav = useNavigate();
   const inc = call.phase === 'ringing-in' ? call.incoming : null;
   if (!inc) return null;
   const where = inc.channelType === 'dm' ? 'Direct call' : `#${inc.channelName}`;
-  const accept = () => { nav(`${basePath}/channels/${inc.channelId}`); void joinCall(inc.callId, inc.channelId); };
+  const accept = () => { nav(paths.channel(inc.channelId)); void joinCall(inc.callId, inc.channelId); };
   return (
     <div className="modal-scrim call-scrim">
       <div className="modal incoming-call" role="alertdialog" aria-modal="true" aria-labelledby="incoming-title" aria-describedby="incoming-where" data-testid="incoming-call">
