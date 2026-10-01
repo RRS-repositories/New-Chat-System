@@ -3,6 +3,9 @@ dist/
 dist.next/
 dist.prev/
 .deployed-commit
+
+# The owner's task notes and checklists. They can describe security gaps, and this repository is public.
+Tasks/
 .env
 .env.*
 *.log

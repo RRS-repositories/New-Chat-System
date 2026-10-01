@@ -40,7 +40,9 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | `deploy.sh` | The deploy script for the server. Pulls `main`, does only what the change needs, checks the chat answers. |
 | `ecosystem.config.cjs` | The pm2 settings for the `chat-server` process. |
 | `SERVER.md` | Where everything is on the server, how to deploy, how to apply database changes, how to install on a new server. |
-| `rehearse.sh` | Tests `deploy.sh` on a developer PC with stand-ins for pm2, npm and curl. |
+| `rehearse.sh` | Tests `deploy.sh` and `make-env.sh` on a developer PC with stand-ins for pm2, npm and curl. |
+| `env.example` | Every setting name the chat reads. No values. |
+| `make-env.sh` | Builds the chat's own settings file on the server from the CRM's. |
 
 ### Web app (`web/src/`)
 
@@ -82,7 +84,7 @@ node server/dev/e2e/browser-polish.cjs   # 5 checks
 node server/dev/e2e/browser-admin.cjs    # 7 checks
 
 # the deploy script, rehearsed with stand-ins (nothing real is installed or restarted)
-bash deploy/rehearse.sh                  # 43 checks
+bash deploy/rehearse.sh                  # 51 checks
 
 # formatting (settings in .prettierrc.json; run from the repository root)
 npx prettier@3 --write "server/**/*.{js,mjs,cjs}" "web/src/**/*.{ts,tsx,css}" "web/test/**/*.ts"
@@ -103,6 +105,8 @@ The browser checks use the Microsoft Edge already installed on the PC.
 | 1 Oct 2026 | CRM mount, Mattermost history import and phone install: later, on the owner's word. |
 | 1 Oct 2026 | The chat gets its own repository (this one), run by `rules.txt`. |
 | 1 Oct 2026 | Project documents approved. Phase order approved (reshape before the three new items). |
+| 1 Oct 2026 | The GitHub repository stays public. |
+| 1 Oct 2026 | The chat gets its own separate settings file on the server (not a link to the CRM's). |
 | 1 Oct 2026 | Call host controls: a disconnected person can join back freely; a person the host removed sends a join request that the host accepts or refuses. |
 
 ## Blockers
@@ -117,7 +121,8 @@ The browser checks use the Microsoft Edge already installed on the PC.
 - **Calls are held in the server's memory** as well as the database. Run only one server process.
 - **A call belongs to one browser tab per person.** Requests carry that tab's connection id.
 - **The GitHub repository is public.** Anyone can read the code and these documents. Nothing secret is in it, and it must stay that way.
-- **On the server the settings file is shared with the CRM** (`/opt/chat/.env` is a link to `/opt/crm/.env`), because chat uses the CRM's sign-in and database. See `deploy/SERVER.md`.
+- **The chat has its own settings file on the server** (`/opt/chat/.env`, made by `deploy/make-env.sh`). The database settings and `SESSION_JWT_SECRET` in it must stay the same as the CRM's. See `deploy/SERVER.md`.
+- **The `Tasks/` folder is not in git** (the repository is public and the notes there can describe security gaps). It lives only on the developer's PC.
 - **A web-only deploy does not restart the chat**, so calls are not cut. A server-code deploy restarts it (a few seconds).
 - **The CRM's `deploy.sh --all` restarts every pm2 process, chat included.**
 - **Tests build small apps from the route files** (`createXRoutes({ db, emit, … })`). Keep that factory shape: routes take their dependencies as arguments.
@@ -148,6 +153,11 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 1 Oct 2026 — own settings file; security checklist checked
+- **Own settings file (owner's decision):** added `deploy/env.example` (names only) and `deploy/make-env.sh`, which builds `/opt/chat/.env` on the server from the CRM's file, copying only what the chat needs and never showing values. `deploy/SERVER.md` updated. The rehearsal now has 51 checks.
+- **Security checklist:** the owner gave `Tasks/FAC-Security-Implementation-Checklist (1).md` (about 300 items, written for the CRM). Checked against the CRM code and, where it applies, the chat. Result: `Tasks/FAC-Security-Checklist-RESULT.md`. Most items are not implemented in the CRM; the chat does well on the items that apply to it, apart from what it inherits from the CRM's sign-in (no MFA, short passwords, 7-day sessions). No code was changed for this.
+- `Tasks/` added to `.gitignore`.
 
 ### 1 Oct 2026 — Phase 4, step 1: deploy files ✅ (switch on the server still to do)
 - Added `deploy/deploy.sh`, `deploy/ecosystem.config.cjs`, `deploy/SERVER.md`, `deploy/rehearse.sh` and `server/migrations/apply.mjs`.

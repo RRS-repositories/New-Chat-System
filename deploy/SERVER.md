@@ -10,7 +10,7 @@ Nothing secret is written here: passwords and keys live only in the settings fil
 | Code | `/opt/chat` (a copy of this repository, branch `main`) |
 | Process | `chat-server`, managed by pm2, defined in `deploy/ecosystem.config.cjs` |
 | Port | 5020, on the server itself only. nginx site `chat2` passes requests to it. |
-| Settings | `/opt/chat/.env`, which is a link to `/opt/crm/.env` (see below) |
+| Settings | `/opt/chat/.env`, the chat's own file (see below) |
 | Uploaded files | `/data/chat-uploads` |
 | Database | The CRM's Postgres, schema `chat` |
 | Call relay | coturn (`/etc/turnserver.conf`), port 3478 and ports 49160–49200 |
@@ -18,11 +18,23 @@ Nothing secret is written here: passwords and keys live only in the settings fil
 
 ## Settings
 
-The chat signs people in through the CRM and uses the CRM's database, so both read the **same settings file**.
-`/opt/chat/.env` is a link to `/opt/crm/.env`. There is one place to change a password, and the two can never disagree.
+The chat has **its own settings file**, `/opt/chat/.env`. Only the server's owner account can read it, and it is never stored in this repository.
+`deploy/env.example` lists every name it may hold, with no values.
 
-The chat reads these names from it (the list is in `server/src/config/index.js`):
-the database settings (`DB_*`), `SESSION_JWT_SECRET`, `REDIS_URL`, the mail settings (`SMTP_*`, `MAIL_FROM*`), and everything starting with `CHAT_`.
+It holds only what the chat needs. The CRM's other secrets (phone, payments, AI keys and so on) are not in it.
+
+**Keep in step with the CRM.** The chat signs people in through the CRM and uses the CRM's database, so these must hold the same values as the CRM's file (`/opt/crm/.env`):
+`SESSION_JWT_SECRET`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSL`, `REDIS_URL`.
+If one of them is changed for the CRM, change it in the chat's file too, or people will not be able to sign in to the chat.
+
+To create the file (first install), or to rebuild it from the CRM's file after such a change:
+
+```
+/opt/chat/deploy/make-env.sh            # creates /opt/chat/.env; refuses if it already exists
+/opt/chat/deploy/make-env.sh --force    # rebuilds it; the old file is kept with a date in its name
+```
+
+The script copies values from file to file and never shows them on screen.
 
 After changing a setting: `pm2 restart chat-server`.
 
@@ -68,7 +80,7 @@ Undo the change on GitHub (revert the pull request), then run the deploy script.
 
 1. Node 20, pm2, nginx, Postgres access and Redis must already be there (the CRM needs the same).
 2. `git clone https://github.com/RRS-repositories/New-Chat-System.git /opt/chat`
-3. `ln -s /opt/crm/.env /opt/chat/.env`
+3. `/opt/chat/deploy/make-env.sh` (creates the chat's settings file from the CRM's)
 4. `/opt/chat/deploy/deploy.sh` (the first run installs everything and starts the process)
 5. nginx: a site that passes everything, including websockets, to `http://127.0.0.1:5020`.
 
