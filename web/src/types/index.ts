@@ -128,6 +128,8 @@ export type Call = {
   createdAt: string;
 };
 export type CallParticipant = { userId: number; userName: string; isSharingScreen: boolean };
+/** Someone the host removed who is asking to be let back into the call. */
+export type JoinRequest = { userId: number; userName: string };
 export type IceServerInfo = { urls: string | string[]; username?: string; credential?: string };
 /** POST /channels/:id/calls (201) and POST /calls/:id/join. */
 export type CallJoinResponse = {
@@ -135,4 +137,6 @@ export type CallJoinResponse = {
   call: Call;
   participants: CallParticipant[];
   iceServers: IceServerInfo[];
+  /** People waiting to be let back in. Filled for the host only. */
+  joinRequests?: JoinRequest[];
 };

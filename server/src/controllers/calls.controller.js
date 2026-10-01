@@ -61,6 +61,36 @@ export function createCallController({ calls, config = {} }) {
       res.json({ success: true });
     }),
 
+    hostMute: wrap(async (req, res) => {
+      await service().hostMute({ callId: req.params.id, user: req.user, targetUserId: req.params.userId });
+      res.json({ success: true });
+    }),
+
+    hostRemove: wrap(async (req, res) => {
+      await service().hostRemove({ callId: req.params.id, user: req.user, targetUserId: req.params.userId });
+      res.json({ success: true });
+    }),
+
+    askToJoin: wrap(async (req, res) => {
+      await service().askToJoin({ callId: req.params.id, user: req.user });
+      res.json({ success: true });
+    }),
+
+    cancelAsk: wrap(async (req, res) => {
+      await service().cancelAsk({ callId: req.params.id, userId: req.user.id });
+      res.json({ success: true });
+    }),
+
+    answerJoinRequest: wrap(async (req, res) => {
+      await service().answerJoinRequest({
+        callId: req.params.id,
+        user: req.user,
+        targetUserId: req.params.userId,
+        accept: req.body?.accept,
+      });
+      res.json({ success: true });
+    }),
+
     screenShare: wrap(async (req, res) => {
       await service().screenShare({
         callId: req.params.id,

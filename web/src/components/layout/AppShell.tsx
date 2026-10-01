@@ -91,7 +91,12 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
       {dialog === 'browse' && <BrowseChannelsDialog onClose={closeDialog} onJoined={goToChannel} />}
       {dialog === 'settings' && <SettingsDialog onClose={closeDialog} />}
       {dialog === 'search' && (
-        <SearchPanel currentChannelId={currentChannelId} onClose={closeDialog} onJump={jumpToMessage} />
+        <SearchPanel
+          currentChannelId={currentChannelId}
+          onClose={closeDialog}
+          onJump={jumpToMessage}
+          onOpenChannel={goToChannel}
+        />
       )}
     </>
   );

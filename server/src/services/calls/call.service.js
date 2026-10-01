@@ -9,6 +9,7 @@
  */
 import { httpError } from '../../middleware/errors.js';
 import { buildIceServers } from './ice.js';
+import { createHostControls, REMOVED_MESSAGE } from './host.controls.js';
 import { getChannel, isMember, listMembers } from '../../models/channels.model.js';
 import { createMessage } from '../../models/messages.model.js';
 import { isBlocked } from '../../models/restrictions.model.js';
@@ -45,6 +46,7 @@ export function createCallService({
   const ringMs = num(config.callRingMs, 30_000);
   const maxParticipants = num(config.callMaxParticipants, 8);
   const graceMs = num(config.callDisconnectGraceMs, 10_000);
+  const askAgainMs = num(config.callAskAgainMs, 60_000);
 
   const devices = new Map(); // callId -> Map(userId -> socketId)
   const ringTimers = new Map(); // callId -> handle
@@ -153,6 +155,7 @@ export function createCallService({
     ringTimers.delete(callId);
     for (const userId of devices.get(callId)?.keys() || []) clearGrace(callId, userId);
     devices.delete(callId);
+    host.forget(callId);
   }
 
   async function postCallMessage(call, content) {
@@ -227,7 +230,21 @@ export function createCallService({
     const remaining = await listParticipants(db, callId);
     const channel = await getChannel(db, call.channelId);
     if (remaining.length === 0 || channel?.type === 'dm') await end(callId, 'ended');
+    else if (userId === call.initiatedBy) host.onHostLeft(call);
   }
+
+  // Mute, remove, and the removed person's request to come back (see host.controls.js).
+  const host = createHostControls({
+    devices,
+    withLock,
+    mustFindCall,
+    mustBeMember,
+    leaveLocked,
+    toSocket,
+    toUser,
+    now,
+    askAgainMs,
+  });
 
   // A live row this process cannot be carrying: unknown in memory (boot sweep failed or raced; a start
   // still in flight is not stale), or with nobody left in it (an end that failed on a DB blip).
@@ -338,7 +355,7 @@ export function createCallService({
         fromName,
         userIds: members.map((m) => m.id).filter((id) => id !== user.id),
       });
-      return { call, participants: await listParticipants(db, call.id), iceServers: ice(user.id) };
+      return { call, participants: await listParticipants(db, call.id), iceServers: ice(user.id), joinRequests: [] };
     },
 
     async join({ callId, user, socketId }) {
@@ -351,6 +368,7 @@ export function createCallService({
           call = await getCall(db, callId);
         }
         if (!LIVE.has(call.status)) throw httpError(409, 'call_ended', 'This call has ended');
+        if (host.isRemoved(callId, user.id)) throw httpError(403, 'removed', REMOVED_MESSAGE);
         const channel = await getChannel(db, call.channelId);
         if (await dmRestricted(channel, user.id)) throw httpError(403, 'restricted', RESTRICTED_CALL_MESSAGE);
         const current = await listParticipants(db, callId);
@@ -382,6 +400,7 @@ export function createCallService({
           call: await getCall(db, callId),
           participants: await listParticipants(db, callId),
           iceServers: ice(user.id),
+          joinRequests: host.joinRequestsFor(call, user.id),
         };
       });
     },
@@ -390,6 +409,13 @@ export function createCallService({
       if (!isUuid(callId)) return;
       await withLock(callId, () => leaveLocked(callId, userId));
     },
+
+    /** Host controls: the person who started the call, while they are in it. */
+    hostMute: (args) => host.mute(args),
+    hostRemove: (args) => host.remove(args),
+    askToJoin: (args) => host.ask(args),
+    cancelAsk: (args) => host.cancel(args),
+    answerJoinRequest: (args) => host.answer(args),
 
     async decline({ callId, user }) {
       if (!isUuid(callId)) throw httpError(404, 'not_found', 'Call not found');

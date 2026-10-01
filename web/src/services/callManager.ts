@@ -87,7 +87,13 @@ export type RemoteParticipant = {
   /** Their shared screen while it is live (video track received and not muted/ended/stopped). */
   screenTrack: TrackLike | null;
 };
-export type CallSnapshot = { muted: boolean; sharing: boolean; participants: RemoteParticipant[] };
+export type CallSnapshot = {
+  muted: boolean;
+  sharing: boolean;
+  /** My own shared screen while I am sharing (shown back to me as a small preview). Never sent anywhere extra. */
+  ownScreenTrack: TrackLike | null;
+  participants: RemoteParticipant[];
+};
 export type ShareResult =
   { ok: true } | { ok: false; reason: 'cancelled' | 'busy' | 'failed' | 'not_in_call'; message: string };
 
@@ -457,6 +463,7 @@ export class CallManager {
     return {
       muted: this.muted,
       sharing: !!this.screen,
+      ownScreenTrack: this.screen?.track ?? null,
       participants: [...this.peers.values()].map((p) => ({
         userId: p.userId,
         userName: p.userName,

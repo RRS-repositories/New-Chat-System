@@ -129,6 +129,13 @@ body.in-call #root {
 .call-self-share {
   margin: 0 12px;
 }
+.call-screen.call-own-screen video {
+  max-height: 28vh;
+  cursor: default;
+}
+.call-own-screen .call-self-share {
+  margin: 0;
+}
 .call-people {
   list-style: none;
   margin: 0;
@@ -222,4 +229,39 @@ body.in-call #root {
   max-height: none;
   border-radius: 0;
   cursor: default;
+}
+
+/* Host controls: mute and remove beside each person, and the people asking to come back. */
+.call-host-tag {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+}
+.call-host-actions {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.call-requests {
+  list-style: none;
+  margin: 0 12px;
+  padding: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+.call-request {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--accent-line);
+}
+.call-request:last-child {
+  border-bottom: 0;
+}
+.call-note-line {
+  margin: 0;
+  padding: 0 12px;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { Socket } from 'socket.io-client';
 import { useActiveChannelCall } from '../hooks/useActiveChannelCall.ts';
+import { useCallHostActions } from '../hooks/useCallHostActions.ts';
 import { useCallSocketEvents, type CallSession } from '../hooks/useCallSocketEvents.ts';
 import { useLatest } from '../hooks/useLatest.ts';
 import { useRinging } from '../hooks/useRinging.ts';
@@ -8,14 +9,14 @@ import { ApiError } from '../services/apiClient.ts';
 import { createCallApi } from '../services/callApi.ts';
 import { CallError, CallManager, type CallSnapshot, type PeerLike } from '../services/callManager.ts';
 import { getMicrophone, getScreen } from '../services/media.ts';
-import type { CallJoinResponse } from '../types/index.ts';
+import type { CallJoinResponse, JoinRequest } from '../types/index.ts';
 import { callErrorText } from '../utils/callErrors.ts';
 import { stopRingtone } from '../utils/ringtone.ts';
 import { CallContext, type ActiveCall, type CallContextValue } from './callContext.ts';
 import { callReducer, initialCallState } from './callState.ts';
 import { useChat } from './chatContext.ts';
 
-const NOBODY: CallSnapshot = { muted: false, sharing: false, participants: [] };
+const NOBODY: CallSnapshot = { muted: false, sharing: false, ownScreenTrack: null, participants: [] };
 const NOTICE_SHOWN_MS = 6000;
 
 type Props = { socket: Socket; getToken: () => string | null; children: ReactNode };
@@ -30,7 +31,8 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const [call, dispatch] = useReducer(callReducer, initialCallState);
   const [snapshot, setSnapshot] = useState<CallSnapshot>(NOBODY);
   const [activeByChannel, setActive] = useState<Record<string, ActiveCall>>({});
-  const [shareError, setShareError] = useState<string | null>(null);
+  const [panelError, setPanelError] = useState<string | null>(null);
+  const [panelNote, setPanelNote] = useState<string | null>(null);
   const prefsRef = useLatest(state.prefs);
 
   const ui = useLatest(call);
@@ -45,6 +47,11 @@ export function CallProvider({ socket, getToken, children }: Props) {
     () => ({ manager, callId, ui, joinedSocket, expectOwnJoin, rejoining, startBuffer, attempt }),
     [ui],
   );
+  const { joinRequests, setJoinRequests, muteParticipant, removeParticipant, answerJoinRequest } = useCallHostActions({
+    callApi,
+    callId,
+    setPanelError,
+  });
 
   /** Records (or clears, when `update` returns null) the live call of one channel. */
   const setChannelCall = useCallback(
@@ -71,7 +78,9 @@ export function CallProvider({ socket, getToken, children }: Props) {
     rejoining.current = false;
     startBuffer.current = [];
     setSnapshot(NOBODY);
-    setShareError(null);
+    setPanelError(null);
+    setPanelNote(null);
+    setJoinRequests([]);
   }, []);
 
   const tellServerILeft = useCallback(
@@ -105,6 +114,21 @@ export function CallProvider({ socket, getToken, children }: Props) {
     [callApi, socket, user.id],
   );
 
+  /** The host removed this person: joining again means asking the host, then waiting for the answer. */
+  const askToJoin = useCallback(
+    async (id: string, channelId: string) => {
+      dispatch({ type: 'asking', callId: id, channelId });
+      try {
+        await callApi.askToJoin(id);
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'not_removed')
+          dispatch({ type: 'ask_done', callId: id, allowed: true, notice: 'You can join the call now' });
+        else dispatch({ type: 'ask_done', callId: id, allowed: false, error: callErrorText(e) });
+      }
+    },
+    [callApi],
+  );
+
   /** Shared by start and join: microphone first, then the request, then the connections. */
   const enter = useCallback(
     async (channelId: string, knownCallId: string | null, request: (socketId: string) => Promise<CallJoinResponse>) => {
@@ -126,10 +150,14 @@ export function CallProvider({ socket, getToken, children }: Props) {
       const current = createManager();
       manager.current = current;
       let createdId: string | null = null;
+      let hostId: number | null = null;
+      let waiting: JoinRequest[] = [];
       try {
         const joined = await current.connect(async () => {
           const answer = await request(socketId);
           createdId = answer.call.id;
+          hostId = answer.call.initiatedBy;
+          waiting = answer.joinRequests ?? [];
           if (stillCurrent()) callId.current = answer.call.id;
           // Anyone who joined (and offered) before this answer arrived: the manager holds them until the connections are built.
           const early = startBuffer.current;
@@ -140,7 +168,8 @@ export function CallProvider({ socket, getToken, children }: Props) {
         if (!stillCurrent()) return;
         joinedSocket.current = socketId;
         const id = createdId!;
-        dispatch({ type: 'joined', callId: id, channelId });
+        dispatch({ type: 'joined', callId: id, channelId, hostId });
+        setJoinRequests(waiting);
         setSnapshot(current.snapshot());
         setChannelCall(channelId, () => ({ callId: id, participantIds: joined.participants.map((p) => p.userId) }));
       } catch (e) {
@@ -153,6 +182,13 @@ export function CallProvider({ socket, getToken, children }: Props) {
         if (manager.current === current) manager.current = null;
         current.leave();
         callId.current = null;
+        // The host removed this person earlier (this tab did not know): ask to come back instead.
+        if (e instanceof ApiError && e.code === 'removed' && knownCallId) {
+          dispatch({ type: 'left' });
+          dispatch({ type: 'removed', callId: knownCallId });
+          void askToJoin(knownCallId, channelId);
+          return;
+        }
         if (e instanceof ApiError && e.code === 'call_in_progress' && e.data?.callId) {
           setChannelCall(channelId, (prev) => prev ?? { callId: String(e.data.callId), participantIds: [] });
         }
@@ -162,7 +198,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         dispatch({ type: 'failed', error: callErrorText(e) });
       }
     },
-    [socket, createManager, tellServerILeft, setChannelCall, ui],
+    [socket, createManager, tellServerILeft, setChannelCall, askToJoin, ui],
   );
 
   const startCall = useCallback(
@@ -170,7 +206,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     [callApi, enter],
   );
 
-  const joinCall = useCallback(
+  const joinDirect = useCallback(
     (id: string, channelId: string) =>
       enter(channelId, id, async (socketId) => {
         expectOwnJoin.current++;
@@ -183,6 +219,19 @@ export function CallProvider({ socket, getToken, children }: Props) {
       }),
     [callApi, enter],
   );
+
+  const joinCall = useCallback(
+    (id: string, channelId: string) =>
+      ui.current.removedFrom.includes(id) ? askToJoin(id, channelId) : joinDirect(id, channelId),
+    [askToJoin, joinDirect, ui],
+  );
+
+  const cancelAsk = useCallback(() => {
+    const asking = ui.current.asking;
+    if (!asking) return;
+    dispatch({ type: 'ask_done', callId: asking.callId, allowed: false });
+    callApi.cancelAsk(asking.callId).catch(() => {});
+  }, [callApi, ui]);
 
   const declineCall = useCallback(
     (id: string) => {
@@ -209,13 +258,13 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const toggleShare = useCallback(async () => {
     const current = manager.current;
     if (!current) return;
-    setShareError(null);
+    setPanelError(null);
     if (current.snapshot().sharing) {
       current.stopShare();
       return;
     }
     const result = await current.startShare();
-    if (!result.ok && result.reason !== 'cancelled' && manager.current === current) setShareError(result.message);
+    if (!result.ok && result.reason !== 'cancelled' && manager.current === current) setPanelError(result.message);
   }, []);
 
   const clearMessages = useCallback(() => {
@@ -223,7 +272,18 @@ export function CallProvider({ socket, getToken, children }: Props) {
     dispatch({ type: 'notice', notice: null });
   }, []);
 
-  useCallSocketEvents({ socket, callApi, userId: user.id, session, dispatch, teardown, setChannelCall });
+  useCallSocketEvents({
+    socket,
+    callApi,
+    userId: user.id,
+    session,
+    dispatch,
+    teardown,
+    setChannelCall,
+    setJoinRequests,
+    setPanelNote,
+    joinDirect,
+  });
   useActiveChannelCall({ callApi, socket, channelId: currentChannelId, setChannelCall });
 
   const ringingCallId = call.phase === 'ringing-in' ? (call.incoming?.callId ?? null) : null;
@@ -270,6 +330,15 @@ export function CallProvider({ socket, getToken, children }: Props) {
     return () => document.body.classList.remove('in-call');
   }, [busy]);
 
+  // So does the note in the call panel.
+  useEffect(() => {
+    if (!panelNote) return;
+    const timer = setTimeout(() => setPanelNote(null), NOTICE_SHOWN_MS);
+    return () => clearTimeout(timer);
+  }, [panelNote]);
+
+  const isHost = call.phase === 'in-call' && call.hostId === user.id;
+
   // Notices fade on their own.
   useEffect(() => {
     if (!call.notice) return;
@@ -283,13 +352,20 @@ export function CallProvider({ socket, getToken, children }: Props) {
       snapshot,
       activeByChannel,
       busy,
-      shareError,
+      panelError,
+      panelNote,
+      isHost,
+      joinRequests,
       startCall,
       joinCall,
       declineCall,
       leaveCall,
       toggleMute,
       toggleShare,
+      muteParticipant,
+      removeParticipant,
+      answerJoinRequest,
+      cancelAsk,
       clearMessages,
     }),
     [
@@ -297,13 +373,20 @@ export function CallProvider({ socket, getToken, children }: Props) {
       snapshot,
       activeByChannel,
       busy,
-      shareError,
+      panelError,
+      panelNote,
+      isHost,
+      joinRequests,
       startCall,
       joinCall,
       declineCall,
       leaveCall,
       toggleMute,
       toggleShare,
+      muteParticipant,
+      removeParticipant,
+      answerJoinRequest,
+      cancelAsk,
       clearMessages,
     ],
   );

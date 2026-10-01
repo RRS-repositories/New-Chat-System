@@ -19,6 +19,16 @@ export function createCallApi({ api, getToken }: Deps) {
     decline: (callId: string) => api.post(`${callPath(callId)}/decline`),
     setScreenShare: (callId: string, on: boolean, socketId: string | undefined) =>
       api.post(`${callPath(callId)}/screen-share`, { on, socketId }),
+    /** Host only: tells that person's call to mute. Nobody can unmute another person. */
+    hostMute: (callId: string, userId: number) => api.post(`${callPath(callId)}/participants/${userId}/mute`),
+    /** Host only: takes that person out of the call. They must ask to come back. */
+    hostRemove: (callId: string, userId: number) => api.post(`${callPath(callId)}/participants/${userId}/remove`),
+    /** A removed person asks the host to let them back in. */
+    askToJoin: (callId: string) => api.post(`${callPath(callId)}/join-requests`),
+    cancelAsk: (callId: string) => api.del(`${callPath(callId)}/join-requests`),
+    /** Host only: lets a waiting person back in, or refuses. */
+    answerJoinRequest: (callId: string, userId: number, accept: boolean) =>
+      api.post(`${callPath(callId)}/join-requests/${userId}`, { accept }),
     /** The live call in a channel, if any (for the "Call in progress — Join" banner). */
     active: (channelId: string) => api.get<ActiveCallResponse>(`${channelPath(channelId)}/calls/active`),
 

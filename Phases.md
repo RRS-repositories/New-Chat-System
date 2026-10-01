@@ -72,7 +72,7 @@ Steps, in order:
 
 1. ✅ **Deploy files in this repository:** deploy script, process settings, server notes, and a script to apply database changes. Rehearsed locally (43 checks).
 2. ✅ **The switch on the server** (1 October 2026, 11:48): this repository is in `/opt/chat` with its own settings file, built there, and the chat process now runs from it. The chat was down for about 2 seconds. Nobody was on a call.
-3. ⏳ **CRM repository, part 1** (pull request #619 in `CRM-Finalised`, open): remove the chat step from the CRM's deploy script and the chat process from its process list. Must be on the server **before** part 2 (otherwise the old deploy script would fail on the deleted folders).
+3. ✅ **CRM repository, part 1** (pull request #619 in `CRM-Finalised`, merged and on the server since 1 October 2026): the chat step is out of the CRM's deploy script and the chat process is out of its process list.
 4. ⏳ **CRM repository, part 2:** delete the `chat-server/` and `chat-ui/` folders and the chat database files from the CRM repository. Done after the owner has checked chat2.
 
 **Needs:** the owner's "go".
@@ -90,17 +90,23 @@ per-person IP restriction, upload content checks, security headers, a general re
 
 ---
 
-## Phase 5 — The three requested items ⏳
+## Phase 5 — The three requested items ▶ (built and tested locally, waiting to be deployed and tried)
 
-1. **Search button:** find why it does not work on the live site. Fix if simple, otherwise remove it.
-2. **Own screen preview:** the person sharing sees their own shared screen in the call panel.
-3. **Call host controls:** the person who started the call can mute others and remove them. The host cannot unmute anyone.
+1. ✅ **Search button:** the cause was found in the server log. Every search returned nothing, because search only matched whole words inside message text, and people typed part of a word or a person's name. Fixed: part of a word now matches, a person's name finds what they wrote, and the same box also finds people and channels.
+2. ✅ **Own screen preview:** the person sharing sees their own shared screen in the call panel.
+3. ✅ **Call host controls:** the person who started the call can mute others and remove them. The host cannot unmute anyone.
 
 **Decided by the owner (1 October 2026):**
 - A person who was disconnected can join back freely.
 - A person the host removed sends a join request when they try to come back. The host accepts or refuses it.
 
-**Done when:** each works locally in the browser tests, is deployed, and the owner has tried it.
+**Also decided while building (say if any should change):**
+- Removing asks "Remove? Yes / No" first, so one stray click cannot remove someone.
+- Remove is not offered in a one-to-one call (leaving does the same).
+- After a refusal the person waits one minute before asking again.
+- If the host leaves and the call goes on, nobody has host controls, and a removed person cannot come back. The host is the host again when they return.
+
+**Done when:** each works locally in the browser tests ✅ (16 of 16), is deployed, and the owner has tried it.
 
 ---
 
@@ -127,4 +133,5 @@ per-person IP restriction, upload content checks, security headers, a general re
 - Accepting the same call in two tabs at once can make both drop out.
 - Any change in a call redraws the whole message list (wasteful, not broken).
 - Signing out during a call does not record the leave immediately; the server tidies up after 10 seconds.
+- Host mute is carried out by the muted person's own browser; the server cannot silence audio that travels directly between browsers.
 - A restriction added between two people does not remove them from a private channel they already share.

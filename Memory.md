@@ -9,7 +9,8 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | **Phase 4 — switch the server to this repository**, in progress. Steps 1 and 2 of 4 are done: **chat2 now runs from this repository** (`/opt/chat`). Waiting for: the owner to check chat2; CRM clean-up part 1 (pull request #619) to merge and reach the server; then part 2. The steps are listed in `Phases.md`. |
+| **Current phase** | **Phase 5 — the three requested items**: built and tested locally on 1 Oct 2026, **waiting to be deployed and tried by the owner**. Phase 4 has one step left (the CRM clean-up part 2, after the owner has checked chat2); steps 1 to 3 are done. |
+| **Waiting to be deployed** | Two things, in one run of the deploy script (it restarts the chat for a few seconds and ends any call in progress): the security items (pull request #9, merged) and Phase 5. Deploy only on the owner's word. Afterwards try a real screen share on chat2. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -139,9 +140,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 | File | Lines | Why it stays in one piece |
 |---|---|---|
 | `web/src/services/callManager.ts` | ~725 | One class that runs the browser-to-browser connections. Covered by 21 unit tests and the browser call checks. |
-| `server/src/services/calls/call.service.js` | ~495 | The call lifecycle on the server, built around one set of timers and locks. Covered by the call service tests. |
+| `server/src/services/calls/call.service.js` | ~521 | The call lifecycle on the server, built around one set of timers and locks. Covered by the call service tests. |
 | `web/src/context/chatReducer.ts` | ~394 | One pure function: every way the chat state can change. |
-| `web/src/context/CallProvider.tsx` | ~311 | Start, join and leave share the same handful of working values. |
+| `web/src/context/CallProvider.tsx` | ~394 | Start, join and leave share the same handful of working values. |
 
 ## Known small issues (also listed in `Phases.md`)
 
@@ -149,12 +150,23 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 - Any change in a call redraws the whole message list.
 - Signing out during a call is tidied up by the server after 10 seconds, not at once.
 - A new restriction does not remove two people from a private channel they already share.
-- The search button is reported not working on the live site (Phase 5).
 - `addRestriction` in `models/restrictions.model.js` still checks its own input. Moving those checks into `services/access.service.js` would complete the split.
 
 ---
 
 ## Log
+
+### 1 Oct 2026 — Phase 5 built: search, own-screen preview, call host controls ✅ (not deployed yet)
+The owner said to carry on with the chat system only. Phase 4's last step is a CRM clean-up that waits for his check of chat2, so the next chat work was Phase 5.
+- **Search.** Cause found in the live server log: all 12 searches people made returned an empty list. Search matched whole English words in message text only; people typed part of a word ("Syste") or a person's name ("System Administrator", "akan"). Now: part of a word matches; every word typed must be in the text or the sender's name; the old full-text match is kept too ("invoices" finds "invoice"); the same box lists matching people (opens the conversation) and channels (opens the channel).
+- **Own-screen preview.** The sharer sees their own screen, small, in the call panel. It plays the capture already running; nothing extra is sent.
+- **Host controls.** The person who started the call can mute and remove others (remove asks "Yes / No" first). No unmute exists. A removed person's Join button becomes "Ask to join"; the host sees the request and lets them in or refuses; after a refusal they wait a minute. A person who only left or lost connection joins back freely. Removal is enforced by the server (their set-up messages stop being passed on); mute is done by the muted person's browser.
+- **New addresses:** `POST /calls/:id/participants/:userId/mute`, `…/remove`, `POST` and `DELETE /calls/:id/join-requests`, `POST /calls/:id/join-requests/:userId`. **New live events:** `call_muted_by_host`, `call_removed`, `call_join_request`, `call_join_request_cancelled`, `call_join_answer`.
+- **Where:** server `services/calls/host.controls.js` (new), `call.service.js`, `models/search.model.js`, `utils/searchText.js` (new); web `components/calls/HostActions.tsx`, `JoinRequests.tsx`, `OwnScreen.tsx` (new), `CallPanel.tsx`, `CallBanner.tsx`, `hooks/useCallHostActions.ts` (new), `context/callState.ts`, `utils/quickFind.ts`, `utils/joinRequests.ts` (new), `components/channel/SearchPanel.tsx`.
+- **Checked:** server tests 395 of 395; web tests 120 of 120; end-to-end 13 of 13; browser checks 14, 10, 5, 7 and the new `browser-host.cjs` 16 of 16.
+- **No database change. No new library.** One new fixed value: 60 seconds before a refused person may ask again.
+- **Seen while testing:** with the fake devices the browser checks use, Edge logs "camera is not allowed" when a screen is shared. It comes from the new security header and the fake screen being a fake camera. Sharing still works in the checks. **Try a real screen share on chat2 right after the next deploy.**
+- **Decisions made while building, for the owner to confirm:** the "Remove?" confirmation; no Remove in a one-to-one call; one minute wait after a refusal; no host controls for anyone while the host is out of the call.
 
 ### 1 Oct 2026 — technical reference written ✅
 - The owner asked for one file describing everything implemented, with the technical detail. It is `IMPLEMENTATION.md` at the top of the repository.
