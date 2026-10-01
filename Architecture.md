@@ -131,9 +131,11 @@ Since 1 October 2026 the code is in the structure above. A few points that are n
 |---|---|
 | Address | https://chat2.rowanroseclaims.co.uk |
 | Server | Office server `192.168.1.58`, behind Cloudflare |
-| Process | `chat-server`, managed by pm2, port 5020 on localhost |
+| Code on the server | `/opt/chat`, a copy of this repository following `main` |
+| Deploy | `/opt/chat/deploy/deploy.sh` (see `deploy/SERVER.md`). It never touches the CRM. |
+| Process | `chat-server`, managed by pm2 (`deploy/ecosystem.config.cjs`), port 5020 on localhost |
 | Web server | nginx site `chat2` → port 5020 |
 | Database | The CRM's Postgres, schema `chat` |
 | Uploaded files | `/data/chat-uploads` |
 | Call relay | coturn, port 3478 and ports 49160–49200 |
-| Settings | Environment file on the server. Never stored in this repository. |
+| Settings | `/opt/chat/.env`, the chat's own file on the server. Never stored in this repository. `deploy/env.example` lists the names. |

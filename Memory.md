@@ -9,9 +9,9 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | **Phase 4 — switch the server to this repository**, in progress (owner said "go" on 1 Oct 2026). Step 1 of 4 done: the deploy files are written and rehearsed. Step 2 (the switch on the server) is waiting: the server could not be reached from the developer's PC. The steps are listed in `Phases.md`. |
+| **Current phase** | **Phase 4 — switch the server to this repository**, in progress. Steps 1 and 2 of 4 are done: **chat2 now runs from this repository** (`/opt/chat`). Waiting for: the owner to check chat2; CRM clean-up part 1 (pull request #619) to merge and reach the server; then part 2. The steps are listed in `Phases.md`. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
-| **Live site (chat2)** | Still running from the old place: the `chat-server/` and `chat-ui/` folders inside the CRM repository on the server. It has the same features as this repository, in the old file layout. |
+| **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
 ## Where things are
 
@@ -153,6 +153,15 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 1 Oct 2026 — Phase 4, step 2: the server now runs the chat from this repository ✅
+- Put the repository in `/opt/chat`, created the chat's own settings file with `deploy/make-env.sh` (22 settings copied, none shown), installed the libraries and built the web app there at low priority. The live chat was not touched during this.
+- Checked before switching: the new code loads, reads its settings and reaches the database; nobody was on a call.
+- Switched at 11:48: the old process was stopped and the new one started. Healthy after 2 seconds. The pm2 list was saved, so a server restart brings back the new one.
+- Checked after: health answers, the page and the notification worker are served, an unsigned request is refused, the public address serves the new build, the error log is clean, and the real `deploy.sh` ran once ("Already up to date").
+- **Way back, if ever needed** (until the CRM clean-up part 2): `pm2 delete chat-server`, then `cd /opt/crm && pm2 start chat-server/main.js --name chat-server`, then `pm2 save`.
+- CRM clean-up part 1 opened as pull request #619 in `CRM-Finalised`. Part 2 stays unmerged until part 1 is on the server and the owner has checked chat2.
+- **Owner still to check:** sign in on chat2, send a message, open a file, make a call.
 
 ### 1 Oct 2026 — own settings file; security checklist checked
 - **Own settings file (owner's decision):** added `deploy/env.example` (names only) and `deploy/make-env.sh`, which builds `/opt/chat/.env` on the server from the CRM's file, copying only what the chat needs and never showing values. `deploy/SERVER.md` updated. The rehearsal now has 51 checks.
