@@ -15,12 +15,12 @@ A technical reference for the Rowan Rose team chat: every feature that exists, h
 |---|---|
 | Text chat, files, search, presence, notifications, voice calls, screen sharing, admin panel | **Live** on chat2 |
 | Chat running from its own repository and folder (`/opt/chat`), with its own settings file | **Live** since 1 Oct 2026, 11:48 |
-| Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Built and tested, not deployed.** Pull request #9, waiting to be merged |
+| Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Merged to `main` (pull request #9), not deployed yet.** Goes live with the next run of the deploy script, which restarts the chat for a few seconds |
 | Search button fix, own-screen preview for the sharer, call host controls | **Not built** (Phase 5) |
 | Calls from outside the office | **Blocked** on the router port forwarding (Phase 6) |
 | Chat inside the CRM, Mattermost history import, phone install, camera video | **Not built**, by decision |
 
-Sections below mark anything that is in pull request #9 and not yet live with **(PR #9)**.
+Sections below mark anything that came in with pull request #9, and so is in `main` but not yet live, with **(PR #9)**.
 
 ---
 
@@ -64,7 +64,7 @@ Browser ◄──────── audio / screen (WebRTC, peer to peer) ──
 | Uploads | `multer` (memory storage) | 2.4 |
 | Image thumbnails | `sharp` | 0.35 |
 | Push notifications | `web-push` (VAPID) | 3.6 |
-| Email (optional digest) | `nodemailer` | 6.x live · 10.x **(PR #9)** |
+| Email (optional digest) | `nodemailer` | 10.x in `main` · 6.x still running until the next deploy |
 | Front end | React, React Router, TypeScript, Vite | 18.2 / 7.13 / 5.8 / 6.2 |
 | Icons | `lucide-react` | 0.462 |
 | Calls | The browser's own WebRTC. No wrapper library. | — |
@@ -103,7 +103,7 @@ New Chat System/
 │   │   ├── middleware/  (3+1)    sign-in check, errors, rate limit; security headers (PR #9)
 │   │   ├── sockets/     (3)      live events: core, presence, call signalling
 │   │   └── utils/       (5+2)    ids, file names, validators, mentions, message cleaning; IP rules and file signatures (PR #9)
-│   ├── test/            (36 files, 353 tests live · 368 with PR #9)
+│   ├── test/            (36 files, 368 tests)
 │   └── dev/                      local.mjs (local chat on PGlite) and e2e/ (5 scripts)
 └── web/
     ├── index.html  vite.config.ts  public/sw.js
@@ -417,7 +417,7 @@ Per person: notification level, sound on or off, Enter-to-send, status message. 
 - Call set-up messages are capped at 64 KB and only relayed between participants of the same call.
 - The settings file on the server is readable by its owner only and holds only what the chat needs. No secret is in the repository, which is public.
 
-**(PR #9), built and tested, not deployed**
+**(PR #9), merged to `main`, not deployed yet**
 
 - Per-person **IP restriction**, the same rule the CRM enforces.
 - **Upload content checks** (first bytes must match the type).
@@ -521,7 +521,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 353 (368 with PR #9), 36 files |
+| Server | `cd server && npm test` | 368, 36 files |
 | Web | `cd web && npm test` | 107, 14 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
@@ -568,4 +568,4 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 |---|---|
 | 28–29 Sep 2026 | Text chat, rich messaging, the access switch, restrictions, browse and join. Built inside the CRM repository. |
 | 30 Sep 2026 | Presence, notifications, voice calls, screen sharing. Chat removed from the CRM's menu; chat2 only. Layout improvements. Admin panel. |
-| 1 Oct 2026 | Three call fixes and the colour theme. Chat moved to this repository (pull requests #1–#3). Code reshaped to the folder structure (#4). Own deploy script, settings file and server folder; chat2 switched to `/opt/chat` (#5–#8). Security items built (#9, open). |
+| 1 Oct 2026 | Three call fixes and the colour theme. Chat moved to this repository (pull requests #1–#3). Code reshaped to the folder structure (#4). Own deploy script, settings file and server folder; chat2 switched to `/opt/chat` (#5–#8). Security items built and merged (#9), not deployed yet. |

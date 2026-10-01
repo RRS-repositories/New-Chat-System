@@ -159,7 +159,7 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ### 1 Oct 2026 — technical reference written ✅
 - The owner asked for one file describing everything implemented, with the technical detail. It is `IMPLEMENTATION.md` at the top of the repository.
 - It covers: what is live and what is waiting, how the pieces fit, libraries and versions, folder layout, sign-in and access, every database table, every address, every live event, each feature, the web app, security, limits, settings, running it, tests, known issues, history.
-- Every figure in it was checked against the code and the server on the day it was written. Anything in pull request #9 and not yet live is marked.
+- Every figure in it was checked against the code and the server on the day it was written. Anything merged in pull request #9 but not yet deployed is marked.
 - **Keep it up to date:** when a feature, address, table, limit or setting changes, change that file in the same pull request.
 - It holds no secret and no server address beyond what `deploy/SERVER.md` already has (the repository is public).
 
