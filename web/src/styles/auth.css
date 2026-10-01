@@ -1,0 +1,43 @@
+/* The sign-in page and the "chat is not enabled" screen. */
+.login {
+  min-height: 100%;
+  overflow-y: auto;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--bg-side);
+}
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.login-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+.not-enabled {
+  height: 100%;
+  overflow-y: auto;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--bg-side);
+}
+.not-enabled-card {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.not-enabled p {
+  max-width: 360px;
+  margin: 0;
+  text-align: center;
+  color: var(--text-2);
+}

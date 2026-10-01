@@ -1,8 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadConfig } from '../src/config.js';
+import { loadConfig } from '../src/config/index.js';
 
-const base = { DB_HOST: 'h', DB_NAME: 'n', DB_USER: 'u', DB_PASSWORD: 'p', SESSION_JWT_SECRET: 'x'.repeat(40), REDIS_URL: 'redis://127.0.0.1:6379' };
+const base = {
+  DB_HOST: 'h',
+  DB_NAME: 'n',
+  DB_USER: 'u',
+  DB_PASSWORD: 'p',
+  SESSION_JWT_SECRET: 'x'.repeat(40),
+  REDIS_URL: 'redis://127.0.0.1:6379',
+};
 
 test('defaults: port 5020, aud rrs-crm-session, ssl on, CRM at 127.0.0.1:5000', () => {
   const c = loadConfig(base);
@@ -15,7 +22,12 @@ test('defaults: port 5020, aud rrs-crm-session, ssl on, CRM at 127.0.0.1:5000', 
 });
 
 test('overrides: CHAT_PORT, DB_SSL=false, CHAT_CORS_ORIGINS comma list', () => {
-  const c = loadConfig({ ...base, CHAT_PORT: '5021', DB_SSL: 'false', CHAT_CORS_ORIGINS: 'https://a.test, https://b.test' });
+  const c = loadConfig({
+    ...base,
+    CHAT_PORT: '5021',
+    DB_SSL: 'false',
+    CHAT_CORS_ORIGINS: 'https://a.test, https://b.test',
+  });
   assert.equal(c.port, 5021);
   assert.equal(c.dbSsl, false);
   assert.deepEqual(c.corsOrigins, ['https://a.test', 'https://b.test']);

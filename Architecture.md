@@ -114,11 +114,16 @@ New Chat System/
 | **hooks / context** | Hold screen logic and state | Contain styling |
 | **services (web)** | Call the server | Render anything |
 
-## 5. Where the code is today
+## 5. How the code follows this structure
 
-The working system currently lives inside the CRM repository (`CRM-Finalised`) in two folders, `chat-server/` and `chat-ui/`. It has two layers on the server (routes and database files) rather than the four above, and one large CSS file.
+Since 1 October 2026 the code is in the structure above. A few points that are not obvious from the tree:
 
-Moving it here and reshaping it to the structure above is planned in `Phases.md`. The behaviour does not change during that reshaping.
+- **Server routes take their dependencies as arguments** (`createChannelRoutes({ db, emit })`). Each one builds its controller and lists its addresses. This is what lets the tests run a route against a test database.
+- **Controllers may call a model directly** for a plain read. A service exists only where there is a real rule to apply (who may post, who may share a channel, access changes, calls, notifications).
+- **Web components are grouped by area** inside `components/`: `layout`, `channel`, `messages`, `dialogs`, `calls`, `admin`, `common`.
+- **Chat actions are grouped** in `hooks/actions/`: channels, reading, writing, people.
+- **Styles are one file per area** in `styles/`. `tokens.css` holds every colour and size; `theme.css` is loaded last.
+- **Four files are long on purpose.** They are listed in `Memory.md` with the reason.
 
 ## 6. Production setup
 

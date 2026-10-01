@@ -2,7 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { callReducer, initialCallState, type CallUiState } from '../src/context/callState.ts';
 
-const incoming = { callId: 'k1', channelId: 'c1', channelName: 'general', channelType: 'public' as const, fromId: 2, fromName: 'Meg' };
+const incoming = {
+  callId: 'k1',
+  channelId: 'c1',
+  channelName: 'general',
+  channelType: 'public' as const,
+  fromId: 2,
+  fromName: 'Meg',
+};
 const ring = (): CallUiState => callReducer(initialCallState, { type: 'incoming', call: incoming });
 
 test('incoming call rings when idle', () => {
@@ -28,11 +35,14 @@ test('ended while ringing → idle', () => {
 
 test('in-call → ended → idle with a notice; joining → joined → in-call', () => {
   let s = callReducer(ring(), { type: 'join_begin', callId: 'k1', channelId: 'c1' });
-  assert.equal(s.phase, 'joining'); assert.equal(s.incoming, null);
+  assert.equal(s.phase, 'joining');
+  assert.equal(s.incoming, null);
   s = callReducer(s, { type: 'joined', callId: 'k1', channelId: 'c1' });
-  assert.equal(s.phase, 'in-call'); assert.equal(s.callId, 'k1');
+  assert.equal(s.phase, 'in-call');
+  assert.equal(s.callId, 'k1');
   s = callReducer(s, { type: 'ended', callId: 'k1', status: 'ended' });
-  assert.equal(s.phase, 'idle'); assert.equal(s.callId, null);
+  assert.equal(s.phase, 'idle');
+  assert.equal(s.callId, null);
   assert.ok(s.notice);
 });
 
@@ -42,13 +52,15 @@ test('a second incoming call does not replace the ring or interrupt a call', () 
   let s = callReducer(initialCallState, { type: 'join_begin', callId: 'k1', channelId: 'c1' });
   s = callReducer(s, { type: 'joined', callId: 'k1', channelId: 'c1' });
   s = callReducer(s, { type: 'incoming', call: other });
-  assert.equal(s.phase, 'in-call'); assert.equal(s.incoming, null);
+  assert.equal(s.phase, 'in-call');
+  assert.equal(s.incoming, null);
 });
 
 test('a failed join returns to idle with the error', () => {
   let s = callReducer(initialCallState, { type: 'join_begin', callId: 'k1', channelId: 'c1' });
   s = callReducer(s, { type: 'failed', error: 'Microphone access is needed to join the call' });
-  assert.equal(s.phase, 'idle'); assert.equal(s.error, 'Microphone access is needed to join the call');
+  assert.equal(s.phase, 'idle');
+  assert.equal(s.error, 'Microphone access is needed to join the call');
 });
 
 test('ended for an unrelated call leaves the current call alone', () => {

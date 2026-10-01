@@ -1,0 +1,156 @@
+/* Reset, text, buttons, form fields and small helpers used everywhere. */
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font: 14px/1.5 var(--font);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+/* 16px on inputs: iOS Safari zooms the page on focus for anything smaller. */
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  font-size: 16px;
+}
+.muted {
+  color: var(--text-2);
+  font-size: 12px;
+}
+.error {
+  color: #b91c1c;
+  font-size: 12px;
+  margin: 0;
+}
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+.btn-accent:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn-ghost {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+}
+.icon-btn:hover {
+  background: var(--hover);
+}
+.field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.field input,
+.field textarea,
+.field select {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+}
+.link {
+  color: var(--accent);
+  font-size: 12px;
+}
+.link.danger {
+  color: #b91c1c;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.field .row input {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+}
+.row {
+  display: flex;
+  align-items: center;
+}
+.gap {
+  gap: 8px;
+}
+.end {
+  justify-content: flex-end;
+}
+.pad {
+  padding: 12px;
+}
+.center {
+  text-align: center;
+}
+.icon-btn.small {
+  width: 20px;
+  height: 20px;
+}
+.btn-small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.icon-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: none;
+}
+.pill {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 20px;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+.pill.on {
+  color: #15803d;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+.btn-ghost.danger {
+  color: #b91c1c;
+}

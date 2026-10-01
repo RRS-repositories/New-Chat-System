@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatTime, groupWithPrevious } from '../src/lib/format.ts';
+import { formatTime, groupWithPrevious } from '../src/utils/format.ts';
 
 const now = new Date('2026-09-28T15:30:00.000Z');
 test('formatTime: today → time, this week → weekday + time, older → day month', () => {

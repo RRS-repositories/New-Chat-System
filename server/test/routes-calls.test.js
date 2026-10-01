@@ -4,30 +4,60 @@ import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
-import { createCallService } from '../src/calls/service.js';
+import { createCallService } from '../src/services/calls/call.service.js';
 import { createTestDb } from './pg-helper.js';
-import { createChannel, openDm } from '../src/repo/channels.js';
-import { addRestriction } from '../src/repo/restrictions.js';
+import { createChannel, openDm } from '../src/models/channels.model.js';
+import { addRestriction } from '../src/models/restrictions.model.js';
 import { secret, aud } from './route-helper.js';
 import jwt from 'jsonwebtoken';
 
 const { db, close } = await createTestDb();
-for (let i = 6; i <= 9; i++) await db.query(`INSERT INTO users (id, email, full_name, role) VALUES ($1, $2, $3, 'Sales')`, [i, `u${i}@x`, `User ${i}`]);
+for (let i = 6; i <= 9; i++)
+  await db.query(`INSERT INTO users (id, email, full_name, role) VALUES ($1, $2, $3, 'Sales')`, [
+    i,
+    `u${i}@x`,
+    `User ${i}`,
+  ]);
 
 const config = {
-  sessionSecret: secret, sessionAud: aud, corsOrigins: [], requireBeta: false,
-  stunUrls: ['stun:stun.example:3478'], turnUrls: ['turn:turn.example:3478'], turnSecret: 'coturn-test-secret', turnTtlSecs: 3600,
-  callRingMs: 30_000, callMaxParticipants: 3, callDisconnectGraceMs: 10_000,
+  sessionSecret: secret,
+  sessionAud: aud,
+  corsOrigins: [],
+  requireBeta: false,
+  stunUrls: ['stun:stun.example:3478'],
+  turnUrls: ['turn:turn.example:3478'],
+  turnSecret: 'coturn-test-secret',
+  turnTtlSecs: 3600,
+  callRingMs: 30_000,
+  callMaxParticipants: 3,
+  callDisconnectGraceMs: 10_000,
 };
 const events = [];
-const sockets = new Map([[1, 1], [2, 2], [3, 3], [5, 5], [6, 6], [7, 7]].map(([s, u]) => [`s${s}`, u]));
+const sockets = new Map(
+  [
+    [1, 1],
+    [2, 2],
+    [3, 3],
+    [5, 5],
+    [6, 6],
+    [7, 7],
+  ].map(([s, u]) => [`s${s}`, u]),
+);
 const emit = {
-  toChannel: (id, ev, p) => events.push({ id, ev, p }), toUser: (id, ev, p) => events.push({ user: id, ev, p }),
-  toSocket() {}, toAll() {}, userOfSocket: (s) => sockets.get(s) ?? null, joinRoom() {}, leaveRoom() {},
+  toChannel: (id, ev, p) => events.push({ id, ev, p }),
+  toUser: (id, ev, p) => events.push({ user: id, ev, p }),
+  toSocket() {},
+  toAll() {},
+  userOfSocket: (s) => sockets.get(s) ?? null,
+  joinRoom() {},
+  leaveRoom() {},
 };
 const calls = createCallService({ db, emit, notifier: {}, config });
 const app = createApp({ config, db, emit, calls });
-after(() => { calls.close(); return close(); });
+after(() => {
+  calls.close();
+  return close();
+});
 
 const auth = (id) => `Bearer ${jwt.sign({ sub: id, aud }, secret, { expiresIn: '1h' })}`;
 const post = (path, id, body = {}) => request(app).post(`/api/chat${path}`).set('Authorization', auth(id)).send(body);
@@ -39,7 +69,16 @@ const isErr = (r, status, code) => {
   assert.equal(typeof r.body.message, 'string');
 };
 let seq = 0;
-const group = async (members = [2, 3, 5, 6, 7]) => (await createChannel(db, { name: `rc-${++seq}`, displayName: `RC ${seq}`, type: 'private', createdBy: 1, memberIds: members })).id;
+const group = async (members = [2, 3, 5, 6, 7]) =>
+  (
+    await createChannel(db, {
+      name: `rc-${++seq}`,
+      displayName: `RC ${seq}`,
+      type: 'private',
+      createdBy: 1,
+      memberIds: members,
+    })
+  ).id;
 
 test('auth is required', async () => {
   assert.equal((await request(app).get('/api/chat/calls/ice')).status, 401);
@@ -68,8 +107,22 @@ test('POST /channels/:id/calls → 201 { call, participants, iceServers }; 400 b
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.equal(r.body.success, true);
   const c = r.body.call;
-  assert.deepEqual(Object.keys(c).sort(), ['channelId', 'createdAt', 'durationSecs', 'endedAt', 'id', 'initiatedBy', 'initiatedByName', 'startedAt', 'status', 'type']);
-  assert.equal(c.channelId, ch); assert.equal(c.status, 'ringing'); assert.equal(c.type, 'voice'); assert.equal(c.initiatedByName, 'Meg Manager');
+  assert.deepEqual(Object.keys(c).sort(), [
+    'channelId',
+    'createdAt',
+    'durationSecs',
+    'endedAt',
+    'id',
+    'initiatedBy',
+    'initiatedByName',
+    'startedAt',
+    'status',
+    'type',
+  ]);
+  assert.equal(c.channelId, ch);
+  assert.equal(c.status, 'ringing');
+  assert.equal(c.type, 'voice');
+  assert.equal(c.initiatedByName, 'Meg Manager');
   assert.deepEqual(r.body.participants, [{ userId: 1, userName: 'Meg Manager', isSharingScreen: false }]);
   assert.equal(r.body.iceServers.length, 2);
   const again = await post(`/channels/${ch}/calls`, 2, { socketId: 's2' });
@@ -77,11 +130,22 @@ test('POST /channels/:id/calls → 201 { call, participants, iceServers }; 400 b
   assert.equal(again.body.callId, c.id);
   // GET /calls/:id, /channels/:id/calls/active and /channels/:id/calls
   const one = await get(`/calls/${c.id}`, 2);
-  assert.equal(one.status, 200); assert.equal(one.body.call.id, c.id); assert.equal(one.body.participants.length, 1);
+  assert.equal(one.status, 200);
+  assert.equal(one.body.call.id, c.id);
+  assert.equal(one.body.participants.length, 1);
   const act = await get(`/channels/${ch}/calls/active`, 2);
-  assert.equal(act.status, 200); assert.equal(act.body.call.id, c.id); assert.deepEqual(act.body.participants.map((p) => p.userId), [1]);
+  assert.equal(act.status, 200);
+  assert.equal(act.body.call.id, c.id);
+  assert.deepEqual(
+    act.body.participants.map((p) => p.userId),
+    [1],
+  );
   const list = await get(`/channels/${ch}/calls`, 2);
-  assert.equal(list.status, 200); assert.deepEqual(list.body.calls.map((x) => x.id), [c.id]);
+  assert.equal(list.status, 200);
+  assert.deepEqual(
+    list.body.calls.map((x) => x.id),
+    [c.id],
+  );
   isErr(await get(`/calls/${c.id}`, 3), 403, 'not_member');
   isErr(await get(`/channels/${ch}/calls/active`, 3), 403, 'not_member');
   isErr(await get(`/channels/${ch}/calls`, 3), 403, 'not_member');
@@ -110,7 +174,9 @@ test('403 restricted for a DM call, with the contract message', async () => {
 
 test('POST /calls/:id/join → 200; 404 not_found; 403 not_member; 400 bad_socket; 403 call_full; 409 call_ended', async () => {
   const ch = await group([2, 3, 5]);
-  const { body: { call } } = await post(`/channels/${ch}/calls`, 1, { socketId: 's1' });
+  const {
+    body: { call },
+  } = await post(`/channels/${ch}/calls`, 1, { socketId: 's1' });
   isErr(await post('/calls/00000000-0000-4000-8000-000000000000/join', 2, { socketId: 's2' }), 404, 'not_found');
   isErr(await post('/calls/nope/join', 2, { socketId: 's2' }), 404, 'not_found');
   isErr(await post(`/calls/${call.id}/join`, 6, { socketId: 's6' }), 403, 'not_member');
@@ -119,7 +185,10 @@ test('POST /calls/:id/join → 200; 404 not_found; 403 not_member; 400 bad_socke
   assert.equal(j.status, 200, JSON.stringify(j.body));
   assert.equal(j.body.success, true);
   assert.equal(j.body.call.status, 'active');
-  assert.deepEqual(j.body.participants.map((p) => p.userId), [1, 2]);
+  assert.deepEqual(
+    j.body.participants.map((p) => p.userId),
+    [1, 2],
+  );
   assert.equal(j.body.iceServers.length, 2);
   assert.equal((await post(`/calls/${call.id}/join`, 3, { socketId: 's3' })).status, 200);
   isErr(await post(`/calls/${call.id}/join`, 5, { socketId: 's5' }), 403, 'call_full'); // max 3 in this config
@@ -137,7 +206,9 @@ test('POST /calls/:id/leave is idempotent (unknown, malformed, already left)', a
 
 test('POST /calls/:id/decline → { success }: dm ends as declined; group dismisses only the decliner', async () => {
   const dm = await openDm(db, 1, 3);
-  const { body: { call } } = await post(`/channels/${dm.id}/calls`, 1, { socketId: 's1' });
+  const {
+    body: { call },
+  } = await post(`/channels/${dm.id}/calls`, 1, { socketId: 's1' });
   const r = await post(`/calls/${call.id}/decline`, 3);
   assert.deepEqual(r.body, { success: true });
   assert.equal((await get(`/calls/${call.id}`, 1)).body.call.status, 'declined');
@@ -152,16 +223,28 @@ test('POST /calls/:id/decline → { success }: dm ends as declined; group dismis
 
 test('POST /calls/:id/screen-share { on, socketId } → { success }; 409 already_sharing; 403 not_in_call; 400 bad_socket', async () => {
   const ch = await group([2, 3]);
-  const { body: { call } } = await post(`/channels/${ch}/calls`, 1, { socketId: 's1' });
+  const {
+    body: { call },
+  } = await post(`/channels/${ch}/calls`, 1, { socketId: 's1' });
   await post(`/calls/${call.id}/join`, 2, { socketId: 's2' });
   isErr(await post(`/calls/${call.id}/screen-share`, 1, { on: true }), 400, 'bad_socket');
   isErr(await post(`/calls/${call.id}/screen-share`, 1, { on: true, socketId: 's2' }), 400, 'bad_socket');
-  assert.deepEqual((await post(`/calls/${call.id}/screen-share`, 1, { on: true, socketId: 's1' })).body, { success: true });
+  assert.deepEqual((await post(`/calls/${call.id}/screen-share`, 1, { on: true, socketId: 's1' })).body, {
+    success: true,
+  });
   isErr(await post(`/calls/${call.id}/screen-share`, 2, { on: true, socketId: 's2' }), 409, 'already_sharing');
   isErr(await post(`/calls/${call.id}/screen-share`, 3, { on: true, socketId: 's3' }), 403, 'not_in_call');
   const cur = await get(`/calls/${call.id}`, 2);
-  assert.deepEqual(cur.body.participants.map((p) => [p.userId, p.isSharingScreen]), [[1, true], [2, false]]);
-  assert.deepEqual((await post(`/calls/${call.id}/screen-share`, 1, { on: false, socketId: 's1' })).body, { success: true });
+  assert.deepEqual(
+    cur.body.participants.map((p) => [p.userId, p.isSharingScreen]),
+    [
+      [1, true],
+      [2, false],
+    ],
+  );
+  assert.deepEqual((await post(`/calls/${call.id}/screen-share`, 1, { on: false, socketId: 's1' })).body, {
+    success: true,
+  });
 });
 
 test('with no call service (older wiring) /calls/ice still answers from config', async () => {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mentionsUser, mentionQueryAt, renderWithMentions, insertMention } from '../src/lib/mentions.ts';
+import { mentionsUser, mentionQueryAt, renderWithMentions, insertMention } from '../src/utils/mentions.ts';
 
 test('mentionsUser: full name, first name, @all, @channel; never inside emails or other words', () => {
   assert.equal(mentionsUser('hi @Ann Agent', 'Ann Agent'), true);
@@ -18,16 +18,39 @@ test('mentionQueryAt finds the @ run under the caret', () => {
 });
 test('renderWithMentions marks names longest-first and @all', () => {
   const parts = renderWithMentions('hey @Ann Agent and @Ann, @all', ['Ann', 'Ann Agent']);
-  assert.deepEqual(parts, [{ text: 'hey ', mention: false }, { text: '@Ann Agent', mention: true }, { text: ' and ', mention: false }, { text: '@Ann', mention: true }, { text: ', ', mention: false }, { text: '@all', mention: true }]);
+  assert.deepEqual(parts, [
+    { text: 'hey ', mention: false },
+    { text: '@Ann Agent', mention: true },
+    { text: ' and ', mention: false },
+    { text: '@Ann', mention: true },
+    { text: ', ', mention: false },
+    { text: '@all', mention: true },
+  ]);
 });
 test('insertMention replaces the query with the name and a trailing space', () => {
   assert.deepEqual(insertMention('hello @An there', 6, 9, 'Ann Agent'), { text: 'hello @Ann Agent  there', caret: 17 });
 });
-import { mentionItems } from '../src/lib/mentions.ts';
+import { mentionItems } from '../src/utils/mentions.ts';
 test('mentionItems: @all/@channel first when they match, then up to six people, case-insensitive', () => {
-  const members = [{ id: 1, fullName: 'Ann Agent' }, { id: 2, fullName: 'Bob Sales' }, { id: 3, fullName: 'Alan Turing' }];
-  assert.deepEqual(mentionItems(members, 'a').map((i) => i.label), ['all', 'Ann Agent', 'Alan Turing']);
-  assert.deepEqual(mentionItems(members, 'ch').map((i) => i.label), ['channel']);
+  const members = [
+    { id: 1, fullName: 'Ann Agent' },
+    { id: 2, fullName: 'Bob Sales' },
+    { id: 3, fullName: 'Alan Turing' },
+  ];
+  assert.deepEqual(
+    mentionItems(members, 'a').map((i) => i.label),
+    ['all', 'Ann Agent', 'Alan Turing'],
+  );
+  assert.deepEqual(
+    mentionItems(members, 'ch').map((i) => i.label),
+    ['channel'],
+  );
   assert.deepEqual(mentionItems(members, 'zzz'), []);
-  assert.equal(mentionItems(Array.from({ length: 10 }, (_, i) => ({ id: i, fullName: `Person ${i}` })), 'person').length, 6);
+  assert.equal(
+    mentionItems(
+      Array.from({ length: 10 }, (_, i) => ({ id: i, fullName: `Person ${i}` })),
+      'person',
+    ).length,
+    6,
+  );
 });

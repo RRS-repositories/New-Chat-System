@@ -1,0 +1,36 @@
+/* Design tokens: every colour, size and font the app uses. See Design.md. */
+:root {
+  /* Accent (violet) */
+  --accent: #6c4de6;
+  --accent-strong: #5637cf;
+  --accent-soft: #f1eefe;
+  --accent-line: #d9d1fb;
+
+  /* Main area (light) */
+  --bg: #ffffff;
+  --bg-side: #f7f7fb;
+  --hover: #f4f3fa;
+  --border: #e7e6f0;
+  --text: #1b1f3a;
+  --text-2: #6b6f8a;
+
+  /* Sidebar (dark indigo) */
+  --side-bg: #1b1f3a;
+  --side-text: #c5c9e6;
+  --side-text-2: #8d92b8;
+  --side-strong: #ffffff;
+  --side-hover: rgba(255, 255, 255, 0.07);
+  --side-active: rgba(124, 96, 255, 0.32);
+  --side-line: rgba(255, 255, 255, 0.09);
+
+  /* Meaning */
+  --call: #22c55e;
+
+  /* Shape and size */
+  --radius: 4px;
+  --sidebar-w: 240px;
+  --panel-w: 320px;
+  --call-w: 300px;
+
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}

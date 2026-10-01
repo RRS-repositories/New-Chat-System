@@ -2,10 +2,10 @@
 import { config as loadEnv } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig } from './src/config.js';
-import { createPool } from './src/db.js';
+import { loadConfig } from './src/config/index.js';
+import { createPool } from './src/models/db.js';
 import { createHttpStack } from './src/server.js';
-import { startDigest } from './src/digest/index.js';
+import { startDigest } from './src/services/digest/digest.service.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: path.join(here, '..', '.env') });
@@ -18,10 +18,16 @@ const stack = createHttpStack({ config, db });
 stack.calls.sweepStaleCalls().catch((e) => console.error('[chat] stale call sweep failed', e.message));
 const digest = startDigest({ db, config, isConnected: (userId) => stack.presence.isConnected(userId) });
 
-stack.httpServer.listen(config.port, '127.0.0.1', () => console.log(`[chat] listening on 127.0.0.1:${config.port} (redis adapter: ${config.redisUrl ? 'on' : 'off'})`));
+stack.httpServer.listen(config.port, '127.0.0.1', () =>
+  console.log(`[chat] listening on 127.0.0.1:${config.port} (redis adapter: ${config.redisUrl ? 'on' : 'off'})`),
+);
 
-process.on('uncaughtException', (e) => { console.error('[chat] uncaught', e); });
-process.on('unhandledRejection', (e) => { console.error('[chat] unhandled rejection', e); });
+process.on('uncaughtException', (e) => {
+  console.error('[chat] uncaught', e);
+});
+process.on('unhandledRejection', (e) => {
+  console.error('[chat] unhandled rejection', e);
+});
 
 async function shutdown(sig) {
   console.log(`[chat] ${sig} — closing`);

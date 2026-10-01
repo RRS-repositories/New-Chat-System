@@ -1,0 +1,86 @@
+import { createContext, useContext } from 'react';
+import type { ApiClient } from '../services/apiClient.ts';
+import type { FilePage, NewChannel, PreferencePatch, SearchPage, SendOpts } from '../services/chatApi.ts';
+import type {
+  AccessChange,
+  AdminUser,
+  BrowseChannel,
+  Channel,
+  ChannelNotifyPref,
+  ChatUser,
+  Message,
+  Restriction,
+  RestrictionInput,
+  UserOption,
+} from '../types/index.ts';
+import type { State } from './chatReducer.ts';
+
+/** Everything a screen can ask the chat to do. Screens never call the server themselves. */
+export type ChatActions = {
+  loadChannels: () => Promise<void>;
+  openChannel: (channelId: string) => Promise<void>;
+  loadOlder: (channelId: string) => Promise<void>;
+  loadLatest: (channelId: string) => Promise<void>;
+  send: (channelId: string, content: string, opts?: SendOpts) => Promise<void>;
+  edit: (messageId: string, content: string) => Promise<void>;
+  remove: (messageId: string) => Promise<void>;
+  createChannel: (input: NewChannel) => Promise<Channel>;
+  openDm: (userId: number) => Promise<Channel>;
+  browseChannels: () => Promise<BrowseChannel[]>;
+  joinChannel: (channelId: string) => Promise<Channel>;
+  typing: (channelId: string) => void;
+  markRead: (channelId: string) => void;
+  reply: (message: Message | null) => void;
+  openThread: (rootId: string) => Promise<void>;
+  loadPins: (channelId: string) => Promise<void>;
+  loadMembers: (channelId: string) => Promise<void>;
+  pin: (messageId: string) => Promise<void>;
+  unpin: (messageId: string) => Promise<void>;
+  react: (messageId: string, emoji: string) => Promise<void>;
+  upload: (
+    channelId: string,
+    files: File[],
+    content: string,
+    replyToId?: string | null,
+    threadId?: string | null,
+  ) => Promise<void>;
+  search: (query: string, channelId?: string | null, page?: number) => Promise<SearchPage>;
+  jumpTo: (channelId: string, messageId: string) => Promise<void>;
+  clearHighlight: () => void;
+  highlight: (messageId: string) => void;
+  loadChannelFiles: (channelId: string, before?: string | null) => Promise<FilePage>;
+  /** A browser URL for a file or thumbnail. Thumbnails are cached; anything else the caller releases. */
+  fetchBlob: (path: string) => Promise<string>;
+  /** The people the signed-in person can pick from (never includes themselves). */
+  listUsers: () => Promise<UserOption[]>;
+  /** The same list with the signed-in person added back, sorted by name (admin pickers). */
+  allUsers: () => Promise<UserOption[]>;
+  listRestrictions: () => Promise<Restriction[]>;
+  addRestriction: (input: RestrictionInput) => Promise<Restriction[]>;
+  removeRestriction: (restrictionId: string) => Promise<void>;
+  adminUsers: () => Promise<AdminUser[]>;
+  userRestrictions: (userId: number) => Promise<Restriction[]>;
+  setAccess: (userId: number, change: AccessChange) => Promise<Restriction[]>;
+  /** Shown at once; the changed settings are put back and the error rethrown if the server refuses. */
+  updatePrefs: (patch: PreferencePatch) => Promise<void>;
+  setStatus: (text: string, emoji: string) => Promise<void>;
+  /** Shown at once; put back and rethrown on failure. */
+  setChannelNotify: (channelId: string, pref: ChannelNotifyPref) => Promise<void>;
+};
+
+export type ChatContextValue = {
+  state: State;
+  user: ChatUser;
+  api: ApiClient;
+  actions: ChatActions;
+  currentChannelId: string | null;
+  setCurrentChannelId: (channelId: string | null) => void;
+};
+
+export const ChatContext = createContext<ChatContextValue | null>(null);
+
+export function useChat(): ChatContextValue {
+  const value = useContext(ChatContext);
+  if (!value) throw new Error('useChat must be used inside <ChatProvider>');
+  return value;
+}
