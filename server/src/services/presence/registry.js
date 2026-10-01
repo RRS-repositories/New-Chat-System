@@ -10,9 +10,12 @@
  * nobody has been told `user_offline` yet. A user is away only when every live socket says so.
  * `timers` is injectable for tests; the default timers are unref()d so they never hold the process.
  */
-export function createPresence({ graceMs = 5000, now = Date.now, timers = null } = {}) {
-  void now;
-  const setT = (fn, ms) => { const t = timers ? timers.setTimeout(fn, ms) : setTimeout(fn, ms); t?.unref?.(); return t; };
+export function createPresence({ graceMs = 5000, timers = null } = {}) {
+  const setT = (fn, ms) => {
+    const t = timers ? timers.setTimeout(fn, ms) : setTimeout(fn, ms);
+    t?.unref?.();
+    return t;
+  };
   const clearT = (t) => (timers ? timers.clearTimeout(t) : clearTimeout(t));
   const grace = Number.isFinite(graceMs) && graceMs >= 0 ? graceMs : 5000;
 
@@ -25,14 +28,24 @@ export function createPresence({ graceMs = 5000, now = Date.now, timers = null }
     /** Shutdown: cancel every pending offline grace; no onOffline fires after this. */
     close() {
       closed = true;
-      for (const e of users.values()) if (e.timer) { clearT(e.timer); e.timer = null; }
+      for (const e of users.values())
+        if (e.timer) {
+          clearT(e.timer);
+          e.timer = null;
+        }
     },
 
     connect(userId, socketId) {
       let e = users.get(userId);
       const first = !e;
-      if (!e) { e = { sockets: new Map(), away: false, timer: null }; users.set(userId, e); }
-      if (e.timer) { clearT(e.timer); e.timer = null; }
+      if (!e) {
+        e = { sockets: new Map(), away: false, timer: null };
+        users.set(userId, e);
+      }
+      if (e.timer) {
+        clearT(e.timer);
+        e.timer = null;
+      }
       e.sockets.set(socketId, false);
       e.away = computeAway(e);
       return { first };
@@ -41,13 +54,20 @@ export function createPresence({ graceMs = 5000, now = Date.now, timers = null }
     disconnect(userId, socketId, onOffline) {
       const e = users.get(userId);
       if (!e || !e.sockets.delete(socketId)) return;
-      if (e.sockets.size) { e.away = computeAway(e); return; }
+      if (e.sockets.size) {
+        e.away = computeAway(e);
+        return;
+      }
       if (closed) return;
       // Last socket: after the grace, if nothing came back, the user is offline.
       e.timer = setT(() => {
         if (closed || users.get(userId) !== e || e.sockets.size) return;
         users.delete(userId);
-        try { onOffline?.(userId); } catch (err) { console.error('[chat] presence onOffline failed', err?.message || err); }
+        try {
+          onOffline?.(userId);
+        } catch (err) {
+          console.error('[chat] presence onOffline failed', err?.message || err);
+        }
       }, grace);
     },
 
@@ -65,7 +85,8 @@ export function createPresence({ graceMs = 5000, now = Date.now, timers = null }
     socketsOf: (userId) => [...(users.get(userId)?.sockets.keys() || [])],
 
     snapshot() {
-      const online = [], away = [];
+      const online = [],
+        away = [];
       for (const [id, e] of users) (e.away ? away : online).push(id);
       return { online: online.sort((a, b) => a - b), away: away.sort((a, b) => a - b) };
     },

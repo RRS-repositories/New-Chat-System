@@ -23,7 +23,13 @@ export async function createTestDb() {
     INSERT INTO permissions (key, category, label) VALUES ('chat.beta', 'chat', 'Team chat (beta)');
     INSERT INTO roles (name) VALUES ('Management'), ('IT'), ('Sales'), ('cs_agent');
   `);
-  for (const f of ['chat_001_schema.sql', 'chat_002_rich.sql', 'chat_003_notify_calls.sql']) await pg.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8'));
-  const db = { async query(sql, params = []) { const r = await pg.query(sql, params); return { rows: r.rows, rowCount: r.affectedRows ?? r.rows.length }; } };
+  for (const f of ['chat_001_schema.sql', 'chat_002_rich.sql', 'chat_003_notify_calls.sql'])
+    await pg.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8'));
+  const db = {
+    async query(sql, params = []) {
+      const r = await pg.query(sql, params);
+      return { rows: r.rows, rowCount: r.affectedRows ?? r.rows.length };
+    },
+  };
   return { pg, db, close: () => pg.close() };
 }

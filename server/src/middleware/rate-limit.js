@@ -9,7 +9,8 @@ export function perUserLimiter({ windowMs, max, now = Date.now }) {
       hits.set(key, arr);
       return res.status(429).json({ success: false, message: 'Slow down', retryAfterMs: windowMs - (t - arr[0]) });
     }
-    arr.push(t); hits.set(key, arr);
+    arr.push(t);
+    hits.set(key, arr);
     next();
   };
 }

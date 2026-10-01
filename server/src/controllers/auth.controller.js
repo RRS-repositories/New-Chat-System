@@ -10,7 +10,11 @@ export function createAuthController({ crmInternalUrl, fetchImpl = fetch }) {
         .trim();
       const { status, body } = await forwardLogin(
         { crmInternalUrl, fetchImpl },
-        { credentials: { email, password, captchaToken, captchaAnswer }, clientIp, userAgent: String(req.headers['user-agent'] || 'chat2') },
+        {
+          credentials: { email, password, captchaToken, captchaAnswer },
+          clientIp,
+          userAgent: String(req.headers['user-agent'] || 'chat2'),
+        },
       );
       res.status(status).json(body);
     }),

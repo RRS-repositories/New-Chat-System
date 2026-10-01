@@ -1,5 +1,13 @@
 import { httpError, wrap } from '../middleware/errors.js';
-import { listMessages, editMessage, deleteMessage, getMessage, listThread, listAround, logMessageDeletion } from '../models/messages.model.js';
+import {
+  listMessages,
+  editMessage,
+  deleteMessage,
+  getMessage,
+  listThread,
+  listAround,
+  logMessageDeletion,
+} from '../models/messages.model.js';
 import { pinMessage, unpinMessage, listPins } from '../models/pins.model.js';
 import { addReaction, removeReaction } from '../models/reactions.model.js';
 import { assertMember, canModerate } from '../services/channels.service.js';
@@ -24,7 +32,10 @@ export function createMessageController({ db, emit, notifier = null }) {
         if (!window) throw httpError(404, 'not_found', 'Message not found');
         return res.json({ success: true, ...window });
       }
-      const page = await listMessages(db, channelId, { before: req.query.before || null, limit: req.query.limit || 50 });
+      const page = await listMessages(db, channelId, {
+        before: req.query.before || null,
+        limit: req.query.limit || 50,
+      });
       res.json({ success: true, ...page });
     }),
 
@@ -48,7 +59,13 @@ export function createMessageController({ db, emit, notifier = null }) {
     send: wrap(async (req, res) => {
       const message = await sendMessage(
         { db, emit, notifier },
-        { channelId: req.params.id, sender: req.user, content: req.cleanContent, replyToId: req.body?.replyToId || null, threadId: req.body?.threadId || null },
+        {
+          channelId: req.params.id,
+          sender: req.user,
+          content: req.cleanContent,
+          replyToId: req.body?.replyToId || null,
+          threadId: req.body?.threadId || null,
+        },
       );
       res.status(201).json({ success: true, message });
     }),
@@ -72,8 +89,16 @@ export function createMessageController({ db, emit, notifier = null }) {
       const isChannelAdmin = await canModerate(db, existing.channelId, req.user);
       const removed = await deleteMessage(db, { messageId: existing.id, userId: req.user.id, isChannelAdmin });
       if (!removed) throw httpError(403, 'not_author', 'You can only delete your own messages');
-      await logMessageDeletion(db, { actorId: req.user.id, messageId: existing.id, channelId: existing.channelId, byAdmin: existing.userId !== req.user.id });
-      emit.toChannel(existing.channelId, 'message_deleted', { message_id: existing.id, channel_id: existing.channelId });
+      await logMessageDeletion(db, {
+        actorId: req.user.id,
+        messageId: existing.id,
+        channelId: existing.channelId,
+        byAdmin: existing.userId !== req.user.id,
+      });
+      emit.toChannel(existing.channelId, 'message_deleted', {
+        message_id: existing.id,
+        channel_id: existing.channelId,
+      });
       res.json({ success: true });
     }),
 
@@ -84,17 +109,26 @@ export function createMessageController({ db, emit, notifier = null }) {
 
     pin: wrap(async (req, res) => {
       const existing = await messageForMember(req.params.id, req.user.id);
-      if (!(await canModerate(db, existing.channelId, req.user))) throw httpError(403, 'forbidden', 'Only channel admins can pin');
+      if (!(await canModerate(db, existing.channelId, req.user)))
+        throw httpError(403, 'forbidden', 'Only channel admins can pin');
       const message = await pinMessage(db, { messageId: existing.id, userId: req.user.id });
-      emit.toChannel(existing.channelId, 'message_pinned', { message_id: existing.id, channel_id: existing.channelId, pinned_by: req.user.id });
+      emit.toChannel(existing.channelId, 'message_pinned', {
+        message_id: existing.id,
+        channel_id: existing.channelId,
+        pinned_by: req.user.id,
+      });
       res.json({ success: true, message });
     }),
 
     unpin: wrap(async (req, res) => {
       const existing = await messageForMember(req.params.id, req.user.id);
-      if (!(await canModerate(db, existing.channelId, req.user))) throw httpError(403, 'forbidden', 'Only channel admins can unpin');
+      if (!(await canModerate(db, existing.channelId, req.user)))
+        throw httpError(403, 'forbidden', 'Only channel admins can unpin');
       const message = await unpinMessage(db, { messageId: existing.id });
-      emit.toChannel(existing.channelId, 'message_unpinned', { message_id: existing.id, channel_id: existing.channelId });
+      emit.toChannel(existing.channelId, 'message_unpinned', {
+        message_id: existing.id,
+        channel_id: existing.channelId,
+      });
       res.json({ success: true, message });
     }),
 
@@ -102,7 +136,13 @@ export function createMessageController({ db, emit, notifier = null }) {
       const existing = await messageForMember(req.params.id, req.user.id);
       const emoji = String(req.body?.emoji || '');
       const added = await addReaction(db, { messageId: existing.id, userId: req.user.id, emoji });
-      if (added) emit.toChannel(existing.channelId, 'reaction_added', { message_id: existing.id, channel_id: existing.channelId, emoji, user_id: req.user.id });
+      if (added)
+        emit.toChannel(existing.channelId, 'reaction_added', {
+          message_id: existing.id,
+          channel_id: existing.channelId,
+          emoji,
+          user_id: req.user.id,
+        });
       res.json({ success: true, added });
     }),
 
@@ -110,7 +150,13 @@ export function createMessageController({ db, emit, notifier = null }) {
       const existing = await messageForMember(req.params.id, req.user.id);
       const emoji = String(req.params.emoji || ''); // Express has already decoded the path segment
       const removed = await removeReaction(db, { messageId: existing.id, userId: req.user.id, emoji });
-      if (removed) emit.toChannel(existing.channelId, 'reaction_removed', { message_id: existing.id, channel_id: existing.channelId, emoji, user_id: req.user.id });
+      if (removed)
+        emit.toChannel(existing.channelId, 'reaction_removed', {
+          message_id: existing.id,
+          channel_id: existing.channelId,
+          emoji,
+          user_id: req.user.id,
+        });
       res.json({ success: true, removed });
     }),
   };

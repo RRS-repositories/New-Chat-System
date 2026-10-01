@@ -4,7 +4,13 @@
 import { createHmac } from 'node:crypto';
 
 const DEFAULT_TTL_SECS = 43200;
-const asList = (v) => (Array.isArray(v) ? v.filter(Boolean) : String(v || '').split(',').map((s) => s.trim()).filter(Boolean));
+const asList = (v) =>
+  Array.isArray(v)
+    ? v.filter(Boolean)
+    : String(v || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
 
 /** `now` is a clock function or a millisecond timestamp (defaults to Date.now). */
 export function buildIceServers({ config = {}, userId, now = Date.now } = {}) {

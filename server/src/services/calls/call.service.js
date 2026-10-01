@@ -13,8 +13,19 @@ import { getChannel, isMember, listMembers } from '../../models/channels.model.j
 import { createMessage } from '../../models/messages.model.js';
 import { isBlocked } from '../../models/restrictions.model.js';
 import {
-  isUuid, createCall, getCall, getLiveCall, listCalls, listParticipants, participantNames,
-  addParticipant, removeParticipant, activateCall, finishCall, setScreenShare, sweepStaleCalls as sweepRows,
+  isUuid,
+  createCall,
+  getCall,
+  getLiveCall,
+  listCalls,
+  listParticipants,
+  participantNames,
+  addParticipant,
+  removeParticipant,
+  activateCall,
+  finishCall,
+  setScreenShare,
+  sweepStaleCalls as sweepRows,
 } from '../../models/calls.model.js';
 
 export const RESTRICTED_CALL_MESSAGE = 'You cannot call this person';
@@ -22,15 +33,23 @@ const MAX_SIGNAL_BYTES = 64 * 1024;
 const LIVE = new Set(['ringing', 'active']);
 const num = (v, d) => (Number(v) > 0 ? Number(v) : d);
 
-export function createCallService({ db, emit = {}, notifier = null, config = {}, socketsOfUser = null, now = Date.now, timers = { setTimeout, clearTimeout } } = {}) {
+export function createCallService({
+  db,
+  emit = {},
+  notifier = null,
+  config = {},
+  socketsOfUser = null,
+  now = Date.now,
+  timers = { setTimeout, clearTimeout },
+} = {}) {
   const ringMs = num(config.callRingMs, 30_000);
   const maxParticipants = num(config.callMaxParticipants, 8);
   const graceMs = num(config.callDisconnectGraceMs, 10_000);
 
-  const devices = new Map();      // callId -> Map(userId -> socketId)
-  const ringTimers = new Map();   // callId -> handle
-  const graceTimers = new Map();  // `${callId}:${userId}` -> { handle, socketId }
-  const locks = new Map();        // callId -> tail promise
+  const devices = new Map(); // callId -> Map(userId -> socketId)
+  const ringTimers = new Map(); // callId -> handle
+  const graceTimers = new Map(); // `${callId}:${userId}` -> { handle, socketId }
+  const locks = new Map(); // callId -> tail promise
   const pendingStarts = new Map(); // channelId -> starts in flight (their row may exist before `devices` knows it)
   let closed = false;
 
@@ -38,26 +57,47 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
   const log = (what, e) => console.error(`[chat] calls: ${what}`, e?.message || e);
   // A failed emit (one dead socket, an adapter hiccup) is logged and never disturbs the call itself.
   const send = (kind, target, event, payload) => {
-    try { emit[kind]?.(target, event, payload); return true; } catch (e) { log(`${event} emit failed`, e); return false; }
+    try {
+      emit[kind]?.(target, event, payload);
+      return true;
+    } catch (e) {
+      log(`${event} emit failed`, e);
+      return false;
+    }
   };
   const toChannel = (id, event, payload) => send('toChannel', id, event, payload);
   const toUser = (id, event, payload) => send('toUser', id, event, payload);
   const toSocket = (id, event, payload) => send('toSocket', id, event, payload);
 
   function arm(fn, ms) {
-    const h = timers.setTimeout(() => (closed ? undefined : Promise.resolve().then(fn).catch((e) => log('timer failed', e))), ms);
+    const h = timers.setTimeout(
+      () =>
+        closed
+          ? undefined
+          : Promise.resolve()
+              .then(fn)
+              .catch((e) => log('timer failed', e)),
+      ms,
+    );
     h?.unref?.();
     return h;
   }
-  const disarm = (h) => { if (h) timers.clearTimeout(h); };
+  const disarm = (h) => {
+    if (h) timers.clearTimeout(h);
+  };
 
   // Serialises every change to one call (join cap, last leave, sharer) on this process.
   function withLock(callId, fn) {
     const prev = locks.get(callId) || Promise.resolve();
     const run = prev.then(fn);
-    const tail = run.then(() => {}, () => {});
+    const tail = run.then(
+      () => {},
+      () => {},
+    );
     locks.set(callId, tail);
-    tail.then(() => { if (locks.get(callId) === tail) locks.delete(callId); });
+    tail.then(() => {
+      if (locks.get(callId) === tail) locks.delete(callId);
+    });
     return run;
   }
 
@@ -67,7 +107,9 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
       const fn = notifier?.[method];
       if (typeof fn !== 'function') return;
       Promise.resolve(fn.call(notifier, args)).catch((e) => log(`${method} failed`, e));
-    } catch (e) { log(`${method} failed`, e); }
+    } catch (e) {
+      log(`${method} failed`, e);
+    }
   }
 
   const ownsSocket = (userId, socketId) => {
@@ -76,10 +118,12 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
     return !!socketsOfUser?.(userId)?.includes(socketId);
   };
   const mustOwnSocket = (userId, socketId) => {
-    if (!ownsSocket(userId, socketId)) throw httpError(400, 'bad_socket', 'That connection is not yours or is no longer open');
+    if (!ownsSocket(userId, socketId))
+      throw httpError(400, 'bad_socket', 'That connection is not yours or is no longer open');
   };
   const mustBeMember = async (channelId, userId) => {
-    if (!isUuid(channelId) || !(await isMember(db, channelId, userId))) throw httpError(403, 'not_member', 'You are not in this channel');
+    if (!isUuid(channelId) || !(await isMember(db, channelId, userId)))
+      throw httpError(403, 'not_member', 'You are not in this channel');
   };
   const mustFindCall = async (callId) => {
     const call = await getCall(db, callId);
@@ -91,8 +135,10 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
     if (channel?.type !== 'dm') return false;
     const other = (await listMembers(db, channel.id)).find((m) => m.id !== userId);
     if (!other) return false;
-    return (await isBlocked(db, { fromUserId: userId, toUserId: other.id, kind: 'call' }))
-      || (await isBlocked(db, { fromUserId: other.id, toUserId: userId, kind: 'call' }));
+    return (
+      (await isBlocked(db, { fromUserId: userId, toUserId: other.id, kind: 'call' })) ||
+      (await isBlocked(db, { fromUserId: other.id, toUserId: userId, kind: 'call' }))
+    );
   }
   const channelInfo = (channel) => ({ id: channel.id, type: channel.type, displayName: channel.displayName || '' });
   const ice = (userId) => buildIceServers({ config, userId, now });
@@ -103,16 +149,24 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
     graceTimers.delete(key);
   };
   function forget(callId) {
-    disarm(ringTimers.get(callId)); ringTimers.delete(callId);
+    disarm(ringTimers.get(callId));
+    ringTimers.delete(callId);
     for (const userId of devices.get(callId)?.keys() || []) clearGrace(callId, userId);
     devices.delete(callId);
   }
 
   async function postCallMessage(call, content) {
     try {
-      const message = await createMessage(db, { channelId: call.channelId, userId: call.initiatedBy, content, type: 'call' });
+      const message = await createMessage(db, {
+        channelId: call.channelId,
+        userId: call.initiatedBy,
+        content,
+        type: 'call',
+      });
       toChannel(call.channelId, 'new_message', { message, channel_id: call.channelId });
-    } catch (e) { log('call message failed', e); }
+    } catch (e) {
+      log('call message failed', e);
+    }
   }
 
   const fmt = (secs) => `${Math.floor(secs / 60)}m ${secs % 60}s`;
@@ -127,11 +181,22 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
     if (status === 'missed') await postCallMessage(call, `Missed call from ${call.initiatedByName}`);
     else if (status === 'declined') await postCallMessage(call, 'Call declined');
     else await postCallMessage(call, `Voice call — ${fmt(duration)} — ${names.join(', ')}`);
-    toChannel(call.channelId, 'call_ended', { call_id: call.id, channel_id: call.channelId, status, duration_secs: duration });
+    toChannel(call.channelId, 'call_ended', {
+      call_id: call.id,
+      channel_id: call.channelId,
+      status,
+      duration_secs: duration,
+    });
     if (pushMissed) {
       const channel = await getChannel(db, call.channelId);
       const members = await listMembers(db, call.channelId);
-      if (channel) notify('onMissedCall', { call, channel: channelInfo(channel), fromName: call.initiatedByName, userIds: members.map((m) => m.id).filter((id) => id !== call.initiatedBy) });
+      if (channel)
+        notify('onMissedCall', {
+          call,
+          channel: channelInfo(channel),
+          fromName: call.initiatedByName,
+          userIds: members.map((m) => m.id).filter((id) => id !== call.initiatedBy),
+        });
     }
     return call;
   }
@@ -144,9 +209,21 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
     const { wasParticipant, wasSharing } = await removeParticipant(db, { callId, userId, at: at() });
     devices.get(callId)?.delete(userId);
     if (!wasParticipant) return;
-    toChannel(call.channelId, 'call_participant_left', { call_id: callId, channel_id: call.channelId, user_id: userId });
-    if (wasSharing) toChannel(call.channelId, 'call_screen_share_stopped', { call_id: callId, channel_id: call.channelId, user_id: userId });
-    if (call.status === 'ringing') { await end(callId, 'missed'); return; } // the starter hung up before anyone answered: no push
+    toChannel(call.channelId, 'call_participant_left', {
+      call_id: callId,
+      channel_id: call.channelId,
+      user_id: userId,
+    });
+    if (wasSharing)
+      toChannel(call.channelId, 'call_screen_share_stopped', {
+        call_id: callId,
+        channel_id: call.channelId,
+        user_id: userId,
+      });
+    if (call.status === 'ringing') {
+      await end(callId, 'missed');
+      return;
+    } // the starter hung up before anyone answered: no push
     const remaining = await listParticipants(db, callId);
     const channel = await getChannel(db, call.channelId);
     if (remaining.length === 0 || channel?.type === 'dm') await end(callId, 'ended');
@@ -165,28 +242,41 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
     forget(call.id);
     if (done) {
       log('ended a stale call', done.id);
-      toChannel(done.channelId, 'call_ended', { call_id: done.id, channel_id: done.channelId, status: 'ended', duration_secs: done.durationSecs || 0 });
+      toChannel(done.channelId, 'call_ended', {
+        call_id: done.id,
+        channel_id: done.channelId,
+        status: 'ended',
+        duration_secs: done.durationSecs || 0,
+      });
     }
     return done;
   }
   // Under the call's lock: re-reads the call, repairs it if stale, returns the current row.
-  const repair = (callId, opts) => withLock(callId, async () => {
-    const call = await getCall(db, callId);
-    if (await isStale(call, opts)) { await endStale(call); return { call: await getCall(db, callId), repaired: true }; }
-    return { call, repaired: false };
-  });
+  const repair = (callId, opts) =>
+    withLock(callId, async () => {
+      const call = await getCall(db, callId);
+      if (await isStale(call, opts)) {
+        await endStale(call);
+        return { call: await getCall(db, callId), repaired: true };
+      }
+      return { call, repaired: false };
+    });
 
   // The person leaves after the grace unless the device changes (a re-join) in the meantime.
   function scheduleGrace(callId, userId, socketId) {
     if (closed) return;
     const key = `${callId}:${userId}`;
     disarm(graceTimers.get(key)?.handle);
-    const handle = arm(() => withLock(callId, async () => {
-      if (graceTimers.get(key)?.handle !== handle) return;
-      graceTimers.delete(key);
-      if (devices.get(callId)?.get(userId) !== socketId) return;
-      await leaveLocked(callId, userId);
-    }), graceMs);
+    const handle = arm(
+      () =>
+        withLock(callId, async () => {
+          if (graceTimers.get(key)?.handle !== handle) return;
+          graceTimers.delete(key);
+          if (devices.get(callId)?.get(userId) !== socketId) return;
+          await leaveLocked(callId, userId);
+        }),
+      graceMs,
+    );
     graceTimers.set(key, { handle, socketId });
   }
 
@@ -214,25 +304,40 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
           call = await createCall(db, { channelId, initiatedBy: user.id, at: at() }); // 409 call_in_progress on the unique index
         } catch (e) {
           // A stale live row (unknown here, or empty) must not block the channel: end it and try once more.
-          if (e.code !== 'call_in_progress' || !e.callId || !(await repair(e.callId, { ownStart: true })).repaired) throw e;
+          if (e.code !== 'call_in_progress' || !e.callId || !(await repair(e.callId, { ownStart: true })).repaired)
+            throw e;
           call = await createCall(db, { channelId, initiatedBy: user.id, at: at() });
         }
         devices.set(call.id, (devices.get(call.id) || new Map()).set(user.id, socketId));
       } finally {
         const n = (pendingStarts.get(channelId) || 1) - 1;
-        if (n > 0) pendingStarts.set(channelId, n); else pendingStarts.delete(channelId);
+        if (n > 0) pendingStarts.set(channelId, n);
+        else pendingStarts.delete(channelId);
       }
       // The start socket may have closed while we were awaiting (its disconnect found no device):
       // treat it as a disconnect now so the starter cannot become a ghost participant.
       if (!ownsSocket(user.id, socketId)) scheduleGrace(call.id, user.id, socketId);
-      ringTimers.set(call.id, arm(() => ringTimeout(call.id), ringMs));
+      ringTimers.set(
+        call.id,
+        arm(() => ringTimeout(call.id), ringMs),
+      );
       const fromName = call.initiatedByName || user.fullName || '';
       toChannel(channelId, 'call_started', {
-        call_id: call.id, channel_id: channelId, channel_name: channel.displayName || fromName, channel_type: channel.type,
-        initiated_by: user.id, initiated_by_name: fromName, type: call.type,
+        call_id: call.id,
+        channel_id: channelId,
+        channel_name: channel.displayName || fromName,
+        channel_type: channel.type,
+        initiated_by: user.id,
+        initiated_by_name: fromName,
+        type: call.type,
       });
       const members = await listMembers(db, channelId);
-      notify('onIncomingCall', { call, channel: channelInfo(channel), fromName, userIds: members.map((m) => m.id).filter((id) => id !== user.id) });
+      notify('onIncomingCall', {
+        call,
+        channel: channelInfo(channel),
+        fromName,
+        userIds: members.map((m) => m.id).filter((id) => id !== user.id),
+      });
       return { call, participants: await listParticipants(db, call.id), iceServers: ice(user.id) };
     },
 
@@ -241,7 +346,10 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
       return withLock(callId, async () => {
         let call = await mustFindCall(callId);
         await mustBeMember(call.channelId, user.id);
-        if (await isStale(call)) { await endStale(call); call = await getCall(db, callId); }
+        if (await isStale(call)) {
+          await endStale(call);
+          call = await getCall(db, callId);
+        }
         if (!LIVE.has(call.status)) throw httpError(409, 'call_ended', 'This call has ended');
         const channel = await getChannel(db, call.channelId);
         if (await dmRestricted(channel, user.id)) throw httpError(403, 'restricted', RESTRICTED_CALL_MESSAGE);
@@ -259,12 +367,22 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
         if (!ownsSocket(user.id, socketId)) scheduleGrace(callId, user.id, socketId);
         if (call.status === 'ringing' && (already ? current.length : current.length + 1) >= 2) {
           call = (await activateCall(db, { callId, at: at() })) || call;
-          disarm(ringTimers.get(callId)); ringTimers.delete(callId);
+          disarm(ringTimers.get(callId));
+          ringTimers.delete(callId);
         }
         // Also sent on a re-join from another tab: the others rebuild their peer to the new device,
         // and the user's other tabs stop ringing.
-        toChannel(call.channelId, 'call_participant_joined', { call_id: callId, channel_id: call.channelId, user_id: user.id, user_name: user.fullName || '' });
-        return { call: await getCall(db, callId), participants: await listParticipants(db, callId), iceServers: ice(user.id) };
+        toChannel(call.channelId, 'call_participant_joined', {
+          call_id: callId,
+          channel_id: call.channelId,
+          user_id: user.id,
+          user_name: user.fullName || '',
+        });
+        return {
+          call: await getCall(db, callId),
+          participants: await listParticipants(db, callId),
+          iceServers: ice(user.id),
+        };
       });
     },
 
@@ -280,7 +398,10 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
         await mustBeMember(call.channelId, user.id);
         if (call.status === 'ringing' && call.initiatedBy !== user.id) {
           const channel = await getChannel(db, call.channelId);
-          if (channel?.type === 'dm') { await end(callId, 'declined'); return; }
+          if (channel?.type === 'dm') {
+            await end(callId, 'declined');
+            return;
+          }
         }
         toUser(user.id, 'call_dismissed', { call_id: callId });
       });
@@ -294,12 +415,18 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
         if (!call || !LIVE.has(call.status)) throw httpError(403, 'not_in_call', 'You are not in this call');
         const device = devices.get(callId)?.get(userId);
         if (device === undefined) throw httpError(403, 'not_in_call', 'You are not in this call');
-        if (typeof socketId !== 'string' || device !== socketId) throw httpError(400, 'bad_socket', 'Share your screen from the tab that is in the call');
+        if (typeof socketId !== 'string' || device !== socketId)
+          throw httpError(400, 'bad_socket', 'Share your screen from the tab that is in the call');
         const result = await setScreenShare(db, { callId, userId, on: !!on });
         if (result === 'not_in_call') throw httpError(403, 'not_in_call', 'You are not in this call');
-        if (result === 'already_sharing') throw httpError(409, 'already_sharing', 'Someone else is already sharing their screen');
+        if (result === 'already_sharing')
+          throw httpError(409, 'already_sharing', 'Someone else is already sharing their screen');
         if (result === 'changed') {
-          toChannel(call.channelId, on ? 'call_screen_share_started' : 'call_screen_share_stopped', { call_id: callId, channel_id: call.channelId, user_id: userId });
+          toChannel(call.channelId, on ? 'call_screen_share_started' : 'call_screen_share_stopped', {
+            call_id: callId,
+            channel_id: call.channelId,
+            user_id: userId,
+          });
         }
       });
     },
@@ -332,7 +459,11 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
       const target = map.get(to);
       if (!target) return false;
       let size;
-      try { size = Buffer.byteLength(JSON.stringify(signalData ?? null) ?? ''); } catch { return false; }
+      try {
+        size = Buffer.byteLength(JSON.stringify(signalData ?? null) ?? '');
+      } catch {
+        return false;
+      }
       if (size > MAX_SIGNAL_BYTES) return false;
       return toSocket(target, 'webrtc_signal', { call_id: callId, from_user_id: fromUserId, signal_data: signalData });
     },
@@ -356,7 +487,9 @@ export function createCallService({ db, emit = {}, notifier = null, config = {},
       closed = true;
       for (const h of ringTimers.values()) disarm(h);
       for (const g of graceTimers.values()) disarm(g.handle);
-      ringTimers.clear(); graceTimers.clear(); devices.clear();
+      ringTimers.clear();
+      graceTimers.clear();
+      devices.clear();
     },
   };
 }

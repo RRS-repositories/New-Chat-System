@@ -14,12 +14,16 @@ export function requireAuth({ db, secret, aud, requireBeta = false }) {
     try {
       const claims = verifySessionToken(bearerFrom(req), { secret, aud });
       const user = await loadSessionUser(db, claims);
-      if (!user) return res.status(401).json({ success: false, message: 'Session ended — please sign in again', tokenError: 'token_invalid' });
+      if (!user)
+        return res
+          .status(401)
+          .json({ success: false, message: 'Session ended — please sign in again', tokenError: 'token_invalid' });
       if (requireBeta && !user.chatEnabled) return res.status(403).json(NOT_ENABLED);
       req.user = user;
       next();
     } catch (e) {
-      if (e instanceof AuthError) return res.status(401).json({ success: false, message: e.message, tokenError: e.code });
+      if (e instanceof AuthError)
+        return res.status(401).json({ success: false, message: e.message, tokenError: e.code });
       next(e);
     }
   };

@@ -10,7 +10,11 @@ const stun = ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'];
 const turn = ['turn:turn.example:3478?transport=udp', 'turn:turn.example:3478?transport=tcp'];
 
 test('TURN credential: username = <expiry>:<userId>, credential = base64(HMAC-SHA1(secret, username)) — known vector', () => {
-  const servers = buildIceServers({ config: { stunUrls: stun, turnUrls: turn, turnSecret: 'coturn-test-secret', turnTtlSecs: 43200 }, userId: 7, now: () => NOW });
+  const servers = buildIceServers({
+    config: { stunUrls: stun, turnUrls: turn, turnSecret: 'coturn-test-secret', turnTtlSecs: 43200 },
+    userId: 7,
+    now: () => NOW,
+  });
   assert.deepEqual(servers, [
     { urls: stun },
     { urls: turn, username: '1759262400:7', credential: 'jeL4tvfcO8VHEfN0Kld/LqARXC8=' },
@@ -18,14 +22,27 @@ test('TURN credential: username = <expiry>:<userId>, credential = base64(HMAC-SH
 });
 
 test('now may be a number; ttl defaults to 43200 s when the config has none', () => {
-  const servers = buildIceServers({ config: { stunUrls: [], turnUrls: turn, turnSecret: 'coturn-test-secret' }, userId: 7, now: NOW });
+  const servers = buildIceServers({
+    config: { stunUrls: [], turnUrls: turn, turnSecret: 'coturn-test-secret' },
+    userId: 7,
+    now: NOW,
+  });
   assert.deepEqual(servers, [{ urls: turn, username: '1759262400:7', credential: 'jeL4tvfcO8VHEfN0Kld/LqARXC8=' }]);
 });
 
 test('no TURN entry without a secret or without TURN urls; STUN only when configured', () => {
-  assert.deepEqual(buildIceServers({ config: { stunUrls: stun, turnUrls: turn, turnSecret: '' }, userId: 1, now: NOW }), [{ urls: stun }]);
-  assert.deepEqual(buildIceServers({ config: { stunUrls: stun, turnUrls: [], turnSecret: 'x' }, userId: 1, now: NOW }), [{ urls: stun }]);
-  assert.deepEqual(buildIceServers({ config: { stunUrls: [], turnUrls: [], turnSecret: '' }, userId: 1, now: NOW }), []);
+  assert.deepEqual(
+    buildIceServers({ config: { stunUrls: stun, turnUrls: turn, turnSecret: '' }, userId: 1, now: NOW }),
+    [{ urls: stun }],
+  );
+  assert.deepEqual(
+    buildIceServers({ config: { stunUrls: stun, turnUrls: [], turnSecret: 'x' }, userId: 1, now: NOW }),
+    [{ urls: stun }],
+  );
+  assert.deepEqual(
+    buildIceServers({ config: { stunUrls: [], turnUrls: [], turnSecret: '' }, userId: 1, now: NOW }),
+    [],
+  );
 });
 
 test('a hand-built config with no call keys at all gives an empty list (no throw)', () => {

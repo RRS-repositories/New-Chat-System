@@ -13,10 +13,24 @@ export const userRoom = (id) => `user:${id}`;
 
 // `presence` is the registry from presence/registry.js; `getCalls` returns the call
 // service (created after the sockets, because it needs `emit`) or null.
-export function attachSocket(io, { db, secret, aud, redisUrl, sessionRecheckMs = SESSION_RECHECK_MS, requireBeta = false, presence = null, getCalls = () => null }) {
-  let pub = null, sub = null;
+export function attachSocket(
+  io,
+  {
+    db,
+    secret,
+    aud,
+    redisUrl,
+    sessionRecheckMs = SESSION_RECHECK_MS,
+    requireBeta = false,
+    presence = null,
+    getCalls = () => null,
+  },
+) {
+  let pub = null,
+    sub = null;
   if (redisUrl) {
-    pub = new Redis(redisUrl); sub = pub.duplicate();
+    pub = new Redis(redisUrl);
+    sub = pub.duplicate();
     for (const c of [pub, sub]) c.on('error', (e) => console.error('[chat] redis', e.message));
     io.adapter(createAdapter(pub, sub));
   }
@@ -39,7 +53,8 @@ export function attachSocket(io, { db, secret, aud, redisUrl, sessionRecheckMs =
 
     socket.on('typing', ({ channel_id } = {}) => {
       if (!channel_id || !socket.rooms.has(channelRoom(channel_id))) return;
-      const key = `${user.id}:${channel_id}`; const now = Date.now();
+      const key = `${user.id}:${channel_id}`;
+      const now = Date.now();
       if (now - (lastTyping.get(key) || 0) < TYPING_THROTTLE_MS) return;
       lastTyping.set(key, now);
       socket.to(channelRoom(channel_id)).emit('typing', { channel_id, user_id: user.id, user_name: user.fullName });
@@ -52,7 +67,9 @@ export function attachSocket(io, { db, secret, aud, redisUrl, sessionRecheckMs =
         // The user's OTHER sockets (phone + desktop) clear their badge too.
         socket.to(userRoom(user.id)).emit('unread_update', { channel_id, unread_count: 0, mention_count: 0 });
         if (typeof ack === 'function') ack({ ok: true });
-      } catch (e) { if (typeof ack === 'function') ack({ ok: false, error: e.message }); }
+      } catch (e) {
+        if (typeof ack === 'function') ack({ ok: false, error: e.message });
+      }
     });
 
     // A live socket is re-checked against the same rules as the handshake, so
@@ -63,21 +80,32 @@ export function attachSocket(io, { db, secret, aud, redisUrl, sessionRecheckMs =
     const recheck = setInterval(async () => {
       try {
         const still = await loadSessionUser(db, { userId: user.id, iat: socket.data.iat ?? null });
-        if (!still) { socket.emit('session_ended', { reason: 'token_invalid' }); socket.disconnect(true); return; }
-        if (requireBeta && !still.chatEnabled) { socket.emit('session_ended', { reason: 'chat_not_enabled' }); socket.disconnect(true); }
-      } catch (e) { console.error('[chat] session recheck failed', e.message); }
+        if (!still) {
+          socket.emit('session_ended', { reason: 'token_invalid' });
+          socket.disconnect(true);
+          return;
+        }
+        if (requireBeta && !still.chatEnabled) {
+          socket.emit('session_ended', { reason: 'chat_not_enabled' });
+          socket.disconnect(true);
+        }
+      } catch (e) {
+        console.error('[chat] session recheck failed', e.message);
+      }
     }, sessionRecheckMs);
     socket.on('disconnect', () => clearInterval(recheck));
 
     // Presence (online/away/offline) and call signalling for this connection.
     if (presence) attachPresence({ nsp, socket, user, presence, db });
-    attachCallSignalling({ nsp, socket, user, calls: getCalls() });
+    attachCallSignalling({ socket, user, calls: getCalls() });
 
     (async () => {
       let channelIds = [];
       try {
         channelIds = await listChannelIdsForUser(db, user.id);
-      } catch (e) { console.error('[chat] channel list failed', e.message); }
+      } catch (e) {
+        console.error('[chat] channel list failed', e.message);
+      }
       for (const id of channelIds) socket.join(channelRoom(id));
       socket.emit('ready', { user, channel_ids: channelIds });
     })();
@@ -96,6 +124,11 @@ export function attachSocket(io, { db, secret, aud, redisUrl, sessionRecheckMs =
       joinRoom: (userId, channelId) => nsp.in(userRoom(userId)).socketsJoin(channelRoom(channelId)),
       leaveRoom: (userId, channelId) => nsp.in(userRoom(userId)).socketsLeave(channelRoom(channelId)),
     },
-    async close() { if (pub) { await pub.quit().catch(() => {}); await sub.quit().catch(() => {}); } },
+    async close() {
+      if (pub) {
+        await pub.quit().catch(() => {});
+        await sub.quit().catch(() => {});
+      }
+    },
   };
 }

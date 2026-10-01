@@ -23,6 +23,7 @@ export function isPushEndpoint(value) {
 }
 
 /** A push endpoint string of acceptable length (used when removing one; no host check needed). */
-export const isEndpointString = (value) => typeof value === 'string' && value.length > 0 && value.length <= MAX_ENDPOINT;
+export const isEndpointString = (value) =>
+  typeof value === 'string' && value.length > 0 && value.length <= MAX_ENDPOINT;
 
 export const isPushKey = (value) => typeof value === 'string' && value.length > 0 && value.length <= MAX_KEY;

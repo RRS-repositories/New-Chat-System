@@ -4,28 +4,59 @@ import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
 import { startDigest } from '../src/services/digest/digest.service.js';
 
-const MEG = 1, ANN = 2, BOB = 3, GONE = 4, CY = 5;
+const MEG = 1,
+  ANN = 2,
+  BOB = 3,
+  GONE = 4,
+  CY = 5;
 const config = { digestEnabled: true, digestHourUtc: 8, publicUrl: 'https://crm.example/chat' };
 const HOUR = 3600 * 1000;
 let t, db, sent, sendMail;
 beforeEach(async () => {
-  t = await createTestDb(); db = t.db; sent = [];
-  sendMail = async (m) => { sent.push(m); };
+  t = await createTestDb();
+  db = t.db;
+  sent = [];
+  sendMail = async (m) => {
+    sent.push(m);
+  };
 });
-afterEach(async () => { await t.close(); });
+afterEach(async () => {
+  await t.close();
+});
 
 const general = async () => (await db.query(`SELECT id FROM chat.channels WHERE name = 'general'`)).rows[0].id;
 async function channel(displayName, type = 'public', archived = false) {
   const name = `${displayName}-${Math.random().toString(36).slice(2, 8)}`;
-  return (await db.query(`INSERT INTO chat.channels (name, display_name, type, created_by, archived_at) VALUES ($1,$2,$3,1,${archived ? 'now()' : 'NULL'}) RETURNING id`, [name, displayName, type])).rows[0].id;
+  return (
+    await db.query(
+      `INSERT INTO chat.channels (name, display_name, type, created_by, archived_at) VALUES ($1,$2,$3,1,${archived ? 'now()' : 'NULL'}) RETURNING id`,
+      [name, displayName, type],
+    )
+  ).rows[0].id;
 }
 async function mention(userId, channelId, { read = false, deleted = false, member = true } = {}) {
-  if (member) await db.query(`INSERT INTO chat.channel_members (channel_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [channelId, userId]);
-  const m = (await db.query(`INSERT INTO chat.messages (channel_id, user_id, content, deleted_at) VALUES ($1, 1, 'secret text', ${deleted ? 'now()' : 'NULL'}) RETURNING id`, [channelId])).rows[0].id;
-  await db.query(`INSERT INTO chat.mentions (message_id, channel_id, user_id, read) VALUES ($1,$2,$3,$4)`, [m, channelId, userId, read]);
+  if (member)
+    await db.query(`INSERT INTO chat.channel_members (channel_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [
+      channelId,
+      userId,
+    ]);
+  const m = (
+    await db.query(
+      `INSERT INTO chat.messages (channel_id, user_id, content, deleted_at) VALUES ($1, 1, 'secret text', ${deleted ? 'now()' : 'NULL'}) RETURNING id`,
+      [channelId],
+    )
+  ).rows[0].id;
+  await db.query(`INSERT INTO chat.mentions (message_id, channel_id, user_id, read) VALUES ($1,$2,$3,$4)`, [
+    m,
+    channelId,
+    userId,
+    read,
+  ]);
 }
 const digest = () => startDigest({ db, config, sendMail });
-const lastDigest = async (u) => (await db.query(`SELECT last_digest_at FROM chat.user_preferences WHERE user_id = $1`, [u])).rows[0]?.last_digest_at ?? null;
+const lastDigest = async (u) =>
+  (await db.query(`SELECT last_digest_at FROM chat.user_preferences WHERE user_id = $1`, [u])).rows[0]
+    ?.last_digest_at ?? null;
 
 test('user with an unread mention gets one email; last_digest_at is set', async () => {
   await mention(ANN, await general());
@@ -51,16 +82,24 @@ test('excluded: no mentions, read mentions, deleted message, archived channel, i
 
 test('excluded: seen within 12 hours; included when older or missing', async () => {
   const g = await general();
-  await mention(ANN, g); await mention(BOB, g); await mention(CY, g);
-  await db.query(`INSERT INTO chat.user_presence (user_id, last_seen_at) VALUES (2, now() - interval '1 hour'), (3, now() - interval '13 hours')`);
+  await mention(ANN, g);
+  await mention(BOB, g);
+  await mention(CY, g);
+  await db.query(
+    `INSERT INTO chat.user_presence (user_id, last_seen_at) VALUES (2, now() - interval '1 hour'), (3, now() - interval '13 hours')`,
+  );
   await digest().runOnce();
   assert.deepEqual(sent.map((m) => m.to).sort(), ['b@x', 'c@x']);
 });
 
 test('excluded: digested within 20 hours; included when older', async () => {
   const g = await general();
-  await mention(ANN, g); await mention(BOB, g); await mention(CY, g);
-  await db.query(`INSERT INTO chat.user_preferences (user_id, last_digest_at) VALUES (2, now() - interval '2 hours'), (3, now() - interval '21 hours')`);
+  await mention(ANN, g);
+  await mention(BOB, g);
+  await mention(CY, g);
+  await db.query(
+    `INSERT INTO chat.user_preferences (user_id, last_digest_at) VALUES (2, now() - interval '2 hours'), (3, now() - interval '21 hours')`,
+  );
   await digest().runOnce();
   assert.deepEqual(sent.map((m) => m.to).sort(), ['b@x', 'c@x']);
   assert.ok((await lastDigest(BOB)) > new Date(Date.now() - HOUR), 'existing row updated');
@@ -79,8 +118,11 @@ test('email lists channels most mentions first, DM as Direct message, escapes ht
   const dm = await channel('Ann and Meg', 'dm');
   const odd = await channel('<b>R&D</b>');
   await mention(ANN, g);
-  await mention(ANN, dm); await mention(ANN, dm); await mention(ANN, dm);
-  await mention(ANN, odd); await mention(ANN, odd);
+  await mention(ANN, dm);
+  await mention(ANN, dm);
+  await mention(ANN, dm);
+  await mention(ANN, odd);
+  await mention(ANN, odd);
   await digest().runOnce();
   const m = sent[0];
   assert.equal(m.subject, 'You have unread mentions in team chat');
@@ -101,15 +143,27 @@ test('email lists channels most mentions first, DM as Direct message, escapes ht
 
 test('a failing send for one user does not stop the others and leaves last_digest_at unset', async () => {
   const g = await general();
-  await mention(ANN, g); await mention(BOB, g); await mention(CY, g);
-  const errs = []; const orig = console.error; console.error = (...a) => errs.push(a);
-  const mail = async (m) => { if (m.to === 'b@x') throw new Error('smtp down'); sent.push(m); };
+  await mention(ANN, g);
+  await mention(BOB, g);
+  await mention(CY, g);
+  const errs = [];
+  const orig = console.error;
+  console.error = (...a) => errs.push(a);
+  const mail = async (m) => {
+    if (m.to === 'b@x') throw new Error('smtp down');
+    sent.push(m);
+  };
   let r;
-  try { r = await startDigest({ db, config, sendMail: mail }).runOnce(); } finally { console.error = orig; }
+  try {
+    r = await startDigest({ db, config, sendMail: mail }).runOnce();
+  } finally {
+    console.error = orig;
+  }
   assert.deepEqual(sent.map((m) => m.to).sort(), ['a@x', 'c@x']);
-  assert.equal(r.sent, 2); assert.equal(r.skipped, 1);
+  assert.equal(r.sent, 2);
+  assert.equal(r.skipped, 1);
   assert.equal(await lastDigest(BOB), null);
-  assert.ok(await lastDigest(ANN) && await lastDigest(CY));
+  assert.ok((await lastDigest(ANN)) && (await lastDigest(CY)));
   assert.equal(errs[0][0], '[chat] digest');
 });
 
@@ -117,8 +171,12 @@ test('channels the user has left, or muted, are not counted or listed', async ()
   const g = await general();
   const left = await channel('secret-room', 'private');
   const muted = await channel('noisy');
-  await db.query(`INSERT INTO chat.channel_members (channel_id, user_id, notify_pref) VALUES ($1, 2, 'nothing')`, [muted]);
-  await mention(ANN, left, { member: false }); await mention(ANN, muted); await mention(ANN, g);
+  await db.query(`INSERT INTO chat.channel_members (channel_id, user_id, notify_pref) VALUES ($1, 2, 'nothing')`, [
+    muted,
+  ]);
+  await mention(ANN, left, { member: false });
+  await mention(ANN, muted);
+  await mention(ANN, g);
   await digest().runOnce();
   assert.equal(sent.length, 1);
   assert.ok(sent[0].text.includes('#General — 1 mention'));
@@ -129,23 +187,32 @@ test('channels the user has left, or muted, are not counted or listed', async ()
 test('a user whose only unread mentions are in a channel they left gets no email', async () => {
   await mention(ANN, await channel('secret-room', 'private'), { member: false });
   const r = await digest().runOnce();
-  assert.equal(sent.length, 0); assert.equal(r.sent, 0);
+  assert.equal(sent.length, 0);
+  assert.equal(r.sent, 0);
 });
 
 test('users with an empty or NULL email are never selected', async () => {
   const g = await general();
-  await db.query(`INSERT INTO users (id, email, full_name, role) VALUES (10, '', 'Blank', 'Sales'), (11, NULL, 'Null', 'Sales')`);
+  await db.query(
+    `INSERT INTO users (id, email, full_name, role) VALUES (10, '', 'Blank', 'Sales'), (11, NULL, 'Null', 'Sales')`,
+  );
   await db.query(`INSERT INTO chat.channel_members (channel_id, user_id) VALUES ($1, 10), ($1, 11)`, [g]);
-  await mention(10, g); await mention(11, g);
+  await mention(10, g);
+  await mention(11, g);
   const r = await digest().runOnce();
-  assert.equal(sent.length, 0); assert.equal(r.sent, 0);
+  assert.equal(sent.length, 0);
+  assert.equal(r.sent, 0);
 });
 
 test('a user who is connected right now is skipped and not marked digested', async () => {
   const g = await general();
-  await mention(ANN, g); await mention(BOB, g);
+  await mention(ANN, g);
+  await mention(BOB, g);
   const r = await startDigest({ db, config, sendMail, isConnected: (id) => id === ANN }).runOnce();
-  assert.deepEqual(sent.map((m) => m.to), ['b@x']);
+  assert.deepEqual(
+    sent.map((m) => m.to),
+    ['b@x'],
+  );
   assert.deepEqual(r, { sent: 1, skipped: 0 });
   assert.equal(await lastDigest(ANN), null);
 });
@@ -153,6 +220,7 @@ test('a user who is connected right now is skipped and not marked digested', asy
 test('a second pass does not resend', async () => {
   await mention(ANN, await general());
   const d = digest();
-  await d.runOnce(); await d.runOnce();
+  await d.runOnce();
+  await d.runOnce();
   assert.equal(sent.length, 1);
 });

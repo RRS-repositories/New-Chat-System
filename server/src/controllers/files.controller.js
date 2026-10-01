@@ -18,7 +18,8 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
   /** The file's record, after checking it exists and the caller is in its channel. */
   const fileForMember = async (fileId, userId, { needsThumb = false } = {}) => {
     const file = await getFile(db, fileId);
-    if (!file || (needsThumb && !file.thumbnailPath)) throw httpError(404, 'not_found', needsThumb ? 'No thumbnail' : 'File not found');
+    if (!file || (needsThumb && !file.thumbnailPath))
+      throw httpError(404, 'not_found', needsThumb ? 'No thumbnail' : 'File not found');
     await assertMember(db, file.channelId, userId);
     return file;
   };
@@ -32,8 +33,10 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
     receive: (req, res, next) =>
       upload.array('files', MAX_FILES)(req, res, (err) => {
         if (!err) return next();
-        if (err.code === 'LIMIT_FILE_SIZE') return sendError(res, httpError(400, 'file_too_large', 'Files must be 20 MB or smaller'));
-        if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') return sendError(res, httpError(400, 'too_many_files', 'Up to 5 files per message'));
+        if (err.code === 'LIMIT_FILE_SIZE')
+          return sendError(res, httpError(400, 'file_too_large', 'Files must be 20 MB or smaller'));
+        if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE')
+          return sendError(res, httpError(400, 'too_many_files', 'Up to 5 files per message'));
         return sendError(res, err);
       }),
 
@@ -45,7 +48,14 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
       const caption = req.body?.content && String(req.body.content).trim() ? cleanMessageContent(req.body.content) : '';
       const message = await postFiles(
         { db, uploadsDir },
-        { channelId, userId: req.user.id, files, content: caption, replyToId: req.body?.replyToId || null, threadId: req.body?.threadId || null },
+        {
+          channelId,
+          userId: req.user.id,
+          files,
+          content: caption,
+          replyToId: req.body?.replyToId || null,
+          threadId: req.body?.threadId || null,
+        },
       );
       announceMessage({ emit, notifier }, { message, channelId, sender: req.user });
       res.status(201).json({ success: true, message });
@@ -69,7 +79,10 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
 
     listForChannel: wrap(async (req, res) => {
       await assertMember(db, req.params.id, req.user.id);
-      const page = await listChannelFiles(db, req.params.id, { before: req.query.before || null, limit: req.query.limit || 30 });
+      const page = await listChannelFiles(db, req.params.id, {
+        before: req.query.before || null,
+        limit: req.query.limit || 30,
+      });
       res.json({ success: true, ...page });
     }),
   };

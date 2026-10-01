@@ -5,7 +5,9 @@ export const httpError = (status, code, message) => Object.assign(new Error(mess
 export function sendError(res, err) {
   const status = err.status || (err.code === 'empty' || err.code === 'too_long' ? 400 : 500);
   if (status >= 500) console.error('[chat] error', err);
-  res.status(status).json({ success: false, code: err.code || 'error', message: status >= 500 ? 'Something went wrong' : err.message });
+  res
+    .status(status)
+    .json({ success: false, code: err.code || 'error', message: status >= 500 ? 'Something went wrong' : err.message });
 }
 
 /** Wraps an async handler so a thrown error is answered by `sendError` instead of crashing the request. */

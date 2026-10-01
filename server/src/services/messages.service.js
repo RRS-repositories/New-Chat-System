@@ -14,16 +14,30 @@ export async function assertCanPost(db, { channelId, userId }) {
 }
 
 /** Tells everyone in the channel now, and (by push) the people with no live connection. Never blocks or fails the send. */
-export function announceMessage({ emit, notifier }, { message, channelId, sender, mentionedUserIds = [], mentionAll = false }) {
+export function announceMessage(
+  { emit, notifier },
+  { message, channelId, sender, mentionedUserIds = [], mentionAll = false },
+) {
   emit.toChannel(channelId, 'new_message', { message, channel_id: channelId });
-  void notifier?.onMessage({ message, channelId, senderId: sender.id, senderName: sender.fullName, mentionedUserIds, mentionAll });
+  void notifier?.onMessage({
+    message,
+    channelId,
+    senderId: sender.id,
+    senderName: sender.fullName,
+    mentionedUserIds,
+    mentionAll,
+  });
 }
 
 /** Stores a text message with its mentions and announces it. `content` is already cleaned. */
-export async function sendMessage({ db, emit, notifier }, { channelId, sender, content, replyToId = null, threadId = null }) {
+export async function sendMessage(
+  { db, emit, notifier },
+  { channelId, sender, content, replyToId = null, threadId = null },
+) {
   const message = await createMessage(db, { channelId, userId: sender.id, content, replyToId, threadId });
   const { userIds, all } = parseMentions(content, await listMembers(db, channelId));
-  if (userIds.length || all) await insertMentions(db, { messageId: message.id, channelId, authorId: sender.id, userIds, all });
+  if (userIds.length || all)
+    await insertMentions(db, { messageId: message.id, channelId, authorId: sender.id, userIds, all });
   announceMessage({ emit, notifier }, { message, channelId, sender, mentionedUserIds: userIds, mentionAll: !!all });
   return message;
 }

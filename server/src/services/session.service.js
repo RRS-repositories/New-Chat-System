@@ -20,6 +20,9 @@ export function verifySessionToken(token, { secret, aud }) {
   } catch (e) {
     if (e instanceof AuthError) throw e;
     const expired = e.name === 'TokenExpiredError';
-    throw new AuthError(expired ? 'token_expired' : 'token_invalid', expired ? 'Session expired — please sign in again' : 'Not authenticated');
+    throw new AuthError(
+      expired ? 'token_expired' : 'token_invalid',
+      expired ? 'Session expired — please sign in again' : 'Not authenticated',
+    );
   }
 }

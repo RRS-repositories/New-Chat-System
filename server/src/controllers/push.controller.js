@@ -15,9 +15,21 @@ export function createPushController({ db, config }) {
 
     subscribe: wrap(async (req, res) => {
       const { endpoint, keys } = req.body || {};
-      if (!isPushEndpoint(endpoint) || !keys || typeof keys !== 'object' || !isPushKey(keys.p256dh) || !isPushKey(keys.auth)) throw invalid();
+      if (
+        !isPushEndpoint(endpoint) ||
+        !keys ||
+        typeof keys !== 'object' ||
+        !isPushKey(keys.p256dh) ||
+        !isPushKey(keys.auth)
+      )
+        throw invalid();
       const userAgent = String(req.get('user-agent') || '').slice(0, MAX_USER_AGENT);
-      await saveSubscription(db, { userId: req.user.id, endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth }, userAgent });
+      await saveSubscription(db, {
+        userId: req.user.id,
+        endpoint,
+        keys: { p256dh: keys.p256dh, auth: keys.auth },
+        userAgent,
+      });
       res.json({ success: true });
     }),
 

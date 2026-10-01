@@ -1,5 +1,11 @@
 import { httpError, wrap } from '../middleware/errors.js';
-import { getPreferences, updatePreferences, setStatus, listStatuses, setChannelNotifyPref } from '../models/prefs.model.js';
+import {
+  getPreferences,
+  updatePreferences,
+  setStatus,
+  listStatuses,
+  setChannelNotifyPref,
+} from '../models/prefs.model.js';
 
 export function createPrefController({ db, presence, emit }) {
   return {

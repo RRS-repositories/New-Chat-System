@@ -44,7 +44,15 @@ export function createAdminController({ db, presence = null }) {
     /** Allow or block one person contacting many others (optionally both ways) in one go. */
     setAccess: wrap(async (req, res) => {
       const { targetUserIds, kind, allowed, bothWays, reason } = req.body || {};
-      const result = await setAccess(db, { userId: req.params.userId, targetUserIds, kind, allowed, bothWays: bothWays === true, actorId: req.user.id, reason });
+      const result = await setAccess(db, {
+        userId: req.params.userId,
+        targetUserIds,
+        kind,
+        allowed,
+        bothWays: bothWays === true,
+        actorId: req.user.id,
+        reason,
+      });
       res.json({ success: true, ...result, restrictions: await listRestrictions(db, { userId: req.params.userId }) });
     }),
   };

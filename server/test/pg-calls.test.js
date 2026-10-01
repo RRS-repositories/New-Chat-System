@@ -5,8 +5,18 @@ import assert from 'node:assert/strict';
 import { createTestDb } from './pg-helper.js';
 import { createChannel } from '../src/models/channels.model.js';
 import {
-  createCall, getCall, getLiveCall, listCalls, listParticipants, participantNames, addParticipant,
-  removeParticipant, activateCall, finishCall, setScreenShare, sweepStaleCalls,
+  createCall,
+  getCall,
+  getLiveCall,
+  listCalls,
+  listParticipants,
+  participantNames,
+  addParticipant,
+  removeParticipant,
+  activateCall,
+  finishCall,
+  setScreenShare,
+  sweepStaleCalls,
 } from '../src/models/calls.model.js';
 
 const { db, close } = await createTestDb();
@@ -14,7 +24,8 @@ after(() => close());
 
 const T0 = new Date('2026-09-30T10:00:00.000Z');
 const at = (secs) => new Date(T0.getTime() + secs * 1000);
-const newChannel = async (name) => (await createChannel(db, { name, displayName: name, type: 'private', createdBy: 1, memberIds: [2, 3, 5] })).id;
+const newChannel = async (name) =>
+  (await createChannel(db, { name, displayName: name, type: 'private', createdBy: 1, memberIds: [2, 3, 5] })).id;
 
 test('createCall: ringing voice call with the starter joined; mapped camelCase', async () => {
   const ch = await newChannel('calls-a');
@@ -28,7 +39,9 @@ test('createCall: ringing voice call with the starter joined; mapped camelCase',
   assert.equal(call.endedAt, null);
   assert.equal(call.durationSecs, null);
   assert.equal(call.createdAt, T0.toISOString());
-  assert.deepEqual(await listParticipants(db, call.id), [{ userId: 1, userName: 'Meg Manager', isSharingScreen: false }]);
+  assert.deepEqual(await listParticipants(db, call.id), [
+    { userId: 1, userName: 'Meg Manager', isSharingScreen: false },
+  ]);
   assert.deepEqual(await getCall(db, call.id), call);
   assert.deepEqual(await getLiveCall(db, ch), call);
 });
@@ -65,14 +78,29 @@ test('join, activate, leave, finish: duration from started_at, names in join ord
   assert.equal(active.startedAt, at(5).toISOString());
   assert.equal(await activateCall(db, { callId: call.id, at: at(6) }), null, 'only a ringing call activates');
   await addParticipant(db, { callId: call.id, userId: 1, at: at(10) });
-  assert.deepEqual((await listParticipants(db, call.id)).map((p) => p.userId), [2, 3, 1]);
+  assert.deepEqual(
+    (await listParticipants(db, call.id)).map((p) => p.userId),
+    [2, 3, 1],
+  );
 
   // Leaving and re-joining keeps the original join position.
-  assert.deepEqual(await removeParticipant(db, { callId: call.id, userId: 3, at: at(20) }), { wasParticipant: true, wasSharing: false });
-  assert.deepEqual(await removeParticipant(db, { callId: call.id, userId: 3, at: at(21) }), { wasParticipant: false, wasSharing: false });
-  assert.deepEqual((await listParticipants(db, call.id)).map((p) => p.userId), [2, 1]);
+  assert.deepEqual(await removeParticipant(db, { callId: call.id, userId: 3, at: at(20) }), {
+    wasParticipant: true,
+    wasSharing: false,
+  });
+  assert.deepEqual(await removeParticipant(db, { callId: call.id, userId: 3, at: at(21) }), {
+    wasParticipant: false,
+    wasSharing: false,
+  });
+  assert.deepEqual(
+    (await listParticipants(db, call.id)).map((p) => p.userId),
+    [2, 1],
+  );
   await addParticipant(db, { callId: call.id, userId: 3, at: at(30) });
-  assert.deepEqual((await listParticipants(db, call.id)).map((p) => p.userId), [2, 3, 1]);
+  assert.deepEqual(
+    (await listParticipants(db, call.id)).map((p) => p.userId),
+    [2, 3, 1],
+  );
   assert.deepEqual(await participantNames(db, call.id), ['Ann Agent', 'Bob Sales', 'Meg Manager']);
 
   const ended = await finishCall(db, { callId: call.id, status: 'ended', at: at(5 + 125) });
@@ -81,7 +109,11 @@ test('join, activate, leave, finish: duration from started_at, names in join ord
   assert.equal(ended.endedAt, at(130).toISOString());
   assert.deepEqual(await listParticipants(db, call.id), []);
   assert.equal(await getLiveCall(db, ch), null);
-  assert.equal(await finishCall(db, { callId: call.id, status: 'ended', at: at(200) }), null, 'finishing twice is a no-op');
+  assert.equal(
+    await finishCall(db, { callId: call.id, status: 'ended', at: at(200) }),
+    null,
+    'finishing twice is a no-op',
+  );
   // The channel is free for a new call again.
   assert.equal((await createCall(db, { channelId: ch, initiatedBy: 1, at: at(300) })).status, 'ringing');
 });
@@ -102,9 +134,18 @@ test('screen share: one sharer at a time; not_in_call for someone not in it; lea
   assert.equal(await setScreenShare(db, { callId: call.id, userId: 1, on: true }), 'changed');
   assert.equal(await setScreenShare(db, { callId: call.id, userId: 1, on: true }), 'unchanged');
   assert.equal(await setScreenShare(db, { callId: call.id, userId: 2, on: true }), 'already_sharing');
-  assert.deepEqual((await listParticipants(db, call.id)).map((p) => [p.userId, p.isSharingScreen]), [[1, true], [2, false]]);
+  assert.deepEqual(
+    (await listParticipants(db, call.id)).map((p) => [p.userId, p.isSharingScreen]),
+    [
+      [1, true],
+      [2, false],
+    ],
+  );
   assert.equal(await setScreenShare(db, { callId: call.id, userId: 2, on: false }), 'unchanged');
-  assert.deepEqual(await removeParticipant(db, { callId: call.id, userId: 1, at: at(2) }), { wasParticipant: true, wasSharing: true });
+  assert.deepEqual(await removeParticipant(db, { callId: call.id, userId: 1, at: at(2) }), {
+    wasParticipant: true,
+    wasSharing: true,
+  });
   assert.equal(await setScreenShare(db, { callId: call.id, userId: 2, on: true }), 'changed');
   assert.equal(await setScreenShare(db, { callId: call.id, userId: 2, on: false }), 'changed');
 });
@@ -122,7 +163,9 @@ test('listCalls: newest first, at most 30', async () => {
 });
 
 test('sweepStaleCalls ends every ringing/active call (status ended) and leaves finished ones alone', async () => {
-  const a = await newChannel('sweep-a'), b = await newChannel('sweep-b'), c = await newChannel('sweep-c');
+  const a = await newChannel('sweep-a'),
+    b = await newChannel('sweep-b'),
+    c = await newChannel('sweep-c');
   const ringing = await createCall(db, { channelId: a, initiatedBy: 1, at: T0 });
   const active = await createCall(db, { channelId: b, initiatedBy: 2, at: T0 });
   await addParticipant(db, { callId: active.id, userId: 3, at: at(1) });

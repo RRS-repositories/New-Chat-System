@@ -12,10 +12,27 @@ test('every user FK is INT, never UUID', () => {
 });
 
 test('all twelve tables, idempotent, transactional', () => {
-  for (const t of ['channels','channel_members','messages','files','mentions','reactions','calls','call_participants','communication_restrictions','user_preferences','audit_log','push_subscriptions']) {
+  for (const t of [
+    'channels',
+    'channel_members',
+    'messages',
+    'files',
+    'mentions',
+    'reactions',
+    'calls',
+    'call_participants',
+    'communication_restrictions',
+    'user_preferences',
+    'audit_log',
+    'push_subscriptions',
+  ]) {
     assert.ok(new RegExp(`CREATE TABLE IF NOT EXISTS chat\\.${t}\\b`).test(sql), t);
   }
-  const body = sql.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n').trim();
+  const body = sql
+    .split('\n')
+    .filter((l) => !/^\s*--/.test(l))
+    .join('\n')
+    .trim();
   assert.ok(body.startsWith('BEGIN;') && body.endsWith('COMMIT;'), 'first statement BEGIN, last COMMIT');
 });
 

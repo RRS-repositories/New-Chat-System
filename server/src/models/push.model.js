@@ -12,16 +12,21 @@ export async function saveSubscription(db, { userId, endpoint, keys, userAgent =
     `INSERT INTO chat.push_subscriptions (user_id, endpoint, keys, user_agent) VALUES ($1, $2, $3, $4)
      ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, keys = EXCLUDED.keys,
        user_agent = EXCLUDED.user_agent, created_at = now()`,
-    [userId, endpoint, JSON.stringify(keys), userAgent]);
+    [userId, endpoint, JSON.stringify(keys), userAgent],
+  );
   await db.query(
     `DELETE FROM chat.push_subscriptions WHERE user_id = $1 AND id NOT IN (
        SELECT id FROM chat.push_subscriptions WHERE user_id = $1 ORDER BY created_at DESC, id LIMIT $2)`,
-    [userId, MAX_SUBSCRIPTIONS_PER_USER]);
+    [userId, MAX_SUBSCRIPTIONS_PER_USER],
+  );
 }
 
 /** Only the caller's own. Returns whether a row was removed. */
 export async function removeSubscription(db, { userId, endpoint }) {
-  const { rowCount } = await db.query(`DELETE FROM chat.push_subscriptions WHERE user_id = $1 AND endpoint = $2`, [userId, endpoint]);
+  const { rowCount } = await db.query(`DELETE FROM chat.push_subscriptions WHERE user_id = $1 AND endpoint = $2`, [
+    userId,
+    endpoint,
+  ]);
   return rowCount > 0;
 }
 
@@ -32,7 +37,10 @@ export async function deleteSubscriptionByEndpoint(db, endpoint) {
 
 export async function subscriptionsForUsers(db, userIds) {
   if (!userIds.length) return [];
-  const { rows } = await db.query(`SELECT user_id, endpoint, keys FROM chat.push_subscriptions WHERE user_id = ANY($1::int[])`, [userIds]);
+  const { rows } = await db.query(
+    `SELECT user_id, endpoint, keys FROM chat.push_subscriptions WHERE user_id = ANY($1::int[])`,
+    [userIds],
+  );
   return rows.map((r) => ({ userId: r.user_id, endpoint: r.endpoint, keys: parseKeys(r.keys) }));
 }
 
@@ -54,7 +62,9 @@ export async function messageCandidates(db, { channelId, senderId }) {
            LEFT JOIN chat.user_preferences p ON p.user_id = m.user_id
           WHERE m.channel_id = $1 AND m.user_id <> $2
        ) x ON x.channel_id = c.id
-      WHERE c.id = $1 AND c.archived_at IS NULL`, [channelId, senderId]);
+      WHERE c.id = $1 AND c.archived_at IS NULL`,
+    [channelId, senderId],
+  );
   if (!rows.length) return { channel: null, members: [] };
   const [c] = rows;
   return {
@@ -72,6 +82,8 @@ export async function callCandidates(db, { channelId, userIds }) {
        JOIN chat.channels c ON c.id = m.channel_id AND c.archived_at IS NULL
        JOIN users u ON u.id = m.user_id AND u.is_active IS NOT FALSE AND u.is_approved
        LEFT JOIN chat.user_preferences p ON p.user_id = m.user_id
-      WHERE m.channel_id = $1 AND m.user_id = ANY($2::int[])`, [channelId, userIds]);
+      WHERE m.channel_id = $1 AND m.user_id = ANY($2::int[])`,
+    [channelId, userIds],
+  );
   return rows.map(mapMember);
 }

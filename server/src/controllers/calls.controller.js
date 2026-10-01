@@ -10,17 +10,24 @@ export function createCallController({ calls, config = {} }) {
 
   return {
     iceServers: wrap(async (req, res) => {
-      const iceServers = calls?.iceServersFor ? calls.iceServersFor(req.user.id) : buildIceServers({ config, userId: req.user.id });
+      const iceServers = calls?.iceServersFor
+        ? calls.iceServersFor(req.user.id)
+        : buildIceServers({ config, userId: req.user.id });
       res.json({ success: true, iceServers });
     }),
 
     /** A refusal because a call is already live carries that call's id, so the client can offer "Join". */
     start: async (req, res) => {
       try {
-        const started = await service().start({ channelId: req.params.id, user: req.user, socketId: req.body?.socketId });
+        const started = await service().start({
+          channelId: req.params.id,
+          user: req.user,
+          socketId: req.body?.socketId,
+        });
         res.status(201).json({ success: true, ...started });
       } catch (e) {
-        if (e.code === 'call_in_progress') return res.status(409).json({ success: false, code: e.code, message: e.message, callId: e.callId ?? null });
+        if (e.code === 'call_in_progress')
+          return res.status(409).json({ success: false, code: e.code, message: e.message, callId: e.callId ?? null });
         sendError(res, e);
       }
     },
@@ -38,7 +45,10 @@ export function createCallController({ calls, config = {} }) {
     }),
 
     join: wrap(async (req, res) => {
-      res.json({ success: true, ...(await service().join({ callId: req.params.id, user: req.user, socketId: req.body?.socketId })) });
+      res.json({
+        success: true,
+        ...(await service().join({ callId: req.params.id, user: req.user, socketId: req.body?.socketId })),
+      });
     }),
 
     leave: wrap(async (req, res) => {
@@ -52,7 +62,12 @@ export function createCallController({ calls, config = {} }) {
     }),
 
     screenShare: wrap(async (req, res) => {
-      await service().screenShare({ callId: req.params.id, userId: req.user.id, on: req.body?.on === true, socketId: req.body?.socketId });
+      await service().screenShare({
+        callId: req.params.id,
+        userId: req.user.id,
+        on: req.body?.on === true,
+        socketId: req.body?.socketId,
+      });
       res.json({ success: true });
     }),
   };

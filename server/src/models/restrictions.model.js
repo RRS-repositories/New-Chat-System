@@ -6,7 +6,6 @@ import { toId } from '../utils/ids.js';
 // in a group_dm) so a private channel cannot stand in for a DM; public channels are never
 // restricted; 'call' is stored only.
 
-
 const fail = (code, message, status = 400) => Object.assign(new Error(message), { code, status });
 export const RESTRICTION_TYPES = ['all', 'dm', 'call', 'channel'];
 /** The one refusal text for opening a DM or posting into one. */
@@ -21,19 +20,28 @@ const SELECT_SQL = `
     LEFT JOIN public.users b ON b.id = r.restricted_by`;
 
 const mapRestriction = (r) => ({
-  id: r.id, userId: r.user_id, targetUserId: r.target_user_id, restriction: r.restriction, reason: r.reason || '',
-  restrictedBy: r.restricted_by, createdAt: r.created_at,
-  userName: r.user_name ?? null, targetName: r.target_name ?? null, restrictedByName: r.restricted_by_name ?? null,
+  id: r.id,
+  userId: r.user_id,
+  targetUserId: r.target_user_id,
+  restriction: r.restriction,
+  reason: r.reason || '',
+  restrictedBy: r.restricted_by,
+  createdAt: r.created_at,
+  userName: r.user_name ?? null,
+  targetName: r.target_name ?? null,
+  restrictedByName: r.restricted_by_name ?? null,
 });
-
 
 /** Newest first. With `userId`: rows where that user is either side. */
 export async function listRestrictions(db, { userId = null } = {}) {
   const id = userId == null ? null : toId(userId);
   if (userId != null && id === null) throw fail('bad_user', 'userId must be a user id');
-  const { rows } = id === null
-    ? await db.query(`${SELECT_SQL} ORDER BY r.created_at DESC, r.id`)
-    : await db.query(`${SELECT_SQL} WHERE r.user_id = $1 OR r.target_user_id = $1 ORDER BY r.created_at DESC, r.id`, [id]);
+  const { rows } =
+    id === null
+      ? await db.query(`${SELECT_SQL} ORDER BY r.created_at DESC, r.id`)
+      : await db.query(`${SELECT_SQL} WHERE r.user_id = $1 OR r.target_user_id = $1 ORDER BY r.created_at DESC, r.id`, [
+          id,
+        ]);
   return rows.map(mapRestriction);
 }
 
@@ -48,7 +56,11 @@ export async function inTransaction(db, fn) {
     await client.query('COMMIT');
     return out;
   } catch (e) {
-    try { await client.query('ROLLBACK'); } catch (rollbackErr) { broken = rollbackErr; }
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      broken = rollbackErr;
+    }
     throw e;
   } finally {
     if (client !== db) client.release?.(broken);
@@ -63,23 +75,40 @@ const UPSERT_SQL = `
   RETURNING *`;
 
 /** Adds (or re-reasons) A→B, and B→A too with `bothWays`, atomically. Returns the rows with names. */
-export async function addRestriction(db, { userId, targetUserId, restriction, reason = '', restrictedBy, bothWays = false }) {
-  const a = toId(userId), b = toId(targetUserId);
-  if (!RESTRICTION_TYPES.includes(restriction)) throw fail('bad_restriction', 'restriction must be all, dm, call or channel');
+export async function addRestriction(
+  db,
+  { userId, targetUserId, restriction, reason = '', restrictedBy, bothWays = false },
+) {
+  const a = toId(userId),
+    b = toId(targetUserId);
+  if (!RESTRICTION_TYPES.includes(restriction))
+    throw fail('bad_restriction', 'restriction must be all, dm, call or channel');
   if (a === null || b === null) throw fail('bad_user', 'userId and targetUserId are required');
   if (a === b) throw fail('self_restriction', 'A person cannot be restricted from themselves');
   const why = String(reason ?? '').trim();
   const { rows: found } = await db.query(`SELECT id FROM public.users WHERE id = ANY($1::int[])`, [[a, b]]);
   if (found.length < 2) throw fail('unknown_user', 'User not found', 404);
 
-  const pairs = bothWays ? [[a, b], [b, a]] : [[a, b]];
+  const pairs = bothWays
+    ? [
+        [a, b],
+        [b, a],
+      ]
+    : [[a, b]];
   const ids = await inTransaction(db, async (q) => {
     const out = [];
     for (const [from, to] of pairs) {
-      const { rows: [row] } = await q.query(UPSERT_SQL, [from, to, restriction, why, restrictedBy]);
+      const {
+        rows: [row],
+      } = await q.query(UPSERT_SQL, [from, to, restriction, why, restrictedBy]);
       await q.query(
         `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'restriction.add', 'restriction', $2, $3)`,
-        [restrictedBy, String(row.id), JSON.stringify({ userId: from, targetUserId: to, restriction, reason: why, bothWays: !!bothWays })]);
+        [
+          restrictedBy,
+          String(row.id),
+          JSON.stringify({ userId: from, targetUserId: to, restriction, reason: why, bothWays: !!bothWays }),
+        ],
+      );
       out.push(row.id);
     }
     return out;
@@ -90,12 +119,23 @@ export async function addRestriction(db, { userId, targetUserId, restriction, re
 
 /** Deletes one row (never its reverse). Returns whether it existed. */
 export async function removeRestriction(db, { id, actorId }) {
-  const { rows: [row] } = await db.query(
-    `DELETE FROM chat.communication_restrictions WHERE id = $1 RETURNING *`, [id]);
+  const {
+    rows: [row],
+  } = await db.query(`DELETE FROM chat.communication_restrictions WHERE id = $1 RETURNING *`, [id]);
   if (!row) return false;
   await db.query(
     `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'restriction.remove', 'restriction', $2, $3)`,
-    [actorId, String(row.id), JSON.stringify({ userId: row.user_id, targetUserId: row.target_user_id, restriction: row.restriction, reason: row.reason || '' })]);
+    [
+      actorId,
+      String(row.id),
+      JSON.stringify({
+        userId: row.user_id,
+        targetUserId: row.target_user_id,
+        restriction: row.restriction,
+        reason: row.reason || '',
+      }),
+    ],
+  );
   return true;
 }
 
@@ -103,7 +143,9 @@ export async function removeRestriction(db, { id, actorId }) {
 export async function isBlocked(db, { fromUserId, toUserId, kind }) {
   const { rows } = await db.query(
     `SELECT 1 AS blocked FROM chat.communication_restrictions
-      WHERE user_id = $1 AND target_user_id = $2 AND restriction IN ($3, 'all') LIMIT 1`, [fromUserId, toUserId, kind]);
+      WHERE user_id = $1 AND target_user_id = $2 AND restriction IN ($3, 'all') LIMIT 1`,
+    [fromUserId, toUserId, kind],
+  );
   return rows.length > 0;
 }
 
@@ -112,10 +154,14 @@ export async function isBlocked(db, { fromUserId, toUserId, kind }) {
  * (dm/all). Any other channel type is never restricted here (and costs no restriction query).
  */
 export async function dmPostBlocked(db, { channelId, userId }) {
-  const { rows: [dm] } = await db.query(
+  const {
+    rows: [dm],
+  } = await db.query(
     `SELECT o.user_id AS dm_other_id
        FROM chat.channels c JOIN chat.channel_members o ON o.channel_id = c.id AND o.user_id <> $2
-      WHERE c.id = $1 AND c.type = 'dm' LIMIT 1`, [channelId, userId]);
+      WHERE c.id = $1 AND c.type = 'dm' LIMIT 1`,
+    [channelId, userId],
+  );
   if (!dm) return false;
   return isBlocked(db, { fromUserId: userId, toUserId: Number(dm.dm_other_id), kind: 'dm' });
 }
@@ -132,7 +178,9 @@ export async function blockedPairs(db, { userIds, kind = 'channel' }) {
     `SELECT DISTINCT LEAST(user_id, target_user_id) AS a, GREATEST(user_id, target_user_id) AS b
        FROM chat.communication_restrictions
       WHERE user_id = ANY($1::int[]) AND target_user_id = ANY($1::int[]) AND restriction = ANY($2::text[])
-      ORDER BY a, b`, [ids, kinds]);
+      ORDER BY a, b`,
+    [ids, kinds],
+  );
   return rows.map((r) => [Number(r.a), Number(r.b)]);
 }
 
@@ -140,7 +188,9 @@ export async function blockedPairs(db, { userIds, kind = 'channel' }) {
 export async function hiddenFromPicker(db, { forUserId }) {
   const { rows } = await db.query(
     `SELECT DISTINCT target_user_id FROM chat.communication_restrictions
-      WHERE user_id = $1 AND restriction IN ('dm', 'all') ORDER BY target_user_id`, [forUserId]);
+      WHERE user_id = $1 AND restriction IN ('dm', 'all') ORDER BY target_user_id`,
+    [forUserId],
+  );
   return rows.map((r) => Number(r.target_user_id));
 }
 
@@ -158,7 +208,10 @@ export async function listPairRows(q, { userId, otherUserIds }) {
 
 /** Replaces everything stored for one direction (from → to) with the given rows. */
 export async function replacePairRows(q, { fromUserId, toUserId, restrictions, reason, restrictedBy }) {
-  await q.query(`DELETE FROM chat.communication_restrictions WHERE user_id = $1 AND target_user_id = $2`, [fromUserId, toUserId]);
+  await q.query(`DELETE FROM chat.communication_restrictions WHERE user_id = $1 AND target_user_id = $2`, [
+    fromUserId,
+    toUserId,
+  ]);
   for (const restriction of restrictions) {
     await q.query(
       `INSERT INTO chat.communication_restrictions (user_id, target_user_id, restriction, reason, restricted_by) VALUES ($1, $2, $3, $4, $5)`,

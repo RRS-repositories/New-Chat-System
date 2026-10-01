@@ -15,7 +15,12 @@ export async function forwardLogin({ crmInternalUrl, fetchImpl = fetch }, { cred
   try {
     upstream = await fetchImpl(`${crmInternalUrl}/api/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': clientIp, 'X-Forwarded-For': clientIp, 'User-Agent': userAgent },
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': clientIp,
+        'X-Forwarded-For': clientIp,
+        'User-Agent': userAgent,
+      },
       body: JSON.stringify(credentials),
       signal: abort.signal,
     });

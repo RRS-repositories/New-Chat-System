@@ -9,7 +9,9 @@ export function createSmtpSender(config = {}) {
     if (!config.mailFrom) throw new Error('Digest email is not configured: MAIL_FROM is missing');
     if (!transport) {
       transport = nodemailer.createTransport({
-        host: smtp.host, port: smtp.port || 587, secure: !!smtp.secure,
+        host: smtp.host,
+        port: smtp.port || 587,
+        secure: !!smtp.secure,
         ...(smtp.user ? { auth: { user: smtp.user, pass: smtp.password || '' } } : {}),
       });
     }

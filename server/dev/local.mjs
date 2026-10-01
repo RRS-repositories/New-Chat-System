@@ -33,29 +33,54 @@ await pg.exec(`
 const vapid = webpush.generateVAPIDKeys();
 const config = {
   ...loadConfig({
-    SESSION_JWT_SECRET: SECRET, DB_HOST: 'local', DB_NAME: 'local', DB_USER: 'local', DB_PASSWORD: 'local',
+    SESSION_JWT_SECRET: SECRET,
+    DB_HOST: 'local',
+    DB_NAME: 'local',
+    DB_USER: 'local',
+    DB_PASSWORD: 'local',
     CHAT_REQUIRE_BETA: process.env.CHAT_REQUIRE_BETA || 'false',
-    CHAT_VAPID_PUBLIC: vapid.publicKey, CHAT_VAPID_PRIVATE: vapid.privateKey,
-    CHAT_STUN_URLS: process.env.CHAT_STUN_URLS ?? '',   // same machine: host candidates are enough
-    CHAT_TURN_URLS: process.env.CHAT_TURN_URLS || '', CHAT_TURN_SECRET: process.env.CHAT_TURN_SECRET || '',
+    CHAT_VAPID_PUBLIC: vapid.publicKey,
+    CHAT_VAPID_PRIVATE: vapid.privateKey,
+    CHAT_STUN_URLS: process.env.CHAT_STUN_URLS ?? '', // same machine: host candidates are enough
+    CHAT_TURN_URLS: process.env.CHAT_TURN_URLS || '',
+    CHAT_TURN_SECRET: process.env.CHAT_TURN_SECRET || '',
   }),
-  port: PORT, redisUrl: '', uploadsDir: mkdtempSync(path.join(tmpdir(), 'chat-local-uploads-')),
+  port: PORT,
+  redisUrl: '',
+  uploadsDir: mkdtempSync(path.join(tmpdir(), 'chat-local-uploads-')),
 };
 
 // Stand-in for the CRM's POST /api/auth/login: any seeded, active person + the local password.
 async function fakeCrmLogin(_url, init) {
   const { email, password } = JSON.parse(init.body || '{}');
-  const { rows: [u] } = await db.query(`SELECT id, email, full_name, role FROM users WHERE lower(email) = lower($1) AND is_active IS NOT FALSE AND is_approved`, [String(email || '')]);
-  if (!u || password !== PASSWORD) return { status: 401, async json() { return { success: false, message: 'Invalid email or password (local: use password "local")' }; } };
+  const {
+    rows: [u],
+  } = await db.query(
+    `SELECT id, email, full_name, role FROM users WHERE lower(email) = lower($1) AND is_active IS NOT FALSE AND is_approved`,
+    [String(email || '')],
+  );
+  if (!u || password !== PASSWORD)
+    return {
+      status: 401,
+      async json() {
+        return { success: false, message: 'Invalid email or password (local: use password "local")' };
+      },
+    };
   const token = jwt.sign({ sub: u.id, role: u.role, aud: config.sessionAud }, SECRET, { expiresIn: '12h' });
-  return { status: 200, async json() { return { success: true, token, user: { id: u.id, email: u.email, fullName: u.full_name, role: u.role } }; } };
+  return {
+    status: 200,
+    async json() {
+      return { success: true, token, user: { id: u.id, email: u.email, fullName: u.full_name, role: u.role } };
+    },
+  };
 }
 
 const stack = createHttpStack({ config, db, fetchImpl: fakeCrmLogin });
 await stack.calls?.sweepStaleCalls?.();
 
 const dist = path.resolve(here, '..', '..', 'web', 'dist');
-if (!existsSync(path.join(dist, 'index.html'))) console.warn('[local] the web app is not built — run: cd web && npm run build');
+if (!existsSync(path.join(dist, 'index.html')))
+  console.warn('[local] the web app is not built — run: cd web && npm run build');
 
 stack.httpServer.listen(PORT, '127.0.0.1', async () => {
   const { rows } = await db.query(`SELECT email, full_name, role FROM users WHERE is_active IS NOT FALSE ORDER BY id`);
@@ -64,4 +89,9 @@ stack.httpServer.listen(PORT, '127.0.0.1', async () => {
 });
 
 process.on('unhandledRejection', (e) => console.error('[local] unhandled rejection', e));
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { await stack.close().catch(() => {}); await pg.close().catch(() => {}); process.exit(0); });
+for (const sig of ['SIGINT', 'SIGTERM'])
+  process.on(sig, async () => {
+    await stack.close().catch(() => {});
+    await pg.close().catch(() => {});
+    process.exit(0);
+  });

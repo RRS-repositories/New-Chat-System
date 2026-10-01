@@ -34,7 +34,8 @@ export function createChannelController({ db, emit }) {
       const other = parseInt(req.body?.userId, 10);
       if (!Number.isFinite(other) || other <= 0) throw httpError(400, 'bad_user', 'userId required');
       // Checked before opening: an existing DM with a now-restricted person is refused too.
-      if (await isBlocked(db, { fromUserId: req.user.id, toUserId: other, kind: 'dm' })) throw httpError(403, 'restricted', DM_BLOCKED_MESSAGE);
+      if (await isBlocked(db, { fromUserId: req.user.id, toUserId: other, kind: 'dm' }))
+        throw httpError(403, 'restricted', DM_BLOCKED_MESSAGE);
       const channel = await openDm(db, req.user.id, other);
       joinRooms([req.user.id, other], channel.id);
       emit.toUser(other, 'channel_updated', { channel });
@@ -44,8 +45,15 @@ export function createChannelController({ db, emit }) {
     create: wrap(async (req, res) => {
       const { displayName, type, purpose, memberIds } = req.body || {};
       const members = Array.isArray(memberIds) ? memberIds.map(Number).filter((n) => Number.isFinite(n) && n > 0) : [];
-      if (type !== 'public') await assertCanShareChannel(db, { type, actorId: req.user.id, existingIds: [], joiningIds: toIds(members) });
-      const channel = await createChannel(db, { displayName, type, purpose, createdBy: req.user.id, memberIds: members });
+      if (type !== 'public')
+        await assertCanShareChannel(db, { type, actorId: req.user.id, existingIds: [], joiningIds: toIds(members) });
+      const channel = await createChannel(db, {
+        displayName,
+        type,
+        purpose,
+        createdBy: req.user.id,
+        memberIds: members,
+      });
       joinRooms([req.user.id, ...members], channel.id);
       for (const userId of members) emit.toUser(userId, 'member_added', { channel_id: channel.id, user_id: userId });
       res.status(201).json({ success: true, channel });
@@ -66,7 +74,12 @@ export function createChannelController({ db, emit }) {
       if (channel.type !== 'public') {
         const currentIds = (await listMembers(db, channel.id)).map((m) => m.id);
         const joiningIds = toIds(userIds).filter((id) => !currentIds.includes(id));
-        await assertCanShareChannel(db, { type: channel.type, actorId: req.user.id, existingIds: currentIds, joiningIds });
+        await assertCanShareChannel(db, {
+          type: channel.type,
+          actorId: req.user.id,
+          existingIds: currentIds,
+          joiningIds,
+        });
       }
       const inserted = await addMembers(db, channelId, userIds, req.user.id);
       joinRooms(inserted, channelId);

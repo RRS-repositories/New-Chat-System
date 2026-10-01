@@ -22,7 +22,8 @@ export function blockedKinds(restrictions) {
 }
 
 /** The rows that store a set of blocked kinds. */
-export const rowsFor = (kinds) => (ACCESS_KINDS.every((k) => kinds.has(k)) ? ['all'] : ACCESS_KINDS.filter((k) => kinds.has(k)));
+export const rowsFor = (kinds) =>
+  ACCESS_KINDS.every((k) => kinds.has(k)) ? ['all'] : ACCESS_KINDS.filter((k) => kinds.has(k));
 
 /** Blocked kinds after allowing or blocking `kind` (`all` = every kind). */
 export function nextBlocked(current, kind, allowed) {
@@ -44,19 +45,28 @@ const sameRows = (a, b) => a.length === b.length && [...a].sort().every((value, 
 export async function setAccess(db, { userId, targetUserIds, kind, allowed, bothWays = false, actorId, reason = '' }) {
   const person = toId(userId);
   if (person === null) throw httpError(400, 'bad_user', 'userId is required');
-  if (kind !== 'all' && !ACCESS_KINDS.includes(kind)) throw httpError(400, 'bad_restriction', 'kind must be dm, call, channel or all');
+  if (kind !== 'all' && !ACCESS_KINDS.includes(kind))
+    throw httpError(400, 'bad_restriction', 'kind must be dm, call, channel or all');
   if (typeof allowed !== 'boolean') throw httpError(400, 'bad_restriction', 'allowed must be true or false');
 
   const list = Array.isArray(targetUserIds) ? targetUserIds : [];
   const targets = [...new Set(list.map(toId).filter((id) => id !== null && id !== person))];
   if (!targets.length) throw httpError(400, 'bad_user', 'Choose at least one person');
   if (targets.length > MAX_TARGETS) throw httpError(400, 'bad_user', 'Too many people in one change');
-  if ((await countUsers(db, [person, ...targets])) < targets.length + 1) throw httpError(404, 'unknown_user', 'User not found');
+  if ((await countUsers(db, [person, ...targets])) < targets.length + 1)
+    throw httpError(404, 'unknown_user', 'User not found');
 
   const newReason = String(reason ?? '')
     .trim()
     .slice(0, 500);
-  const directions = targets.flatMap((target) => (bothWays ? [[person, target], [target, person]] : [[person, target]]));
+  const directions = targets.flatMap((target) =>
+    bothWays
+      ? [
+          [person, target],
+          [target, person],
+        ]
+      : [[person, target]],
+  );
 
   const changed = await inTransaction(db, async (q) => {
     const existing = await listPairRows(q, { userId: person, otherUserIds: targets });
@@ -67,10 +77,20 @@ export async function setAccess(db, { userId, targetUserIds, kind, allowed, both
       const want = rowsFor(nextBlocked(blockedKinds(have), kind, allowed));
       if (sameRows(want, have)) continue;
       const keptReason = newReason || current.find((r) => r.reason)?.reason || '';
-      await replacePairRows(q, { fromUserId: from, toUserId: to, restrictions: want, reason: keptReason, restrictedBy: actorId });
+      await replacePairRows(q, {
+        fromUserId: from,
+        toUserId: to,
+        restrictions: want,
+        reason: keptReason,
+        restrictedBy: actorId,
+      });
       count++;
     }
-    await logAccessChange(q, { actorId, userId: person, detail: { targetUserIds: targets, kind, allowed, bothWays: !!bothWays, changed: count } });
+    await logAccessChange(q, {
+      actorId,
+      userId: person,
+      detail: { targetUserIds: targets, kind, allowed, bothWays: !!bothWays, changed: count },
+    });
     return count;
   });
   return { changed };
