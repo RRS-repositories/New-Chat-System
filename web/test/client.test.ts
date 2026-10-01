@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createApiClient, ApiError } from '../src/api/client.ts';
+import { createApiClient, ApiError } from '../src/services/apiClient.ts';
 
 test('sends the bearer token and unwraps JSON', async () => {
   const seen: any[] = [];

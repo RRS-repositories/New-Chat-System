@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { accessMap, allBlocked, anyBlocked, blockedList, filterPeople } from '../src/lib/access.ts';
-import type { Restriction } from '../src/api/types.ts';
+import { accessMap, allBlocked, anyBlocked, blockedList, filterPeople } from '../src/utils/access.ts';
+import type { Restriction } from '../src/types/index.ts';
 
 const row = (userId: number, targetUserId: number, restriction: Restriction['restriction']): Restriction => ({
   id: `${userId}-${targetUserId}-${restriction}`, userId, targetUserId, restriction, reason: '', restrictedBy: 1, createdAt: '2026-09-30T10:00:00Z', userName: null, targetName: null, restrictedByName: null,

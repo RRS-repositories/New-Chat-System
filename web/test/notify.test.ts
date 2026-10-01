@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shouldNotify, notificationContent, isLookedAt, parseSwOpen, SW_OPEN } from '../src/lib/notify.ts';
-import { urlBase64ToUint8Array } from '../src/lib/push.ts';
-import { computeAway, presenceOf, AWAY_AFTER_MS } from '../src/lib/presence.ts';
+import { shouldNotify, notificationContent, isLookedAt, parseSwOpen, SW_OPEN } from '../src/utils/notify.ts';
+import { urlBase64ToUint8Array } from '../src/services/push.ts';
+import { computeAway, presenceOf, AWAY_AFTER_MS } from '../src/utils/presence.ts';
 
 const ME = 9;
 const msg = (extra: any = {}) => ({ id: 'm1', channelId: 'c1', userId: 2, userName: 'Bob Smith', content: 'hello', type: 'message', mentionsMe: false, files: [], ...extra }) as any;

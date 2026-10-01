@@ -1,15 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import type { Socket } from 'socket.io-client';
-import { ApiError, type ApiClient } from '../api/client.ts';
-import type { BrowseChannel, Channel, ChannelFileRow, ChannelMember, ChannelNotifyPref, ChatUser, Message, Preferences, Restriction, RestrictionInput, SearchHit, UserOption, UserStatus, AdminUser, AccessChange } from '../api/types.ts';
-import { withSelfSorted } from '../lib/restrictions.ts';
-import { chatReducer, initialState, type State } from './reducer.ts';
-import { mentionsUser } from '../lib/mentions.ts';
-import { playNotify } from '../lib/sound.ts';
-import { notificationContent, shouldNotify, showDesktopNotification } from '../lib/notify.ts';
-import { restorePush } from '../lib/push.ts';
-import { useAttention } from './useAttention.ts';
-import { usePresence } from './usePresence.ts';
+import { ApiError, type ApiClient } from '../services/apiClient.ts';
+import type { BrowseChannel, Channel, ChannelFileRow, ChannelMember, ChannelNotifyPref, ChatUser, Message, Preferences, Restriction, RestrictionInput, SearchHit, UserOption, UserStatus, AdminUser, AccessChange } from '../types/index.ts';
+import { withSelfSorted } from '../utils/restrictions.ts';
+import { chatReducer, initialState, type State } from './chatReducer.ts';
+import { mentionsUser } from '../utils/mentions.ts';
+import { playNotify } from '../utils/sound.ts';
+import { notificationContent, shouldNotify, showDesktopNotification } from '../utils/notify.ts';
+import { restorePush } from '../services/push.ts';
+import { useAttention } from '../hooks/useAttention.ts';
+import { usePresence } from '../hooks/usePresence.ts';
 
 export type SendOpts = { replyToId?: string | null; threadId?: string | null };
 type Actions = {

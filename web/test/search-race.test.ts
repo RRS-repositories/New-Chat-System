@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generation, latestOnly } from '../src/lib/latest.ts';
+import { generation, latestOnly } from '../src/utils/latest.ts';
 
 function deferred<T>() {
   let resolve!: (v: T) => void; let reject!: (e: unknown) => void;

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatBytes, validateFiles, isImage } from '../src/lib/files.ts';
+import { formatBytes, validateFiles, isImage } from '../src/utils/files.ts';
 
 const f = (name: string, size: number, type = '') => ({ name, size, type }) as unknown as File;
 test('formatBytes', () => { assert.equal(formatBytes(512), '512 B'); assert.equal(formatBytes(1536), '1.5 KB'); assert.equal(formatBytes(2.5 * 1024 * 1024), '2.5 MB'); });

@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { Socket } from 'socket.io-client';
-import { ApiError } from '../api/client.ts';
-import type { CallJoinResponse, CallParticipant } from '../api/types.ts';
+import { ApiError } from '../services/apiClient.ts';
+import type { CallJoinResponse, CallParticipant } from '../types/index.ts';
 import { useChat } from './ChatProvider.tsx';
 import { callReducer, initialCallState, type CallUiState, type EndStatus, type IncomingCall } from './callState.ts';
-import { CallError, CallManager, MIC_CONSTRAINTS, type CallSnapshot, type PeerLike, type StreamLike } from '../lib/callManager.ts';
-import { startRingtone, stopRingtone } from '../lib/ringtone.ts';
-import { isLookedAt, showDesktopNotification } from '../lib/notify.ts';
+import { CallError, CallManager, MIC_CONSTRAINTS, type CallSnapshot, type PeerLike, type StreamLike } from '../services/callManager.ts';
+import { startRingtone, stopRingtone } from '../utils/ringtone.ts';
+import { isLookedAt, showDesktopNotification } from '../utils/notify.ts';
 
 /** A live call in a channel (from GET …/calls/active and the call_* events). */
 export type ActiveCall = { callId: string; participantIds: number[] };

@@ -2,15 +2,15 @@ import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import type { Socket } from 'socket.io-client';
-import { createApiClient } from './api/client.ts';
-import { createChatSocket } from './api/socket.ts';
-import { getSession, setSession, clearSession } from './auth/session.ts';
-import { LoginPage } from './auth/LoginPage.tsx';
-import { ChatApp } from './ChatApp.tsx';
-import type { Session } from './api/types.ts';
-import { disablePush } from './lib/push.ts';
-import { withTimeout } from './lib/timeout.ts';
-import './styles.css';
+import { createApiClient } from './services/apiClient.ts';
+import { createChatSocket } from './services/socket.ts';
+import { getSession, setSession, clearSession } from './services/session.ts';
+import { LoginPage } from './pages/LoginPage.tsx';
+import { ChatApp } from './App.tsx';
+import type { Session } from './types/index.ts';
+import { disablePush } from './services/push.ts';
+import { withTimeout } from './utils/timeout.ts';
+import './styles/index.css';
 
 /** chat2.rowanroseclaims.co.uk: own login page, session in localStorage. */
 function Root() {

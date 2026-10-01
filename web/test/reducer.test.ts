@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chatReducer, initialState } from '../src/context/reducer.ts';
+import { chatReducer, initialState } from '../src/context/chatReducer.ts';
 
 const ch = (id: string, unread = 0) => ({ id, name: id, displayName: id, type: 'public', purpose: '', header: '', unreadCount: unread, lastMessageAt: null, dmUserId: null, dmUserName: null, memberCount: 1 }) as any;
 const msg = (id: string, channelId = 'c1', createdAt = '2026-09-28T10:00:00.000Z') => ({ id, channelId, userId: 1, userName: 'A', content: id, type: 'message', createdAt, editedAt: null, replyToId: null, threadId: null }) as any;

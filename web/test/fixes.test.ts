@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { withTimeout } from '../src/lib/timeout.ts';
-import { subscriptionBody } from '../src/lib/push.ts';
-import { backFromAway, AWAY_AFTER_MS } from '../src/lib/presence.ts';
+import { withTimeout } from '../src/utils/timeout.ts';
+import { subscriptionBody } from '../src/services/push.ts';
+import { backFromAway, AWAY_AFTER_MS } from '../src/utils/presence.ts';
 
 test('withTimeout: passes a fast result through, rejects a slow one with the given message', async () => {
   assert.equal(await withTimeout(Promise.resolve(7), 50, 'slow'), 7);

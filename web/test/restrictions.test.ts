@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RESTRICTION_TYPES, typeLabel, restrictionRow, validateRestrictionForm, toRestrictionInput, withSelfSorted, isManagement } from '../src/lib/restrictions.ts';
-import type { Restriction } from '../src/api/types.ts';
+import { RESTRICTION_TYPES, typeLabel, restrictionRow, validateRestrictionForm, toRestrictionInput, withSelfSorted, isManagement } from '../src/utils/restrictions.ts';
+import type { Restriction } from '../src/types/index.ts';
 
 const row: Restriction = {
   id: 'r1', userId: 1, targetUserId: 2, restriction: 'dm', reason: 'HR', restrictedBy: 9,

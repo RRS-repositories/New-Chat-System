@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CallManager, CallError, MIC_MESSAGE, type Signal } from '../src/lib/callManager.ts';
+import { CallManager, CallError, MIC_MESSAGE, type Signal } from '../src/services/callManager.ts';
 
 // ---- fakes ---------------------------------------------------------------
 class FakeTrack {
