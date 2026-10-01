@@ -1,0 +1,30 @@
+{
+  "name": "crm-chat-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node main.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.4.0",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.13.1",
+    "sharp": "^0.35.5",
+    "socket.io": "^4.8.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "playwright-core": "^1.63.0",
+    "socket.io-client": "^4.8.4",
+    "supertest": "^7.3.0"
+  }
+}

@@ -35,7 +35,7 @@ Built between 28 September and 1 October 2026, inside the CRM repository. All of
 
 ---
 
-## Phase 2 — Move the code here ▶
+## Phase 2 — Move the code here ✅
 
 **Goal:** this repository holds the whole chat system, and it works on the developer's PC exactly as it does today.
 
@@ -45,7 +45,7 @@ Built between 28 September and 1 October 2026, inside the CRM repository. All of
 
 **Nothing changes for staff.** The live site keeps running from the old place during this phase.
 
-**Done when:** all tests pass from this repository.
+**Done when:** all tests pass from this repository. *Done 1 October 2026: 353 server tests, 107 web tests, and all end-to-end and browser checks pass from here.*
 
 ---
 
