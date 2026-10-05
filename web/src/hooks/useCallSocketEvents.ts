@@ -4,7 +4,7 @@ import type { ActiveCall } from '../context/callContext.ts';
 import type { CallAction, CallUiState, EndStatus, IncomingCall } from '../context/callState.ts';
 import type { CallApi } from '../services/callApi.ts';
 import type { CallManager } from '../services/callManager.ts';
-import type { JoinRequest } from '../types/index.ts';
+import type { CallInvite, JoinRequest } from '../types/index.ts';
 import { addJoinRequest, dropJoinRequest } from '../utils/joinRequests.ts';
 
 const MAX_HELD_EVENTS = 500;
@@ -41,10 +41,12 @@ type Deps = {
   setPanelNote: (note: string | null) => void;
   /** Who has a hand raised. */
   setHands: Dispatch<SetStateAction<number[]>>;
+  /** Who is being rung into this tab's call. */
+  setInvites: Dispatch<SetStateAction<CallInvite[]>>;
   /** A reaction arrived: float it up the call screen. */
   showReaction: (userId: number, emoji: string) => void;
   /** Joins a call without asking the host (used once the host has let this person back in). */
-  joinDirect: (callId: string, channelId: string) => Promise<void>;
+  joinDirect: (callId: string, channelId: string, opts?: { switching?: boolean }) => Promise<void>;
 };
 
 /** Listens for call events from the server and keeps this tab's call, and the per-channel "live call" list, in step. */
@@ -59,6 +61,7 @@ export function useCallSocketEvents({
   setJoinRequests,
   setPanelNote,
   setHands,
+  setInvites,
   showReaction,
   joinDirect,
 }: Deps): void {
@@ -95,6 +98,7 @@ export function useCallSocketEvents({
           channelType: p.channel_type,
           fromId: callerId,
           fromName: p.initiated_by_name || 'Someone',
+          at: Date.now(),
         },
       });
     };
@@ -118,6 +122,7 @@ export function useCallSocketEvents({
       }
       if (isMyCall(p.call_id)) {
         setJoinRequests((list) => dropJoinRequest(list, joinerId)); // they are in: no longer waiting
+        setInvites((list) => list.filter((i) => i.userId !== joinerId)); // nor ringing
         manager.current!.addParticipant(joinerId, p.user_name || '');
       } else if (startInFlight()) hold(p.call_id, () => manager.current?.addParticipant(joinerId, p.user_name || ''));
     };
@@ -147,6 +152,42 @@ export function useCallSocketEvents({
     };
 
     const onDismissed = (p: { call_id: string }) => dispatch({ type: 'dismissed', callId: p.call_id });
+
+    // Someone in a call is ringing me into it.
+    const onInvited = (p: { call_id: string; channel_id: string; from_user_id: number; from_user_name?: string }) => {
+      if (isMyCall(p.call_id)) return;
+      dispatch({
+        type: 'incoming',
+        call: {
+          callId: p.call_id,
+          channelId: p.channel_id,
+          channelName: '',
+          channelType: 'private',
+          fromId: Number(p.from_user_id),
+          fromName: p.from_user_name || 'Someone',
+          invited: true,
+          at: Date.now(),
+        },
+      });
+    };
+    const onInvitePending = (p: { call_id: string; user_id: number; user_name?: string }) => {
+      if (!isMyCall(p.call_id)) return;
+      const who = Number(p.user_id);
+      setInvites((list) =>
+        list.some((i) => i.userId === who) ? list : [...list, { userId: who, userName: p.user_name || 'Someone' }],
+      );
+    };
+    // A ring is over: nobody answered, it was refused, or it was taken back.
+    const onInviteEnded = (p: { call_id: string; user_id: number }) => {
+      const who = Number(p.user_id);
+      if (who === userId) dispatch({ type: 'dismissed', callId: p.call_id });
+      if (isMyCall(p.call_id)) setInvites((list) => list.filter((i) => i.userId !== who));
+    };
+    // The person I was ringing is in a call and brought me into it.
+    const onMerge = (p: { join_call_id: string; channel_id: string }) => {
+      if (!p.join_call_id || isMyCall(p.join_call_id)) return;
+      void joinDirect(p.join_call_id, p.channel_id, { switching: true });
+    };
 
     const onReaction = (p: { call_id: string; from_user_id: number; emoji: string }) => {
       if (isMyCall(p.call_id) && typeof p.emoji === 'string') showReaction(Number(p.from_user_id), p.emoji);
@@ -239,6 +280,10 @@ export function useCallSocketEvents({
       ['call_participant_left', onLeft],
       ['call_ended', onEnded],
       ['call_dismissed', onDismissed],
+      ['call_invited', onInvited],
+      ['call_invite_pending', onInvitePending],
+      ['call_invite_ended', onInviteEnded],
+      ['call_merge', onMerge],
       ['call_reaction', onReaction],
       ['call_hand_changed', onHand],
       ['call_host_changed', onHostChanged],
@@ -267,6 +312,7 @@ export function useCallSocketEvents({
     setJoinRequests,
     setPanelNote,
     setHands,
+    setInvites,
     showReaction,
     joinDirect,
   ]);

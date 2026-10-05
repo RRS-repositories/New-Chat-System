@@ -4,7 +4,7 @@
  */
 export const FEATURES = {
   /** Ring more people into a live call. */
-  addToCall: false,
+  addToCall: true,
   whiteboard: false,
   recording: false,
   breakoutGroups: false,

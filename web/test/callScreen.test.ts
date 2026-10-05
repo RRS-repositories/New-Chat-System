@@ -46,3 +46,43 @@ test('the host can change during a call (the starter left, or came back)', () =>
   assert.equal(callReducer(s, { type: 'host', callId: 'k1', hostId: 9 }), s, 'no change: same state');
   assert.equal(callReducer(s, { type: 'host', callId: 'another-call', hostId: 3 }).hostId, 9);
 });
+
+const ring = (callId: string, extra = {}) => ({
+  callId,
+  channelId: 'c9',
+  channelName: '',
+  channelType: 'dm' as const,
+  fromId: 4,
+  fromName: 'Dee',
+  ...extra,
+});
+
+test('a call ringing in while this tab is in a call waits, and does not disturb the call', () => {
+  let s = callReducer(inCall(), { type: 'incoming', call: ring('k2') });
+  assert.equal(s.phase, 'in-call');
+  assert.equal(s.waiting?.callId, 'k2');
+  assert.equal(callReducer(s, { type: 'incoming', call: ring('k3') }).waiting?.callId, 'k2', 'one at a time');
+  assert.equal(callReducer(inCall(), { type: 'incoming', call: ring('k1') }).waiting, null, 'never my own call');
+  s = callReducer(s, { type: 'dismissed', callId: 'k2' });
+  assert.equal(s.waiting, null);
+  assert.equal(s.phase, 'in-call');
+});
+
+test('the waiting call ends, or my call ends first', () => {
+  const waiting = callReducer(inCall(), { type: 'incoming', call: ring('k2') });
+  const gone = callReducer(waiting, { type: 'ended', callId: 'k2', status: 'missed' });
+  assert.equal(gone.waiting, null);
+  assert.equal(gone.phase, 'in-call');
+  // My own call ends while the other still rings: it now rings in the ordinary way.
+  const mineOver = callReducer(waiting, { type: 'ended', callId: 'k1', status: 'ended' });
+  assert.equal(mineOver.phase, 'ringing-in');
+  assert.equal(mineOver.incoming?.callId, 'k2');
+  assert.equal(mineOver.waiting, null);
+});
+
+test('answering the waiting call by changing calls clears it', () => {
+  const waiting = callReducer(inCall(), { type: 'incoming', call: ring('k2', { invited: true }) });
+  const s = callReducer(waiting, { type: 'join_begin', callId: 'k2', channelId: 'c9' });
+  assert.equal(s.waiting, null);
+  assert.equal(s.phase, 'joining');
+});

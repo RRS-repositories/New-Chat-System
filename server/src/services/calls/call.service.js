@@ -10,6 +10,7 @@
 import { httpError } from '../../middleware/errors.js';
 import { buildIceServers } from './ice.js';
 import { createCallExtras } from './call.extras.js';
+import { createCallInvites } from './call.invites.js';
 import { createHostControls, REMOVED_MESSAGE } from './host.controls.js';
 import { getChannel, isMember, listMembers } from '../../models/channels.model.js';
 import { createMessage } from '../../models/messages.model.js';
@@ -71,6 +72,14 @@ export function createCallService({
   const toChannel = (id, event, payload) => send('toChannel', id, event, payload);
   const toUser = (id, event, payload) => send('toUser', id, event, payload);
   const toSocket = (id, event, payload) => send('toSocket', id, event, payload);
+  /**
+   * To everyone who follows the call: the channel, plus the people let in from outside it (they are
+   * not in the channel, so they are told one by one). `outsiders` is passed when the call was just forgotten.
+   */
+  const toFollowers = (call, event, payload, outsiders = host.allowedIds(call.id)) => {
+    toChannel(call.channelId, event, payload);
+    for (const userId of outsiders) toUser(userId, event, payload);
+  };
   /** To everyone in the call (their call devices), and nobody else. */
   const toCall = (callId, event, payload) => {
     for (const socketId of devices.get(callId)?.values() || []) toSocket(socketId, event, payload);
@@ -162,6 +171,7 @@ export function createCallService({
     devices.delete(callId);
     host.forget(callId);
     extras.forget(callId);
+    invites.forget(callId);
   }
 
   async function postCallMessage(call, content) {
@@ -181,21 +191,23 @@ export function createCallService({
   const fmt = (secs) => `${Math.floor(secs / 60)}m ${secs % 60}s`;
 
   // Ends a live call (caller holds the lock). Returns the finished call or null if it was already over.
-  async function end(callId, status, { pushMissed = false } = {}) {
+  async function end(callId, status, { pushMissed = false, note = null } = {}) {
     const names = status === 'ended' ? await participantNames(db, callId) : [];
     const call = await finishCall(db, { callId, status, at: at() });
+    const outsiders = host.allowedIds(callId);
     forget(callId);
     if (!call) return null;
     const duration = call.durationSecs || 0;
     if (status === 'missed') await postCallMessage(call, `Missed call from ${call.initiatedByName}`);
-    else if (status === 'declined') await postCallMessage(call, 'Call declined');
+    else if (status === 'declined')
+      await postCallMessage(call, note === 'merged' ? 'Call joined to a call already going on' : 'Call declined');
     else await postCallMessage(call, `Voice call — ${fmt(duration)} — ${names.join(', ')}`);
-    toChannel(call.channelId, 'call_ended', {
-      call_id: call.id,
-      channel_id: call.channelId,
-      status,
-      duration_secs: duration,
-    });
+    toFollowers(
+      call,
+      'call_ended',
+      { call_id: call.id, channel_id: call.channelId, status, duration_secs: duration },
+      outsiders,
+    );
     if (pushMissed) {
       const channel = await getChannel(db, call.channelId);
       const members = await listMembers(db, call.channelId);
@@ -220,14 +232,14 @@ export function createCallService({
     devices.get(callId)?.delete(userId);
     if (!wasParticipant) return;
     extras.onLeft(callId, userId);
-    toChannel(call.channelId, 'call_participant_left', {
+    toFollowers(call, 'call_participant_left', {
       call_id: callId,
       channel_id: call.channelId,
       user_id: userId,
       ...(reason ? { reason } : {}),
     });
     if (wasSharing)
-      toChannel(call.channelId, 'call_screen_share_stopped', {
+      toFollowers(call, 'call_screen_share_stopped', {
         call_id: callId,
         channel_id: call.channelId,
         user_id: userId,
@@ -238,7 +250,8 @@ export function createCallService({
     } // the starter hung up before anyone answered: no push
     const remaining = await listParticipants(db, callId);
     const channel = await getChannel(db, call.channelId);
-    if (remaining.length === 0 || channel?.type === 'dm') await end(callId, 'ended');
+    // A one-to-one call is over when one of the two is left (more can be in it once someone was added).
+    if (remaining.length === 0 || (channel?.type === 'dm' && remaining.length < 2)) await end(callId, 'ended');
     else host.afterChange(call, hostBefore);
   }
 
@@ -257,11 +270,32 @@ export function createCallService({
   });
   // Reactions and raised hands (see call.extras.js).
   const extras = createCallExtras({ devices, toCall, now });
+  // Ringing more people into a live call, and joining a ringing call to one already going on (see call.invites.js).
+  const invites = createCallInvites({
+    db,
+    emit,
+    config,
+    devices,
+    withLock,
+    mustFindCall,
+    mustBeMember,
+    host,
+    end: (...args) => end(...args),
+    toUser,
+    toCall,
+    toSocket,
+    notify,
+    arm,
+    disarm,
+    ringMs,
+    maxParticipants,
+  });
   /** What a person who has just started or joined needs, beyond who is in the call. */
   const liveState = (call, userId) => ({
     hostId: host.hostIdOf(call),
     joinRequests: host.joinRequestsFor(call, userId),
     ...extras.snapshot(call.id),
+    ...invites.snapshot(call.id),
   });
 
   // A live row this process cannot be carrying: unknown in memory (boot sweep failed or raced; a start
@@ -274,15 +308,16 @@ export function createCallService({
   // Ends a stale call like sweepStaleCalls (status ended, no system message); caller holds the lock.
   async function endStale(call) {
     const done = await finishCall(db, { callId: call.id, status: 'ended', at: at() });
+    const outsiders = host.allowedIds(call.id);
     forget(call.id);
     if (done) {
       log('ended a stale call', done.id);
-      toChannel(done.channelId, 'call_ended', {
-        call_id: done.id,
-        channel_id: done.channelId,
-        status: 'ended',
-        duration_secs: done.durationSecs || 0,
-      });
+      toFollowers(
+        done,
+        'call_ended',
+        { call_id: done.id, channel_id: done.channelId, status: 'ended', duration_secs: done.durationSecs || 0 },
+        outsiders,
+      );
     }
     return done;
   }
@@ -385,7 +420,7 @@ export function createCallService({
       if (!isUuid(callId)) throw httpError(404, 'not_found', 'Call not found');
       return withLock(callId, async () => {
         let call = await mustFindCall(callId);
-        await mustBeMember(call.channelId, user.id);
+        await host.mustBelong(call, user.id); // in the channel, or added to this call from outside it
         if (await isStale(call)) {
           await endStale(call);
           call = await getCall(db, callId);
@@ -393,7 +428,8 @@ export function createCallService({
         if (!LIVE.has(call.status)) throw httpError(409, 'call_ended', 'This call has ended');
         if (host.isRemoved(callId, user.id)) throw httpError(403, 'removed', REMOVED_MESSAGE);
         const channel = await getChannel(db, call.channelId);
-        if (await dmRestricted(channel, user.id)) throw httpError(403, 'restricted', RESTRICTED_CALL_MESSAGE);
+        if (!host.isAllowed(callId, user.id) && (await dmRestricted(channel, user.id)))
+          throw httpError(403, 'restricted', RESTRICTED_CALL_MESSAGE);
         const hostBefore = host.hostIdOf(call);
         const current = await listParticipants(db, callId);
         const already = current.some((p) => p.userId === user.id);
@@ -414,7 +450,8 @@ export function createCallService({
         }
         // Also sent on a re-join from another tab: the others rebuild their peer to the new device,
         // and the user's other tabs stop ringing.
-        toChannel(call.channelId, 'call_participant_joined', {
+        invites.onJoined(callId, user.id); // they answered: the ring is over
+        toFollowers(call, 'call_participant_joined', {
           call_id: callId,
           channel_id: call.channelId,
           user_id: user.id,
@@ -447,10 +484,16 @@ export function createCallService({
     cancelAsk: (args) => host.cancel(args),
     answerJoinRequest: (args) => host.answer(args),
 
+    /** Adding people to a live call, and joining a ringing call to the one you are in (see call.invites.js). */
+    invite: (args) => invites.invite(args),
+    cancelInvite: (args) => invites.cancel(args),
+    merge: (args) => invites.merge(args),
+
     async decline({ callId, user }) {
       if (!isUuid(callId)) throw httpError(404, 'not_found', 'Call not found');
       return withLock(callId, async () => {
         const call = await mustFindCall(callId);
+        if (invites.decline(call, user.id)) return; // rung into the call by someone in it
         await mustBeMember(call.channelId, user.id);
         if (call.status === 'ringing' && call.initiatedBy !== user.id) {
           const channel = await getChannel(db, call.channelId);
@@ -478,7 +521,7 @@ export function createCallService({
         if (result === 'already_sharing')
           throw httpError(409, 'already_sharing', 'Someone else is already sharing their screen');
         if (result === 'changed') {
-          toChannel(call.channelId, on ? 'call_screen_share_started' : 'call_screen_share_stopped', {
+          toFollowers(call, on ? 'call_screen_share_started' : 'call_screen_share_stopped', {
             call_id: callId,
             channel_id: call.channelId,
             user_id: userId,
@@ -489,9 +532,12 @@ export function createCallService({
 
     async get({ callId, userId }) {
       const found = await mustFindCall(callId);
-      await mustBeMember(found.channelId, userId);
+      await host.mustBelong(found, userId);
       const { call } = LIVE.has(found.status) ? await repair(callId) : { call: found };
-      const live = call && LIVE.has(call.status) ? { hostId: host.hostIdOf(call), ...extras.snapshot(callId) } : {};
+      const live =
+        call && LIVE.has(call.status)
+          ? { hostId: host.hostIdOf(call), ...extras.snapshot(callId), ...invites.snapshot(callId) }
+          : {};
       return { call, participants: await listParticipants(db, callId), ...live };
     },
 
@@ -546,6 +592,7 @@ export function createCallService({
       for (const g of graceTimers.values()) disarm(g.handle);
       ringTimers.clear();
       graceTimers.clear();
+      invites.close();
       devices.clear();
     },
   };

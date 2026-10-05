@@ -7,6 +7,10 @@ export type IncomingCall = {
   channelType: 'public' | 'private' | 'dm' | 'group_dm';
   fromId: number;
   fromName: string;
+  /** Rung into a call by someone in it (not a call starting in one of this person's channels). */
+  invited?: boolean;
+  /** When the ring began (milliseconds), for the countdown. */
+  at?: number;
 };
 export type EndStatus = 'ended' | 'missed' | 'declined';
 export type CallUiState = {
@@ -19,6 +23,8 @@ export type CallUiState = {
   /** When the call began (milliseconds), for the timer. */
   since: number | null;
   incoming: IncomingCall | null;
+  /** A call ringing in while this tab is already in a call (call waiting). */
+  waiting: IncomingCall | null;
   /** Calls the host removed this person from: joining them again means asking the host first. */
   removedFrom: string[];
   /** The call this tab has asked to be let back into, while waiting for the host's answer. */
@@ -50,19 +56,22 @@ export const initialCallState: CallUiState = {
   hostId: null,
   since: null,
   incoming: null,
+  waiting: null,
   removedFrom: [],
   asking: null,
   error: null,
   notice: null,
 };
+// Out of any call. A call that was waiting behind the one just left now rings in the ordinary way.
 const idle = (s: CallUiState, extra: Partial<CallUiState> = {}): CallUiState => ({
   ...s,
-  phase: 'idle',
+  phase: s.waiting ? 'ringing-in' : 'idle',
   callId: null,
   channelId: null,
   hostId: null,
   since: null,
-  incoming: null,
+  incoming: s.waiting,
+  waiting: null,
   ...extra,
 });
 const END_NOTICE: Record<EndStatus, string> = { ended: 'Call ended', missed: 'No answer', declined: 'Call declined' };
@@ -77,11 +86,17 @@ function forgetCall(s: CallUiState, callId: string): CallUiState {
 export function callReducer(state: CallUiState, a: CallAction): CallUiState {
   switch (a.type) {
     case 'incoming':
-      return state.phase === 'idle' ? { ...state, phase: 'ringing-in', incoming: a.call } : state;
+      if (state.phase === 'idle') return { ...state, phase: 'ringing-in', incoming: a.call };
+      // Already in a call (and not this one): it waits, shown as a card over the call.
+      if (state.phase !== 'ringing-in' && !state.waiting && state.callId !== a.call.callId)
+        return { ...state, waiting: a.call };
+      return state;
     case 'dismissed':
+      if (state.waiting?.callId === a.callId) return { ...state, waiting: null };
       return state.phase === 'ringing-in' && state.incoming?.callId === a.callId ? idle(state) : state;
     case 'ended': {
-      const s = forgetCall(state, a.callId);
+      let s = forgetCall(state, a.callId);
+      if (s.waiting?.callId === a.callId) s = { ...s, waiting: null };
       if (s.phase === 'ringing-in' && s.incoming?.callId === a.callId) return idle(s);
       if ((s.phase === 'in-call' || s.phase === 'joining') && s.callId === a.callId)
         return idle(s, { notice: END_NOTICE[a.status] || 'Call ended' });
@@ -96,6 +111,7 @@ export function callReducer(state: CallUiState, a: CallAction): CallUiState {
         hostId: null,
         since: null,
         incoming: null,
+        waiting: state.waiting?.callId === a.callId ? null : state.waiting,
         asking: null,
         error: null,
         notice: null,

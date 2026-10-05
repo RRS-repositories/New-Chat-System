@@ -3,13 +3,17 @@ import { CallError } from '../services/callManager.ts';
 
 const SERVER_MESSAGES: Record<string, string> = {
   call_in_progress: 'A call is already in progress in this channel',
-  call_full: 'This call is full',
+  call_full: 'This call is full. A call holds up to 8 people.',
   restricted: 'You cannot call this person',
   call_ended: 'This call has ended',
   not_found: 'This call has ended',
   bad_socket: 'Not connected — try again in a moment',
   not_host: 'Only the person who started the call can do that',
   no_request: 'That person is no longer waiting',
+  already_in_call: 'That person is already in the call',
+  already_ringing: 'That person is already being rung',
+  unknown_user: 'That person cannot be called',
+  not_ringing: 'That call is no longer ringing',
 };
 
 /** What to tell the person when starting or joining a call fails. */

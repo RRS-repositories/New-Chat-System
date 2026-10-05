@@ -1,6 +1,6 @@
 // Every call-related request the web app makes to the chat server.
 import type { ApiClient } from './apiClient.ts';
-import type { CallJoinResponse, CallParticipant } from '../types/index.ts';
+import type { Call, CallInvite, CallJoinResponse, CallParticipant } from '../types/index.ts';
 
 export type ActiveCallResponse = { call: { id: string } | null; participants: CallParticipant[] };
 
@@ -29,6 +29,15 @@ export function createCallApi({ api, getToken }: Deps) {
     /** Host only: lets a waiting person back in, or refuses. */
     answerJoinRequest: (callId: string, userId: number, accept: boolean) =>
       api.post(`${callPath(callId)}/join-requests/${userId}`, { accept }),
+    /** Rings another person into the call this tab is in. */
+    invite: (callId: string, userId: number) =>
+      api.post<{ invite: CallInvite }>(`${callPath(callId)}/invite`, { user_id: userId }),
+    /** Stops the ring and takes the invitation back. */
+    cancelInvite: (callId: string, userId: number) => api.del(`${callPath(callId)}/invite/${userId}`),
+    /** Being rung one-to-one while in a call: brings that caller into the call instead. */
+    merge: (ringingCallId: string, intoCallId: string) =>
+      api.post(`${callPath(ringingCallId)}/merge`, { into_call_id: intoCallId }),
+    get: (callId: string) => api.get<{ call: Call }>(callPath(callId)),
     /** The live call in a channel, if any (for the "Call in progress — Join" banner). */
     active: (channelId: string) => api.get<ActiveCallResponse>(`${channelPath(channelId)}/calls/active`),
 

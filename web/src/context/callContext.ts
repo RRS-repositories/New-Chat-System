@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { CallSnapshot } from '../services/callManager.ts';
-import type { JoinRequest } from '../types/index.ts';
-import type { CallUiState } from './callState.ts';
+import type { CallInvite, JoinRequest } from '../types/index.ts';
+import type { CallUiState, IncomingCall } from './callState.ts';
 
 /** A live call in a channel, as far as this tab knows (from the server's answer and the call events). */
 /** One reaction floating up the call screen. */
@@ -28,9 +28,22 @@ export type CallContextValue = {
   hands: number[];
   /** Reactions on their way up the screen. Each is removed when its animation ends. */
   reactions: CallReaction[];
+  /** People being rung into this tab's call: each is shown as a "Ringing…" tile. */
+  invites: CallInvite[];
   startCall: (channelId: string) => Promise<void>;
   joinCall: (callId: string, channelId: string) => Promise<void>;
   declineCall: (callId: string) => void;
+  /**
+   * Answers a ringing call. Free: joins it. Already in a call: a one-to-one caller is brought into
+   * that call (merge); for anything else this tab leaves its call and joins the new one.
+   */
+  acceptCall: (incoming: IncomingCall) => Promise<void>;
+  /** Rings another person into this tab's call. */
+  inviteToCall: (userId: number) => Promise<void>;
+  /** Stops ringing someone and takes the invitation back. */
+  cancelInvite: (userId: number) => Promise<void>;
+  /** Whether a call is still going on (for the "Join my call" card). */
+  isCallLive: (callId: string) => Promise<boolean>;
   leaveCall: () => void;
   toggleMute: () => void;
   toggleShare: () => Promise<void>;

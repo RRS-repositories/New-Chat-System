@@ -1,3 +1,4 @@
+import { CallInviteCard } from './CallInviteCard.tsx';
 import { memo, useState, type ReactNode } from 'react';
 import { Phone, Pin } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
@@ -74,6 +75,7 @@ export const Message = memo(function Message({
   }
 
   if (m.type === 'system') return <div className="msg-system muted">{m.content}</div>;
+  if (m.type === 'call' && m.metadata?.kind === 'call_invite') return <CallInviteCard m={m} own={own} />;
   if (m.type === 'call')
     return (
       <div id={`msg-${m.id}`} className="msg sysm msg-call">

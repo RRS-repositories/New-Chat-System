@@ -84,6 +84,7 @@ export function createHostControls({
   return {
     hostIdOf,
     asHost,
+    mustBelong,
 
     /** True when the host removed this person from this call and has not let them back in. */
     isRemoved: (callId, userId) => !!removed.get(callId)?.has(userId),
@@ -95,6 +96,8 @@ export function createHostControls({
     },
     disallow: (callId, userId) => allowed.get(callId)?.delete(userId),
     isAllowed: (callId, userId) => !!allowed.get(callId)?.has(userId),
+    /** Everyone let into this call from outside its channel: they are told about the call one by one. */
+    allowedIds: (callId) => [...(allowed.get(callId) || [])],
 
     /** The waiting requests, for the host only (so they reappear after the host reconnects). */
     joinRequestsFor(call, userId) {

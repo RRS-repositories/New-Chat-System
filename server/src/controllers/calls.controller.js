@@ -91,6 +91,29 @@ export function createCallController({ calls, config = {} }) {
       res.json({ success: true });
     }),
 
+    invite: wrap(async (req, res) => {
+      const invite = await service().invite({
+        callId: req.params.id,
+        user: req.user,
+        targetUserId: req.body?.user_id ?? req.body?.userId,
+      });
+      res.status(201).json({ success: true, invite });
+    }),
+
+    cancelInvite: wrap(async (req, res) => {
+      await service().cancelInvite({ callId: req.params.id, user: req.user, targetUserId: req.params.userId });
+      res.json({ success: true });
+    }),
+
+    merge: wrap(async (req, res) => {
+      await service().merge({
+        callId: req.params.id,
+        user: req.user,
+        intoCallId: req.body?.into_call_id ?? req.body?.intoCallId,
+      });
+      res.json({ success: true });
+    }),
+
     screenShare: wrap(async (req, res) => {
       await service().screenShare({
         callId: req.params.id,

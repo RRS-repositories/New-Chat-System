@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Maximize2, Mic, MicOff, Minimize2, PhoneOff } from 'lucide-react';
 import { FEATURES } from '../../config/features.ts';
 import { useChat } from '../../context/chatContext.ts';
@@ -8,6 +8,7 @@ import { useCallClock } from '../../hooks/useCallClock.ts';
 import { useSpeaking, type VoiceSource } from '../../hooks/useSpeaking.ts';
 import { initials } from '../../utils/format.ts';
 import { hueOf } from '../../utils/hue.ts';
+import { AddPeople } from './AddPeople.tsx';
 import { CallDock } from './CallDock.tsx';
 import { CallTile, type TilePerson } from './CallTile.tsx';
 import { JoinRequests } from './JoinRequests.tsx';
@@ -59,6 +60,9 @@ export function CallScreen() {
     joinRequests,
     hands,
     reactions,
+    invites,
+    inviteToCall,
+    cancelInvite,
     toggleMute,
     toggleShare,
     toggleHand,
@@ -70,12 +74,15 @@ export function CallScreen() {
     answerJoinRequest,
   } = useCall();
   const [minimised, setMinimised] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const addButton = useRef<HTMLButtonElement | null>(null);
   const [narrow, setNarrow] = useState(() => window.innerWidth < 760);
   const clock = useCallClock(call.phase === 'in-call' ? call.since : null);
 
   // A new call always opens full size.
   useEffect(() => {
     if (!busy) setMinimised(false);
+    if (!busy) setAdding(false);
   }, [busy]);
   useEffect(() => {
     const onResize = () => setNarrow(window.innerWidth < 760);
@@ -95,6 +102,8 @@ export function CallScreen() {
 
   const hostMute = useCallback((id: number) => void muteParticipant(id), [muteParticipant]);
   const hostRemove = useCallback((id: number) => void removeParticipant(id), [removeParticipant]);
+  const stopRinging = useCallback((id: number) => void cancelInvite(id), [cancelInvite]);
+  const closeAdd = useCallback(() => setAdding(false), []);
 
   if (!busy) return null;
 
@@ -127,6 +136,21 @@ export function CallScreen() {
       speaking: speaking.has(p.userId),
       state: p.state,
     })),
+    // People being rung into the call: a tile each, until they answer or the ring ends.
+    ...invites
+      .filter((i) => i.userId !== user.id && !others.some((p) => p.userId === i.userId))
+      .map((i) => ({
+        userId: i.userId,
+        name: i.userName,
+        isSelf: false,
+        isHost: false,
+        muted: false,
+        sharing: false,
+        hand: false,
+        speaking: false,
+        state: 'connecting' as const,
+        ringing: true,
+      })),
   ];
   const tiles = people.map((person) => (
     <CallTile
@@ -138,10 +162,11 @@ export function CallScreen() {
       onToggleOwnMute={toggleMute}
       onHostMute={hostMute}
       onHostRemove={hostRemove}
+      onCancelRing={stopRinging}
     />
   ));
   const sharer = others.find((p) => p.screenTrack && p.state !== 'lost');
-  const calling = call.phase === 'in-call' && oneToOne && others.length === 0;
+  const calling = call.phase === 'in-call' && oneToOne && others.length === 0 && invites.length === 0;
   const status =
     call.phase === 'joining' ? 'Connecting…' : others.length ? `${clock} · ${others.length + 1} people` : clock;
 
@@ -270,8 +295,17 @@ export function CallScreen() {
           onToggleHand={toggleHand}
           onReact={sendReaction}
           onLeave={leaveCall}
-          onAdd={FEATURES.addToCall ? () => {} : undefined}
+          onAdd={FEATURES.addToCall ? () => setAdding((open) => !open) : undefined}
+          addRef={addButton}
         />
+        {adding && (
+          <AddPeople
+            anchor={addButton}
+            takenIds={people.map((p) => p.userId)}
+            onPick={(id) => void inviteToCall(id)}
+            onClose={closeAdd}
+          />
+        )}
         {calling && (
           <div className="c-ring" data-testid="call-ringing-out">
             <span className="ring-glow" style={{ '--h': hueOf(title) } as CSSProperties} />

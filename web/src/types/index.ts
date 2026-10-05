@@ -21,6 +21,8 @@ export type Message = {
   reactions: Reaction[];
   files: ChatFile[];
   mentionsMe?: boolean;
+  /** Extra facts about the message: an invitation into a call, for one. */
+  metadata?: { kind?: string; call_id?: string; channel_id?: string; duration_secs?: number };
 };
 export type Channel = {
   id: string;
@@ -156,4 +158,8 @@ export type CallJoinResponse = {
   hostId?: number | null;
   /** People with a hand raised. */
   hands?: number[];
+  /** People being rung into the call right now. */
+  invites?: CallInvite[];
 };
+/** Someone being rung into a live call: shown as a "Ringing…" tile. */
+export type CallInvite = { userId: number; userName: string };

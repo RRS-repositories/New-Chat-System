@@ -3,7 +3,7 @@
 // style); reply_count counts thread replies; reactions is aggregated JSON;
 // files is aggregated JSON (chat.files rows for this message).
 const SELECT = `SELECT x.id, x.channel_id, x.user_id, u.full_name AS user_name, x.content, x.type, x.created_at, x.created_at::text AS created_at_raw,
-                       x.edited_at, x.reply_to_id, x.thread_id, x.pinned,
+                       x.edited_at, x.reply_to_id, x.thread_id, x.pinned, x.metadata,
                        rp.user_id AS reply_user_id, ru.full_name AS reply_user_name, CASE WHEN rp.deleted_at IS NULL THEN rp.content ELSE '(deleted)' END AS reply_content,
                        (SELECT count(*) FROM chat.messages t WHERE t.thread_id = x.id AND t.deleted_at IS NULL) AS reply_count,
                        COALESCE((SELECT json_agg(json_build_object('emoji', r.emoji, 'count', r.n, 'user_ids', r.ids) ORDER BY r.first)
@@ -18,6 +18,11 @@ const SELECT = `SELECT x.id, x.channel_id, x.user_id, u.full_name AS user_name, 
 
 const fail = (code, message, status = 400) => Object.assign(new Error(message), { code, status });
 const parseJson = (v) => (typeof v === 'string' ? JSON.parse(v) : v || []);
+/** Extra facts about a message (a call invitation, a call recording). Left out when there are none. */
+const metadataOf = (v) => {
+  const data = typeof v === 'string' ? JSON.parse(v) : v;
+  return data && typeof data === 'object' && Object.keys(data).length ? { metadata: data } : {};
+};
 
 const map = (r) =>
   r && {
@@ -34,6 +39,7 @@ const map = (r) =>
     replyToId: r.reply_to_id || null,
     threadId: r.thread_id || null,
     pinned: !!r.pinned,
+    ...metadataOf(r.metadata),
     replyTo: r.reply_to_id
       ? {
           id: r.reply_to_id,
@@ -109,7 +115,7 @@ export async function getMessage(db, messageId) {
 
 export async function createMessage(
   db,
-  { channelId, userId, content, type = 'message', replyToId = null, threadId = null },
+  { channelId, userId, content, type = 'message', replyToId = null, threadId = null, metadata = null },
 ) {
   // A reply/thread target must be a live message in the same channel; a thread
   // never nests — replying inside a thread files the message under the root.
@@ -126,8 +132,8 @@ export async function createMessage(
   const {
     rows: [ins],
   } = await db.query(
-    `INSERT INTO chat.messages (channel_id, user_id, content, type, reply_to_id, thread_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-    [channelId, userId, content, type, replyToId, rootId],
+    `INSERT INTO chat.messages (channel_id, user_id, content, type, reply_to_id, thread_id, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb) RETURNING id`,
+    [channelId, userId, content, type, replyToId, rootId, JSON.stringify(metadata || {})],
   );
   return getMessage(db, ins.id);
 }

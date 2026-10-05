@@ -20,5 +20,9 @@ export function createCallRoutes(deps) {
   r.post('/calls/:id/join-requests', calls.askToJoin);
   r.delete('/calls/:id/join-requests', calls.cancelAsk);
   r.post('/calls/:id/join-requests/:userId', calls.answerJoinRequest);
+  // Ringing more people into a live call, and joining a ringing call to the call you are already in.
+  r.post('/calls/:id/invite', calls.invite);
+  r.delete('/calls/:id/invite/:userId', calls.cancelInvite);
+  r.post('/calls/:id/merge', calls.merge);
   return r;
 }

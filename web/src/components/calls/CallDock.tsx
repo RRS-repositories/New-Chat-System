@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type MutableRefObject, type ReactNode } from 'react';
 import {
   CircleDot,
   Hand,
@@ -29,6 +29,8 @@ type Props = {
   onLeave: () => void;
   /** The parts that arrive in later sections. Left out (undefined) means "not available yet": shown greyed out. */
   onAdd?: () => void;
+  /** The add button, so the list of people can be placed beside it. */
+  addRef?: MutableRefObject<HTMLButtonElement | null>;
   whiteboard?: { open: boolean; onToggle: () => void };
   recording?: { on: boolean; onToggle: () => void; allowed: boolean };
   breakout?: { open: boolean; onToggle: () => void };
@@ -104,6 +106,9 @@ export function CallDock(props: Props) {
           testId="call-add"
           disabled={!ready || !props.onAdd}
           onClick={props.onAdd}
+          buttonRef={(el) => {
+            if (props.addRef) props.addRef.current = el;
+          }}
         />
         {canShare && (
           <DockButton

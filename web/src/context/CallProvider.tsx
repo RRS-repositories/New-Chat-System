@@ -9,11 +9,11 @@ import { ApiError } from '../services/apiClient.ts';
 import { createCallApi } from '../services/callApi.ts';
 import { CallError, CallManager, type CallSnapshot, type PeerLike } from '../services/callManager.ts';
 import { getMicrophone, getScreen } from '../services/media.ts';
-import type { CallJoinResponse, JoinRequest } from '../types/index.ts';
+import type { CallInvite, CallJoinResponse, JoinRequest } from '../types/index.ts';
 import { callErrorText } from '../utils/callErrors.ts';
 import { stopRingtone } from '../utils/ringtone.ts';
 import { CallContext, type ActiveCall, type CallContextValue, type CallReaction } from './callContext.ts';
-import { callReducer, initialCallState } from './callState.ts';
+import { callReducer, initialCallState, type IncomingCall } from './callState.ts';
 import { useChat } from './chatContext.ts';
 
 const NOBODY: CallSnapshot = {
@@ -25,6 +25,7 @@ const NOBODY: CallSnapshot = {
 };
 const MAX_REACTIONS_SHOWN = 24;
 const NOTICE_SHOWN_MS = 6000;
+const WAITING_CAP_MS = 35_000; // the server stops a ring after 30 s; this only guards a lost event
 
 type Props = { socket: Socket; getToken: () => string | null; children: ReactNode };
 
@@ -42,6 +43,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const [panelNote, setPanelNote] = useState<string | null>(null);
   const [hands, setHands] = useState<number[]>([]);
   const [reactions, setReactions] = useState<CallReaction[]>([]);
+  const [invites, setInvites] = useState<CallInvite[]>([]);
   const nextReaction = useRef(1);
   const prefsRef = useLatest(state.prefs);
 
@@ -94,6 +96,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setJoinRequests([]);
     setHands([]);
     setReactions([]);
+    setInvites([]);
   }, []);
 
   const tellServerILeft = useCallback(
@@ -144,11 +147,23 @@ export function CallProvider({ socket, getToken, children }: Props) {
 
   /** Shared by start and join: microphone first, then the request, then the connections. */
   const enter = useCallback(
-    async (channelId: string, knownCallId: string | null, request: (socketId: string) => Promise<CallJoinResponse>) => {
+    async (
+      channelId: string,
+      knownCallId: string | null,
+      request: (socketId: string) => Promise<CallJoinResponse>,
+      { switching = false }: { switching?: boolean } = {},
+    ) => {
       const phase = ui.current.phase;
       if (phase === 'joining' || phase === 'in-call') {
-        dispatch({ type: 'error', error: 'You are already in a call. Leave it first.' });
-        return;
+        if (!switching) {
+          dispatch({ type: 'error', error: 'You are already in a call. Leave it first.' });
+          return;
+        }
+        // Moving to another call: this tab leaves the one it is in first.
+        const leaving = callId.current;
+        attempt.current++;
+        teardown();
+        if (leaving && leaving !== knownCallId) tellServerILeft(leaving);
       }
       const socketId = socket.id;
       if (!socket.connected || !socketId) {
@@ -166,6 +181,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
       let hostId: number | null = null;
       let waiting: JoinRequest[] = [];
       let raised: number[] = [];
+      let ringingNow: CallInvite[] = [];
       let since = Date.now();
       try {
         const joined = await current.connect(async () => {
@@ -174,6 +190,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
           hostId = answer.hostId ?? answer.call.initiatedBy;
           waiting = answer.joinRequests ?? [];
           raised = answer.hands ?? [];
+          ringingNow = answer.invites ?? [];
           since = answer.call.startedAt ? Date.parse(answer.call.startedAt) : Date.now();
           if (stillCurrent()) callId.current = answer.call.id;
           // Anyone who joined (and offered) before this answer arrived: the manager holds them until the connections are built.
@@ -188,6 +205,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         dispatch({ type: 'joined', callId: id, channelId, hostId, since });
         setJoinRequests(waiting);
         setHands(raised);
+        setInvites(ringingNow);
         setSnapshot(current.snapshot());
         setChannelCall(channelId, () => ({ callId: id, participantIds: joined.participants.map((p) => p.userId) }));
       } catch (e) {
@@ -216,7 +234,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         dispatch({ type: 'failed', error: callErrorText(e) });
       }
     },
-    [socket, createManager, tellServerILeft, setChannelCall, askToJoin, ui],
+    [socket, createManager, tellServerILeft, setChannelCall, askToJoin, teardown, ui],
   );
 
   const startCall = useCallback(
@@ -225,16 +243,21 @@ export function CallProvider({ socket, getToken, children }: Props) {
   );
 
   const joinDirect = useCallback(
-    (id: string, channelId: string) =>
-      enter(channelId, id, async (socketId) => {
-        expectOwnJoin.current++;
-        try {
-          return await callApi.join(id, socketId);
-        } catch (e) {
-          expectOwnJoin.current = Math.max(0, expectOwnJoin.current - 1);
-          throw e;
-        }
-      }),
+    (id: string, channelId: string, opts: { switching?: boolean } = {}) =>
+      enter(
+        channelId,
+        id,
+        async (socketId) => {
+          expectOwnJoin.current++;
+          try {
+            return await callApi.join(id, socketId);
+          } catch (e) {
+            expectOwnJoin.current = Math.max(0, expectOwnJoin.current - 1);
+            throw e;
+          }
+        },
+        opts,
+      ),
     [callApi, enter],
   );
 
@@ -256,6 +279,71 @@ export function CallProvider({ socket, getToken, children }: Props) {
       stopRingtone();
       dispatch({ type: 'dismissed', callId: id });
       callApi.decline(id).catch(() => {});
+    },
+    [callApi],
+  );
+
+  const acceptCall = useCallback(
+    async (incoming: IncomingCall) => {
+      const mine = callId.current;
+      const phase = ui.current.phase;
+      const inACall = phase === 'joining' || phase === 'in-call';
+      if (!inACall) return joinCall(incoming.callId, incoming.channelId);
+      // A one-to-one caller is brought into the call this tab is in: nobody has to leave anything.
+      if (mine && phase === 'in-call' && incoming.channelType === 'dm' && !incoming.invited) {
+        try {
+          await callApi.merge(incoming.callId, mine);
+          dispatch({ type: 'dismissed', callId: incoming.callId });
+          setPanelNote(`${incoming.fromName} is joining your call`);
+        } catch (e) {
+          setPanelError(callErrorText(e));
+        }
+        return;
+      }
+      dispatch({ type: 'dismissed', callId: incoming.callId });
+      return joinDirect(incoming.callId, incoming.channelId, { switching: true });
+    },
+    [callApi, joinCall, joinDirect, ui],
+  );
+
+  const inviteToCall = useCallback(
+    async (userId: number) => {
+      const id = callId.current;
+      if (!id) return;
+      setPanelError(null);
+      try {
+        const { invite } = await callApi.invite(id, userId);
+        if (callId.current === id)
+          setInvites((list) => (list.some((i) => i.userId === invite.userId) ? list : [...list, invite]));
+      } catch (e) {
+        if (callId.current === id) setPanelError(callErrorText(e));
+      }
+    },
+    [callApi],
+  );
+
+  const cancelInvite = useCallback(
+    async (userId: number) => {
+      const id = callId.current;
+      if (!id) return;
+      try {
+        await callApi.cancelInvite(id, userId);
+        if (callId.current === id) setInvites((list) => list.filter((i) => i.userId !== userId));
+      } catch (e) {
+        if (callId.current === id) setPanelError(callErrorText(e));
+      }
+    },
+    [callApi],
+  );
+
+  const isCallLive = useCallback(
+    async (id: string) => {
+      try {
+        const { call: found } = await callApi.get(id);
+        return found?.status === 'ringing' || found?.status === 'active';
+      } catch {
+        return false;
+      }
     },
     [callApi],
   );
@@ -319,6 +407,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setJoinRequests,
     setPanelNote,
     setHands,
+    setInvites,
     showReaction,
     joinDirect,
   });
@@ -326,6 +415,14 @@ export function CallProvider({ socket, getToken, children }: Props) {
 
   const ringingCallId = call.phase === 'ringing-in' ? (call.incoming?.callId ?? null) : null;
   useRinging({ ringingCallId, callRef: ui, prefsRef, onGiveUp: (id) => dispatch({ type: 'dismissed', callId: id }) });
+
+  // A call waiting behind this one gives up by itself if its "ended" event never arrives.
+  const waitingCallId = call.waiting?.callId ?? null;
+  useEffect(() => {
+    if (!waitingCallId) return;
+    const cap = setTimeout(() => dispatch({ type: 'dismissed', callId: waitingCallId }), WAITING_CAP_MS);
+    return () => clearTimeout(cap);
+  }, [waitingCallId]);
 
   // Closing the page leaves the call (best effort: the server also notices the lost connection).
   useEffect(() => {
@@ -391,9 +488,14 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      invites,
       startCall,
       joinCall,
       declineCall,
+      acceptCall,
+      inviteToCall,
+      cancelInvite,
+      isCallLive,
       leaveCall,
       toggleMute,
       toggleShare,
@@ -417,9 +519,14 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      invites,
       startCall,
       joinCall,
       declineCall,
+      acceptCall,
+      inviteToCall,
+      cancelInvite,
+      isCallLive,
       leaveCall,
       toggleMute,
       toggleShare,
