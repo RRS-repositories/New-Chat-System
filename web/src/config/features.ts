@@ -7,5 +7,5 @@ export const FEATURES = {
   addToCall: true,
   whiteboard: true,
   recording: true,
-  breakoutGroups: false,
+  breakoutGroups: true,
 } as const;

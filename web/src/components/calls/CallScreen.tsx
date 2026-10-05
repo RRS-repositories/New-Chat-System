@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Maximize2, Mic, MicOff, Minimize2, PhoneOff } from 'lucide-react';
+import { LayoutGrid, Maximize2, Mic, MicOff, Minimize2, PhoneOff } from 'lucide-react';
 import { FEATURES } from '../../config/features.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
@@ -10,6 +10,8 @@ import { useSpeaking, type VoiceSource } from '../../hooks/useSpeaking.ts';
 import { initials } from '../../utils/format.ts';
 import { hueOf } from '../../utils/hue.ts';
 import { AddPeople } from './AddPeople.tsx';
+import { describeGroups, groupOf, roomOf } from '../../utils/breakout.ts';
+import { BreakoutPanel } from './BreakoutPanel.tsx';
 import { CallDock } from './CallDock.tsx';
 import { CallTile, type TilePerson } from './CallTile.tsx';
 import { JoinRequests } from './JoinRequests.tsx';
@@ -62,6 +64,10 @@ export function CallScreen() {
     joinRequests,
     hands,
     reactions,
+    breakout,
+    setBreakoutGroups,
+    startBreakouts,
+    endBreakouts,
     recording,
     canRecord,
     toggleRecording,
@@ -82,6 +88,7 @@ export function CallScreen() {
   const [minimised, setMinimised] = useState(false);
   const [adding, setAdding] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
+  const [groupsOpen, setGroupsOpen] = useState(false);
   /** Who is drawing while this person's board is closed. */
   const [drawingBy, setDrawingBy] = useState<number | null>(null);
   const [screenNote, setScreenNote] = useState<string | null>(null);
@@ -111,6 +118,7 @@ export function CallScreen() {
     if (!busy) setMinimised(false);
     if (!busy) setAdding(false);
     if (!busy) setBoardOpen(false);
+    if (!busy) setGroupsOpen(false);
     if (!busy) setDrawingBy(null);
   }, [busy]);
   useEffect(() => {
@@ -119,8 +127,23 @@ export function CallScreen() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const others = snapshot.participants;
-  namesRef.current = Object.fromEntries(others.map((p) => [p.userId, p.userName]));
+  const everyone = snapshot.participants;
+  // Breakout groups open: the people in my room. I hear and see only them.
+  const room = useMemo(
+    () =>
+      roomOf(
+        breakout,
+        user.id,
+        everyone.map((p) => p.userId),
+      ),
+    [breakout, user.id, everyone],
+  );
+  const others = useMemo(() => (room ? everyone.filter((p) => room.includes(p.userId)) : everyone), [everyone, room]);
+  // While the groups are open the whiteboard waits (sharing is stopped by the call itself).
+  useEffect(() => {
+    if (breakout.active) setBoardOpen(false);
+  }, [breakout.active]);
+  namesRef.current = Object.fromEntries(everyone.map((p) => [p.userId, p.userName]));
   const remoteSharing = others.some((p) => p.screenTrack && p.state !== 'lost');
 
   // Someone else draws while this person's board is closed: offer to open it.
@@ -158,7 +181,10 @@ export function CallScreen() {
   const oneToOne = channel?.type === 'dm';
   const title = channel ? (oneToOne ? channel.dmUserName || 'Direct call' : `#${channel.displayName}`) : 'Call';
   const hostName =
-    call.hostId === user.id ? user.fullName : others.find((p) => p.userId === call.hostId)?.userName || '';
+    call.hostId === user.id ? user.fullName : everyone.find((p) => p.userId === call.hostId)?.userName || '';
+  const nameOf = (userId: number) =>
+    userId === user.id ? 'You' : first(everyone.find((p) => p.userId === userId)?.userName || 'Someone');
+  const myGroup = groupOf(breakout, user.id);
 
   const people: TilePerson[] = [
     {
@@ -215,6 +241,7 @@ export function CallScreen() {
   const sharer = others.find((p) => p.screenTrack && p.state !== 'lost');
   function toggleBoard() {
     if (boardOpen) return setBoardOpen(false);
+    if (breakout.active) return setScreenNote('The whiteboard is paused while breakout groups are open.');
     if (sharer)
       return setScreenNote(`${first(sharer.userName)} is sharing their screen. The whiteboard opens when they stop.`);
     if (snapshot.sharing) void toggleShare(); // my own share stops: the board takes the stage
@@ -283,6 +310,12 @@ export function CallScreen() {
           </div>
           <div className="sp" />
           <div className="c-pills">
+            {breakout.active && (
+              <span className="c-pill bo" role="status" data-testid="call-bo-pill">
+                <LayoutGrid size={12} />
+                {myGroup ? myGroup.name : 'Breakouts'}
+              </span>
+            )}
             {recording && (
               <span
                 className="c-pill rec"
@@ -341,6 +374,20 @@ export function CallScreen() {
             </div>
           ) : (
             <div className="c-present">
+              {breakout.active && (
+                <div className="bo-banner" role="status" data-testid="bo-banner">
+                  <LayoutGrid size={15} />
+                  <span>
+                    <b>Breakouts live</b> · {myGroup ? `You are in ${myGroup.name} · ` : ''}
+                    {describeGroups(breakout.groups, nameOf)}
+                  </span>
+                  {isHost && (
+                    <button data-testid="bo-banner-end" onClick={endBreakouts}>
+                      Bring everyone back
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="c-grid" style={{ '--cols': gridColumns(people.length, narrow) } as CSSProperties}>
                 {tiles}
               </div>
@@ -376,7 +423,7 @@ export function CallScreen() {
           ready={call.phase === 'in-call'}
           muted={snapshot.muted}
           sharing={snapshot.sharing}
-          canShare={canShare()}
+          canShare={canShare() && !breakout.active}
           handUp={hands.includes(user.id)}
           onToggleMute={toggleMute}
           onToggleShare={() => void toggleShare()}
@@ -386,12 +433,37 @@ export function CallScreen() {
           onAdd={FEATURES.addToCall ? () => setAdding((open) => !open) : undefined}
           addRef={addButton}
           whiteboard={FEATURES.whiteboard ? { open: boardOpen, onToggle: toggleBoard } : undefined}
+          breakout={
+            FEATURES.breakoutGroups
+              ? { open: groupsOpen || breakout.active, onToggle: () => setGroupsOpen((open) => !open) }
+              : undefined
+          }
           recording={
             FEATURES.recording
               ? { on: recording?.by === user.id, onToggle: toggleRecording, allowed: canRecord }
               : undefined
           }
         />
+        {groupsOpen && (
+          <BreakoutPanel
+            breakout={breakout}
+            people={[
+              { userId: user.id, name: user.fullName, isSelf: true, isHost: call.hostId === user.id },
+              ...everyone.map((p) => ({
+                userId: p.userId,
+                name: p.userName,
+                isSelf: false,
+                isHost: call.hostId === p.userId,
+              })),
+            ]}
+            isHost={isHost}
+            hostName={hostName}
+            onChange={setBreakoutGroups}
+            onStart={startBreakouts}
+            onEnd={endBreakouts}
+            onClose={() => setGroupsOpen(false)}
+          />
+        )}
         {adding && (
           <AddPeople
             anchor={addButton}

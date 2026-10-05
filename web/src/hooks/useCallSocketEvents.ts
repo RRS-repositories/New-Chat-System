@@ -6,6 +6,7 @@ import type { CallApi } from '../services/callApi.ts';
 import type { CallManager } from '../services/callManager.ts';
 import type { BoardOp, Whiteboard } from '../services/whiteboard.ts';
 import type { CallInvite, JoinRequest } from '../types/index.ts';
+import type { Breakout } from '../utils/breakout.ts';
 import { addJoinRequest, dropJoinRequest } from '../utils/joinRequests.ts';
 
 const MAX_HELD_EVENTS = 500;
@@ -44,6 +45,8 @@ type Deps = {
   setHands: Dispatch<SetStateAction<number[]>>;
   /** Who is being rung into this tab's call. */
   setInvites: Dispatch<SetStateAction<CallInvite[]>>;
+  /** Breakout groups changed. */
+  setBreakout: (value: Breakout) => void;
   /** Who is recording the call (null: nobody). */
   setRecording: (value: { by: number; since: number } | null) => void;
   whiteboard: Whiteboard;
@@ -67,6 +70,7 @@ export function useCallSocketEvents({
   setHands,
   setInvites,
   setRecording,
+  setBreakout,
   whiteboard,
   showReaction,
   joinDirect,
@@ -195,6 +199,12 @@ export function useCallSocketEvents({
       void joinDirect(p.join_call_id, p.channel_id, { switching: true });
     };
 
+    // The host rearranged, opened or closed the breakout groups.
+    const onBreakout = (p: { call_id: string; active: boolean; groups: Breakout['groups'] }) => {
+      if (isMyCall(p.call_id))
+        setBreakout({ active: p.active === true, groups: Array.isArray(p.groups) ? p.groups : [] });
+    };
+
     // Recording started or stopped: everyone in the call is told.
     const onRecording = (p: { call_id: string; on: boolean; by: number }) => {
       if (isMyCall(p.call_id)) setRecording(p.on ? { by: Number(p.by), since: Date.now() } : null);
@@ -300,6 +310,7 @@ export function useCallSocketEvents({
       ['call_invite_pending', onInvitePending],
       ['call_invite_ended', onInviteEnded],
       ['call_merge', onMerge],
+      ['call_bo_state', onBreakout],
       ['call_rec_changed', onRecording],
       ['call_wb', onBoard],
       ['call_reaction', onReaction],
@@ -332,6 +343,7 @@ export function useCallSocketEvents({
     setHands,
     setInvites,
     setRecording,
+    setBreakout,
     whiteboard,
     showReaction,
     joinDirect,

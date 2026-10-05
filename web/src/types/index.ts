@@ -160,6 +160,8 @@ export type CallJoinResponse = {
   hands?: number[];
   /** People being rung into the call right now. */
   invites?: CallInvite[];
+  /** Breakout groups: the arrangement, and whether the groups are open. */
+  breakout?: { active: boolean; groups: Array<{ id: string; name: string; member_ids: number[] }> };
   /** Who is recording the call, and since when (milliseconds). Null when nobody is. */
   recording?: { by: number; since: number } | null;
   /** The call's whiteboard as it is now. */

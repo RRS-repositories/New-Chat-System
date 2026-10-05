@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { CallSnapshot } from '../services/callManager.ts';
 import type { Whiteboard } from '../services/whiteboard.ts';
+import type { Breakout, BreakoutGroup } from '../utils/breakout.ts';
 import type { CallInvite, JoinRequest } from '../types/index.ts';
 import type { CallUiState, IncomingCall } from './callState.ts';
 
@@ -29,6 +30,12 @@ export type CallContextValue = {
   hands: number[];
   /** Reactions on their way up the screen. Each is removed when its animation ends. */
   reactions: CallReaction[];
+  /** Breakout groups of this tab's call: the arrangement, and whether the groups are open. */
+  breakout: Breakout;
+  /** Host only: the new arrangement of groups, opening them, and bringing everyone back. */
+  setBreakoutGroups: (groups: BreakoutGroup[]) => void;
+  startBreakouts: () => void;
+  endBreakouts: () => void;
   /** Who is recording this tab's call, and since when. Everyone in the call sees it. */
   recording: { by: number; since: number } | null;
   /** This person may press Record / Stop: the host, or whoever is recording. */

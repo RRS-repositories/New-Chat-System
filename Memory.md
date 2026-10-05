@@ -9,8 +9,8 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | **Phase 7 — lightweight, links, formatting, channel housekeeping**: built, tested and **deployed on 1 Oct 2026, 17:34**. Waiting for the owner to try it (and Phase 5) on chat2. Next is Phase 8 (the CRM's automatic messages), which needs his decisions first. Phase 4 still has one step left (CRM clean-up part 2, after his check of chat2). Phase 6 waits for the router rules. |
-| **Waiting to be deployed** | Nothing. chat2 runs commit `cdbb7ac`. All four database files are applied. |
+| **Current phase** | **Phase 9 — the new design and call features from the owner's `Updates/` file**: all ten sections built and tested on the developer's PC on 5 Oct 2026. **Not deployed.** Before it: Phase 7 and Phase 5 are live and waiting for the owner to try; Phase 8 (the CRM's automatic messages) needs his decisions; Phase 4 has one step left; Phase 6 waits for the router rules. |
+| **Waiting to be deployed** | **Phase 9 (everything in `Updates/`).** chat2 still runs commit `ce13f3c` (Phase 7). To deploy, off-hours and only on the owner's word (it restarts the chat and ends live calls): first apply `chat_005_theme_avatars.sql` (`node server/migrations/apply.mjs --commit --only=chat_005_theme_avatars.sql`), then `/opt/chat/deploy/deploy.sh`. The new code needs that database file: without it the people list fails. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -119,6 +119,7 @@ The browser checks use the Microsoft Edge already installed on the PC.
 | 1 Oct 2026 | Work in this repository goes straight to `main`: no branch, no pull request. Only the owner and the developer work here. Other repositories are unchanged. |
 | 1 Oct 2026 | **The chat must stay lightweight and lag-free**, however long the channels get and however large the files. Measure with heavy data before saying something is fast. |
 | 1 Oct 2026 | To add: calls from outside the office, the CRM's automatic messages, clickable links, channel housekeeping, simple formatting. **Not** to add: "seen" marks, a mute-everyone button or host handover, an audit screen, Mattermost history import, install as an app, dark mode. |
+| 5 Oct 2026 | **The `Updates/` file is the plan**: build all ten sections exactly as written. This reverses two choices of 1 Oct: dark mode is now wanted, and so is a stand-in host. Deploys restart the chat and end live calls, so the owner deploys off-hours; the developer does not deploy this by itself. |
 
 ## Blockers
 
@@ -164,6 +165,20 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 5 Oct 2026 — Phase 9 built: the new design and call features from `Updates/` ✅ (not deployed)
+The owner supplied a full specification (`Updates/CHAT-UI-BUILD.md`, `CHAT-CODE-SPEC.md`, a working prototype, a theme file) and asked for all of it. Built in ten sections, each with its own tests and a real-browser check, on branch `redesign-v2`, then merged.
+- **S1–S3 design.** Light and dark mode with five accent colours, saved per person (and applied before the page draws, so there is no flash). The whole app redrawn to the prototype: sidebar with a profile card, channel header, right-hand panels (thread, pins, details), search as a centred box (Ctrl K), messages with day dividers and a "new" line, hover actions, toasts.
+- **S4 profile photos.** Upload a JPEG, PNG or WebP up to 2 MB; it is cut square and stored as a 256-pixel JPEG. Shown on messages, lists, tiles and cards; everyone sees a change at once.
+- **S5 call screen.** Full-screen dark stage, one tile per person, a green ring while they speak (worked out in the browser), a dock of controls, minimise to a pill. Reactions and raised hands. If the starter leaves, the person in the call longest is the host until the starter returns.
+- **S6 ringing.** Incoming calls are a card: Accept, Decline, or Message (declines and posts your words to the caller). Anyone in a call can ring another person into it; a "Join my call" card in their direct conversation still works after a missed ring. A person in a call who is rung one-to-one can bring the caller into their call.
+- **S7.** The sharer sees their own screen in a corner with Stop.
+- **S8 whiteboard.** Everyone in the call draws on one board; late joiners see it; undo is your own stroke; clear is the host's. Kept in memory only, gone when the call ends.
+- **S9 recording.** The host records in their own browser; everyone sees REC and is told; the file is saved into the conversation when recording stops or the host leaves.
+- **S10 breakout groups.** The host splits the call into up to six groups. Each browser stops sending its voice to people outside its group, so the separation is real. Sharing and the whiteboard wait while groups are open.
+- **Checked:** server and web tests, twelve real-browser scripts (up to five signed-in people at once), and the speed check with 100,000 messages.
+- **Not done by design:** nothing deployed; the owner deploys off-hours. One new database file (`chat_005`).
+- **Differences from the file** are listed under Phase 9 in `Phases.md`.
 
 ### 1 Oct 2026, 17:34 — Phase 7 deployed: lightweight, links, formatting, channel housekeeping ✅
 The owner chose what to add (yes: calls from outside, CRM automatic messages, clickable links, channel housekeeping, simple formatting; no: "seen" marks, call extras, audit screen, Mattermost import, install as an app, dark mode) and asked whether the chat stays lag-free with very long chats and large files.

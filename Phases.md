@@ -157,6 +157,39 @@ The owner chose these on 1 October 2026 and asked that the chat stay light howev
 
 ---
 
+## Phase 9 — New design and call features (the owner's `Updates/` file) ▶ (built 5 October 2026; **not deployed**)
+
+The owner supplied a complete design and build specification on 5 October 2026 (`Updates/`: a build
+document in ten sections, a code specification, and a working prototype of the design). All ten
+sections are built and tested on the developer's PC. Nothing is on the server yet: a deploy
+restarts the chat and ends live calls, so it happens off-hours, on the owner's word.
+
+| Section | What it is | State |
+|---|---|---|
+| S1 | Colour system: light and dark mode, five accent colours, saved per person | ✅ built |
+| S2 | The whole app in the new design: sidebar, channel header, panels, dialogs, sign-in | ✅ built |
+| S3 | Messages and the message box in the new design: day dividers, a "new" line, hover actions | ✅ built |
+| S4 | Profile photos (upload, crop to a square, shown everywhere, remove) | ✅ built |
+| S5 | The call screen: dark stage, a tile per person, speaking light, dock of controls, minimise; reactions, raised hands, stand-in host | ✅ built |
+| S6 | Incoming-call card (Accept / Decline / Message); add people to a live call; bring a caller into your call | ✅ built |
+| S7 | The sharer sees their own shared screen in a corner | ✅ built |
+| S8 | Shared whiteboard inside a call | ✅ built |
+| S9 | Record a call (made in the host's browser, saved into the conversation) | ✅ built |
+| S10 | Breakout groups (the host splits a call into groups that hear only themselves) | ✅ built |
+
+**To deploy (off-hours, on the owner's word):** apply the one new database file,
+`chat_005_theme_avatars.sql`, **before** the new code starts (the people list reads a column it
+adds), then run the deploy script. Then try it on real phones.
+
+**Where the build differs from the file, and why** (the owner should know):
+- Host mute and remove keep the existing web addresses instead of the socket names in the file; the behaviour is the one in the file, including the stand-in host.
+- The database file is number 005 (004 was taken), and a profile photo is stored as a path on the person's settings row.
+- The font is served by the chat itself: the security headers do not allow fonts from another site.
+- Pins moved into the right-hand panel; Sign out moved into Settings.
+- Things the chat already had that the prototype does not show were kept: reply quotes, the notification bell, the formatting hint, channel Options, mentions.
+- Recording: a screen share that starts after recording began is heard but not seen in the file; the file is limited to 20 MB (the upload limit).
+- Merge (bringing a caller into your call) works for one-to-one rings. For a ring from a channel call, Accept changes calls.
+
 ## Later — only on the owner's word 🔒
 
 | Item | Note |

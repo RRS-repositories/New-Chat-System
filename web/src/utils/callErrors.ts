@@ -14,6 +14,7 @@ const SERVER_MESSAGES: Record<string, string> = {
   already_ringing: 'That person is already being rung',
   unknown_user: 'That person cannot be called',
   not_ringing: 'That call is no longer ringing',
+  breakouts_open: 'Screen sharing is paused while breakout groups are open',
 };
 
 /** What to tell the person when starting or joining a call fails. */

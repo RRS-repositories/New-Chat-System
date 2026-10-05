@@ -878,3 +878,47 @@ test('the sharer gets their own screen back for a preview, and it goes when the 
   h.mgr.leave();
   assert.equal(h.mgr.snapshot().ownScreenTrack, null);
 });
+
+test('breakout groups: my microphone goes only to the people in my room, and comes back when the groups close', async () => {
+  const { mgr, peerOf, micTrack } = setup({ me: 5 });
+  await mgr.connect(async () => ({
+    participants: [
+      { userId: 1, userName: 'Meg', isSharingScreen: false },
+      { userId: 2, userName: 'Ann', isSharingScreen: false },
+      { userId: 3, userName: 'Bob', isSharingScreen: false },
+    ],
+    iceServers: [],
+  }));
+  const micTo = (id: number) =>
+    peerOf(id)
+      .transceivers.filter((t) => t.kind === 'audio')
+      .map((t) => t.sender.track)[0];
+  for (const id of [1, 2, 3]) assert.equal(micTo(id), micTrack, `starts by sending to ${id}`);
+  const negotiations = [1, 2, 3].map((id) => peerOf(id).transceivers.length);
+
+  mgr.setRoom([2]); // I am in a group with Ann only
+  await Promise.resolve();
+  assert.equal(micTo(2), micTrack);
+  assert.equal(micTo(1), null, 'the host no longer receives my voice');
+  assert.equal(micTo(3), null);
+
+  mgr.setRoom([2, 3]); // Bob is moved into my group
+  await Promise.resolve();
+  assert.equal(micTo(3), micTrack);
+  assert.equal(micTo(1), null);
+
+  // Someone who joins while the groups are open is outside my room until the host puts them in it.
+  mgr.addParticipant(5, 'Me'); // my own join event
+  mgr.addParticipant(9, 'Cy');
+  await Promise.resolve();
+  assert.equal(micTo(9), null);
+
+  mgr.setRoom(null); // everyone is brought back
+  await Promise.resolve();
+  for (const id of [1, 2, 3, 9]) assert.equal(micTo(id), micTrack, `sending to ${id} again`);
+  assert.deepEqual(
+    [1, 2, 3].map((id) => peerOf(id).transceivers.length),
+    negotiations,
+    'nothing was added to the connections: the track was only swapped',
+  );
+});

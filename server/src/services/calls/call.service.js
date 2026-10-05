@@ -10,6 +10,7 @@
 import { httpError } from '../../middleware/errors.js';
 import { buildIceServers } from './ice.js';
 import { createCallBoard } from './call.board.js';
+import { createCallBreakouts } from './call.breakouts.js';
 import { createCallExtras } from './call.extras.js';
 import { createCallInvites } from './call.invites.js';
 import { createHostControls, REMOVED_MESSAGE } from './host.controls.js';
@@ -174,6 +175,7 @@ export function createCallService({
     extras.forget(callId);
     invites.forget(callId);
     board.forget(callId);
+    breakouts.forget(callId);
   }
 
   async function postCallMessage(call, content) {
@@ -234,6 +236,7 @@ export function createCallService({
     devices.get(callId)?.delete(userId);
     if (!wasParticipant) return;
     extras.onLeft(callId, userId);
+    breakouts.onLeft(callId, userId);
     toFollowers(call, 'call_participant_left', {
       call_id: callId,
       channel_id: call.channelId,
@@ -254,7 +257,7 @@ export function createCallService({
     const channel = await getChannel(db, call.channelId);
     // A one-to-one call is over when one of the two is left (more can be in it once someone was added).
     if (remaining.length === 0 || (channel?.type === 'dm' && remaining.length < 2)) await end(callId, 'ended');
-    else host.afterChange(call, hostBefore);
+    else hostMayHaveChanged(call, hostBefore);
   }
 
   // Mute, remove, and the removed person's request to come back (see host.controls.js).
@@ -272,8 +275,25 @@ export function createCallService({
   });
   // Reactions and raised hands (see call.extras.js).
   const extras = createCallExtras({ devices, toCall, now });
+  // Breakout groups (see call.breakouts.js). While they are open the whiteboard and screen sharing wait.
+  const breakouts = createCallBreakouts({ devices, toCall });
   // The shared whiteboard (see call.board.js).
-  const board = createCallBoard({ devices, toSocket });
+  const board = createCallBoard({ devices, toSocket, isPaused: (callId) => breakouts.isActive(callId) });
+  /** After someone joined or left: a new host is announced, and is taken out of any breakout group. */
+  function hostMayHaveChanged(call, hostBefore) {
+    const hostNow = host.hostIdOf(call);
+    if (hostNow !== hostBefore && hostNow != null) breakouts.onHostChanged(call.id, hostNow);
+    host.afterChange(call, hostBefore);
+  }
+  /** Runs one breakout request from the host's call device, under the call's lock. */
+  const asBreakoutHost = (callId, userId, socketId, run) => {
+    if (!isUuid(callId) || devices.get(callId)?.get(userId) !== socketId) return Promise.resolve(false);
+    return withLock(callId, async () => {
+      const call = await getCall(db, callId);
+      if (!call || !LIVE.has(call.status)) return false;
+      return run(call, { callId, userId, socketId, hostId: host.hostIdOf(call) });
+    });
+  };
   // Ringing more people into a live call, and joining a ringing call to one already going on (see call.invites.js).
   const invites = createCallInvites({
     db,
@@ -301,6 +321,7 @@ export function createCallService({
     ...extras.snapshot(call.id),
     ...invites.snapshot(call.id),
     ...board.snapshot(call.id),
+    ...breakouts.snapshot(call.id),
   });
 
   // A live row this process cannot be carrying: unknown in memory (boot sweep failed or raced; a start
@@ -463,7 +484,7 @@ export function createCallService({
           user_name: user.fullName || '',
         });
         // The starter coming back takes the host role back.
-        host.afterChange(call, hostBefore);
+        hostMayHaveChanged(call, hostBefore);
         return {
           call: await getCall(db, callId),
           participants: await listParticipants(db, callId),
@@ -481,6 +502,27 @@ export function createCallService({
     /** Reactions and raised hands, from the sender's call device only. */
     react: (args) => extras.react(args),
     setHand: (args) => extras.setHand(args),
+
+    /** Breakout groups: the host arranges them, opens them, and brings everyone back. */
+    setBreakouts: ({ callId, userId, socketId, groups }) =>
+      asBreakoutHost(callId, userId, socketId, (_call, who) => breakouts.set({ ...who, groups })),
+    startBreakouts: ({ callId, userId, socketId }) =>
+      asBreakoutHost(callId, userId, socketId, async (call, who) => {
+        if (!breakouts.start(who)) return false;
+        // A screen being shared stops: sharing is paused while the groups are open.
+        for (const p of await listParticipants(db, callId)) {
+          if (!p.isSharingScreen) continue;
+          if ((await setScreenShare(db, { callId, userId: p.userId, on: false })) === 'changed')
+            toFollowers(call, 'call_screen_share_stopped', {
+              call_id: callId,
+              channel_id: call.channelId,
+              user_id: p.userId,
+            });
+        }
+        return true;
+      }),
+    endBreakouts: ({ callId, userId, socketId }) =>
+      asBreakoutHost(callId, userId, socketId, (_call, who) => breakouts.end(who)),
 
     /** The host's "recording started / stopped", told to everyone in the call. */
     async setRecording({ callId, userId, socketId, on }) {
@@ -540,6 +582,8 @@ export function createCallService({
         if (device === undefined) throw httpError(403, 'not_in_call', 'You are not in this call');
         if (typeof socketId !== 'string' || device !== socketId)
           throw httpError(400, 'bad_socket', 'Share your screen from the tab that is in the call');
+        if (on && breakouts.isActive(callId))
+          throw httpError(409, 'breakouts_open', 'Screen sharing is paused while breakout groups are open');
         const result = await setScreenShare(db, { callId, userId, on: !!on });
         if (result === 'not_in_call') throw httpError(403, 'not_in_call', 'You are not in this call');
         if (result === 'already_sharing')

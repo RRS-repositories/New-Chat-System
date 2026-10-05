@@ -95,6 +95,7 @@ const recordings = (page) => page.locator('.msg', { hasText: 'Call recording' })
     for (const p of [meg, ann, bob]) await gone(p.page, tid('call-rec-pill'));
     await meg.page
       .locator(tid('toast'), { hasText: 'Recording saved to the conversation' })
+      .last()
       .waitFor({ timeout: 15000 });
     // The call screen covers the conversation: Ann minimises it and looks.
     await ann.page.click(tid('call-minimise'));
@@ -124,6 +125,7 @@ const recordings = (page) => page.locator('.msg', { hasText: 'Call recording' })
     await gone(ann.page, tid('call-rec-pill'));
     await meg.page
       .locator(tid('toast'), { hasText: 'Recording saved to the conversation' })
+      .last()
       .waitFor({ timeout: 15000 });
     await meg.page.waitForFunction(
       (n) => [...document.querySelectorAll('.msg')].filter((m) => /Call recording/.test(m.textContent)).length > n,

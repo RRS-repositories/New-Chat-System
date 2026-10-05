@@ -33,6 +33,13 @@ export function attachCallSignalling({ socket, user, calls }) {
     });
   relay('call_reaction', (who, p) => calls.react?.({ ...who, emoji: p.emoji }));
   relay('call_hand', (who, p) => calls.setHand?.({ ...who, up: p.up === true }));
+  const later = (event, run) =>
+    relay(event, (who, p) => {
+      Promise.resolve(run(who, p)).catch((e) => console.error(`[chat] ${event} failed`, e?.message || e));
+    });
+  later('call_bo_set', (who, p) => calls.setBreakouts?.({ ...who, groups: p.groups }));
+  later('call_bo_start', (who) => calls.startBreakouts?.(who));
+  later('call_bo_end', (who) => calls.endBreakouts?.(who));
   relay('call_rec', (who, p) => {
     Promise.resolve(calls.setRecording?.({ ...who, on: p.on === true })).catch((e) =>
       console.error('[chat] call_rec failed', e?.message || e),

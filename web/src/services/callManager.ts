@@ -150,6 +150,8 @@ type Peer = {
   videoLive: boolean;
   /** The one video transceiver my screen goes out on (while sharing). */
   screenTx: TransceiverLike | null;
+  /** What my microphone goes out on to this person. */
+  audioSender: SenderLike | null;
 };
 
 export class CallManager {
@@ -162,6 +164,8 @@ export class CallManager {
   private muted = false;
   private closed = false;
   private sharePending = false;
+  /** Breakout groups: the people who may hear me. Null means everyone in the call. */
+  private room: Set<number> | null = null;
   /**
    * Has my own join event (`call_participant_joined` for me) been seen since my last join?
    * Events on the socket are in server order, so a join event for someone that arrives BEFORE my
@@ -396,6 +400,28 @@ export class CallManager {
     }
   }
 
+  // ---- breakout groups -----------------------------------------------------
+
+  /**
+   * Who may hear me: the people in my breakout group (or main room), or null for everyone.
+   * My microphone is taken off the connection to everyone else and put back when they return.
+   * Swapping the track on a connection that already carries audio needs no new negotiation, so
+   * it is instant, and the people outside the room receive no sound from me at all.
+   */
+  setRoom(userIds: number[] | null) {
+    this.room = userIds ? new Set(userIds) : null;
+    for (const p of this.peers.values()) this.applyRoom(p);
+  }
+
+  private applyRoom(p: Peer) {
+    const sender = p.audioSender;
+    if (!sender || typeof sender.replaceTrack !== 'function') return;
+    const mine = this.mic?.getAudioTracks()[0] ?? null;
+    const wanted = !this.room || this.room.has(p.userId) ? mine : null;
+    if ((sender.track ?? null) === wanted) return;
+    sender.replaceTrack(wanted).catch((e) => this.log(`room audio with ${p.userId}`, e));
+  }
+
   // ---- local media --------------------------------------------------------
 
   setMuted(muted: boolean) {
@@ -504,6 +530,7 @@ export class CallManager {
       videoTrack: null,
       videoLive: false,
       screenTx: null,
+      audioSender: null,
     };
     this.peers.set(userId, p);
     let pc: PeerLike;
@@ -528,7 +555,8 @@ export class CallManager {
       pc.onconnectionstatechange = () => {
         if (p.pc === pc) this.onConnState(p, pc);
       };
-      for (const t of this.mic?.getAudioTracks() || []) pc.addTrack(t, this.mic!);
+      for (const t of this.mic?.getAudioTracks() || []) p.audioSender = pc.addTrack(t, this.mic!) ?? null;
+      this.applyRoom(p);
       this.addScreenTo(p);
       p.connectTimer = this.timers.setTimeout(() => {
         p.connectTimer = null;

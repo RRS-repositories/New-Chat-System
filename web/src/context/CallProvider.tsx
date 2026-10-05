@@ -13,6 +13,7 @@ import { canRecord as browserCanRecord } from '../services/callRecorder.ts';
 import { getMicrophone, getScreen } from '../services/media.ts';
 import { Whiteboard, type Stroke } from '../services/whiteboard.ts';
 import type { CallInvite, CallJoinResponse, JoinRequest } from '../types/index.ts';
+import { NO_BREAKOUT, roomOf, type Breakout, type BreakoutGroup } from '../utils/breakout.ts';
 import { callErrorText } from '../utils/callErrors.ts';
 import { stopRingtone } from '../utils/ringtone.ts';
 import { CallContext, type ActiveCall, type CallContextValue, type CallReaction } from './callContext.ts';
@@ -48,6 +49,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const [hands, setHands] = useState<number[]>([]);
   const [reactions, setReactions] = useState<CallReaction[]>([]);
   const [invites, setInvites] = useState<CallInvite[]>([]);
+  const [breakout, setBreakout] = useState<Breakout>(NO_BREAKOUT);
   const nextReaction = useRef(1);
   const prefsRef = useLatest(state.prefs);
 
@@ -116,6 +118,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setHands([]);
     setReactions([]);
     setInvites([]);
+    setBreakout(NO_BREAKOUT);
     setRecordingRef.current(null);
     whiteboard.reset();
   }, [whiteboard]);
@@ -219,6 +222,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
       let ringingNow: CallInvite[] = [];
       let drawn: Stroke[] = [];
       let beingRecorded: { by: number; since: number } | null = null;
+      let groupsNow: Breakout = NO_BREAKOUT;
       let since = Date.now();
       try {
         const joined = await current.connect(async () => {
@@ -230,6 +234,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
           ringingNow = answer.invites ?? [];
           drawn = answer.whiteboard ?? [];
           beingRecorded = answer.recording ?? null;
+          groupsNow = answer.breakout ?? NO_BREAKOUT;
           since = answer.call.startedAt ? Date.parse(answer.call.startedAt) : Date.now();
           if (stillCurrent()) callId.current = answer.call.id;
           // Anyone who joined (and offered) before this answer arrived: the manager holds them until the connections are built.
@@ -247,6 +252,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         setInvites(ringingNow);
         whiteboard.load(drawn);
         setRecording(beingRecorded);
+        setBreakout(groupsNow);
         setSnapshot(current.snapshot());
         setChannelCall(channelId, () => ({ callId: id, participantIds: joined.participants.map((p) => p.userId) }));
       } catch (e) {
@@ -414,6 +420,33 @@ export function CallProvider({ socket, getToken, children }: Props) {
     if (!result.ok && result.reason !== 'cancelled' && manager.current === current) setPanelError(result.message);
   }, []);
 
+  const setBreakoutGroups = useCallback(
+    (groups: BreakoutGroup[]) => {
+      if (callId.current) socket.emit('call_bo_set', { call_id: callId.current, groups });
+    },
+    [socket],
+  );
+  const startBreakouts = useCallback(() => {
+    if (callId.current) socket.emit('call_bo_start', { call_id: callId.current });
+  }, [socket]);
+  const endBreakouts = useCallback(() => {
+    if (callId.current) socket.emit('call_bo_end', { call_id: callId.current });
+  }, [socket]);
+
+  // Breakout groups open: my voice goes only to the people in my room. Sharing stops (it is paused meanwhile).
+  useEffect(() => {
+    const current = manager.current;
+    if (!current) return;
+    current.setRoom(
+      roomOf(
+        breakout,
+        user.id,
+        snapshot.participants.map((p) => p.userId),
+      ),
+    );
+    if (breakout.active && current.snapshot().sharing) current.stopShare();
+  }, [breakout, snapshot.participants, user.id]);
+
   const toggleHand = useCallback(() => {
     if (!callId.current) return;
     socket.emit('call_hand', { call_id: callId.current, up: !handsRef.current.includes(user.id) });
@@ -450,6 +483,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setHands,
     setInvites,
     setRecording,
+    setBreakout,
     whiteboard,
     showReaction,
     joinDirect,
@@ -534,6 +568,10 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      breakout,
+      setBreakoutGroups,
+      startBreakouts,
+      endBreakouts,
       recording,
       canRecord,
       toggleRecording,
@@ -569,6 +607,10 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      breakout,
+      setBreakoutGroups,
+      startBreakouts,
+      endBreakouts,
       recording,
       canRecord,
       toggleRecording,

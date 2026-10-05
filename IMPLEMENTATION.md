@@ -18,6 +18,7 @@ A technical reference for the Rowan Rose team chat: every feature that exists, h
 | Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Live** since 1 Oct 2026, 16:22 |
 | Search that finds part of a word, people and channels; own-screen preview for the sharer; call host controls (mute, remove, ask to rejoin) | **Live** since 1 Oct 2026, 16:22. Waiting for the owner to try them (Phase 5) |
 | Lightweight with very long channels (a window of messages on the page, indexed search); clickable links; simple formatting; channel rename, leave and archive | **Live** since 1 Oct 2026, 17:34. Waiting for the owner to try them (Phase 7) |
+| The new design (light and dark, five accents), profile photos, the new call screen, incoming-call card, add to call, whiteboard, recording, breakout groups | **Built 5 Oct 2026, not deployed** (Phase 9, section 9.12). Needs database file `chat_005` |
 | The CRM's automatic messages posted into the chat | **Approved, not started** (Phase 8). About 150 places in the CRM, not forty |
 | Calls from outside the office | **Blocked** on the router port forwarding (Phase 6) |
 | Chat inside the CRM, Mattermost history import, phone install, camera video | **Not built**, by decision |
@@ -238,6 +239,9 @@ All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks
 | `POST /calls/:id/participants/:userId/mute` · `/remove` **(Phase 5)** | Host only: mute or remove one person in the call. |
 | `POST /calls/:id/join-requests` · `DELETE /calls/:id/join-requests` **(Phase 5)** | A removed person asks the host to come back, or stops waiting. |
 | `POST /calls/:id/join-requests/:userId` `{ accept }` **(Phase 5)** | Host only: let a waiting person back in, or refuse. |
+| `POST /calls/:id/invite` `{ user_id }` · `DELETE /calls/:id/invite/:userId` **(Phase 9)** | Someone in the call rings another person into it; the person who rang, or the host, takes it back. |
+| `POST /calls/:id/merge` `{ into_call_id }` **(Phase 9)** | A person in a call who is being rung one-to-one brings that caller into their call. |
+| `POST /users/me/avatar` · `DELETE /users/me/avatar` · `GET /users/:id/avatar` **(Phase 9)** | Profile photo: save (one picture, 2 MB at most, five a minute), remove, fetch. |
 | `GET /admin/users` | Management: everyone, their role, whether chat is on, blocked counts. |
 | `GET /admin/restrictions` · `GET /admin/restrictions/user/:userId` · `POST /admin/restrictions` · `DELETE /admin/restrictions/:id` | Management: who may not contact whom. |
 | `PUT /admin/users/:userId/access` | Management: set what one person may do towards up to 500 others in one call. |
@@ -261,6 +265,10 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 | `mark_read { channel_id }` | Mark read; the person's other devices clear their badge too. |
 | `set_away { away }` | Away or back. |
 | `webrtc_signal { call_id, to_user_id, signal_data }` | Call set-up message for one other participant (64 KB at most). |
+| `call_reaction { call_id, emoji }` · `call_hand { call_id, up }` **(Phase 9)** | A reaction (five in three seconds at most) or a raised hand, from the tab that is in the call. |
+| `call_wb { call_id, op }` **(Phase 9)** | A whiteboard change: `stroke` (new, or more points), `undo` (own stroke), `clear` (host). |
+| `call_rec { call_id, on }` **(Phase 9)** | The host says recording started or stopped. |
+| `call_bo_set { call_id, groups }` · `call_bo_start` · `call_bo_end` **(Phase 9)** | Host only: the arrangement of breakout groups, opening them, bringing everyone back. |
 
 **Server → browser**
 
@@ -280,6 +288,13 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 | `call_join_answer { accepted, reason }` **(Phase 5)** | To the person who asked: let in, refused, or the host left. |
 | `call_screen_share_started`, `call_screen_share_stopped` | Screen share. |
 | `webrtc_signal { call_id, from_user_id, signal_data }` | Call set-up message from another participant. |
+| `user_updated { user_id, avatar_url }` **(Phase 9)** | Someone changed or removed their profile photo. |
+| `call_host_changed { host_user_id }` **(Phase 9)** | The host of the call changed (the starter left, or came back). |
+| `call_reaction`, `call_hand_changed` **(Phase 9)** | A reaction to float up the screen; a hand went up or down. |
+| `call_invited`, `call_invite_pending`, `call_invite_ended { reason }`, `call_merge { join_call_id }` **(Phase 9)** | Ringing a person into a call: to that person; to the call (the "Ringing…" tile); the ring is over (`cancelled`, `timeout`, `declined`); and "join this call instead" to a caller who was merged. |
+| `call_wb { from_user_id, op }` **(Phase 9)** | A whiteboard change by someone else (or `full`: the board holds 2,000 strokes and took no more). |
+| `call_rec_changed { on, by }` **(Phase 9)** | Recording started or stopped. Everyone in the call is told. |
+| `call_bo_state { active, groups }` **(Phase 9)** | The breakout groups as they are now. |
 
 ---
 
@@ -415,6 +430,28 @@ A restriction applies when opening a direct message, calling, and creating or ad
 ### 9.11 Settings
 
 Per person: notification level, sound on or off, Enter-to-send, status message. Stored in `chat.user_preferences`.
+
+### 9.12 The new design and call features (Phase 9, built 5 Oct 2026, not deployed)
+
+Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redesign-v2.html` is the design reference.
+
+**Design.** Colours are tokens in `web/src/styles/tokens.css`; `theme.css` holds dark mode and the five accents (violet, ocean, sunset, emerald, magenta). The choice is on `body[data-mode]` and `body[data-accent]`, stored per person in `chat.user_preferences.theme` as `{"mode","accent"}`, kept in the browser too and applied by `public/theme-boot.js` before the page draws. The font (Inter) is served by the chat itself.
+
+**Profile photos.** JPEG, PNG or WebP up to 2 MB, checked by content, cut to a square and stored as a 256×256 JPEG under `uploads/avatars/`. The web app shrinks and crops before sending. Everyone's screen updates through `user_updated`.
+
+**Call screen.** `components/calls/CallScreen.tsx`: a full-screen stage with one tile per person (`CallTile`), the dock (`CallDock`), and a minimised pill. Speaking is measured in the browser from each audio track (`hooks/useSpeaking.ts`). The host is the starter while in the call, otherwise whoever has been in it longest.
+
+**Incoming call.** A card with a 30-second countdown: Accept, Decline, Message. Message declines and posts the chosen words into the direct conversation with the caller. The card also shows over a call the person is already in.
+
+**Add to call.** Anyone in a call can ring another person into it. Checked: the call is live; people in it plus people being rung stay within 8; the person can use chat; no call restriction either way. The person rings for 30 seconds; the call shows a "Ringing…" tile; a "Join my call" message (type `call`, `metadata.kind = call_invite`) is posted into the direct conversation between the two and works until the call ends. Someone from outside the call's channel joins the call only: they never get the channel's messages.
+
+**Merge.** A person in a call who is rung one-to-one can accept and bring the caller in: the one-to-one ring ends ("Call joined to a call already going on") and the caller's tab joins the other call by itself. A one-to-one call that grew to three or more goes on until one person is left.
+
+**Whiteboard.** One board per call, for everyone in it. Strokes are lists of points between 0 and 1, so they land in the same place on every screen. Sent in batches about ten times a second, relayed by the server, and kept in memory (2,000 strokes at most) so a late joiner sees the board. Undo takes back your own latest stroke; only the host clears. Nothing is stored; the board is gone when the call ends.
+
+**Recording.** Host only. Made in the host's browser: every voice is mixed into one track (plus the shared screen, if one is being shared when recording starts) and written as WebM. Everyone sees a REC pill and is told, including people who join meanwhile. When recording stops, or the host leaves or is cut off, the file is uploaded into the call's conversation as "Call recording" (`metadata.kind = call_recording`). Limits: closing the host's tab loses it; 20 MB at most (about 80 minutes of voice), then it stops and saves by itself.
+
+**Breakout groups.** Host only: up to six named groups; anyone not in a group stays in the main room with the host. The server keeps the arrangement and tells the call. The separation of sound is done by each browser: it takes its microphone off the connection to everyone outside its room (`CallManager.setRoom`), which needs no new call set-up and means those people receive no sound at all. People can be moved while groups are open. Screen sharing and the whiteboard are refused while groups are open. Someone who leaves the call leaves their group; when nobody is left in any group, the groups close.
 
 ---
 
@@ -557,8 +594,8 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 424, 43 files |
-| Web | `cd web && npm test` | 142, 18 files |
+| Server | `cd server && npm test` | 478, 49 files |
+| Web | `cd web && npm test` | 176, 23 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
@@ -568,6 +605,13 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: search, own-screen preview, host controls | `node server/dev/e2e/browser-host.cjs` | 16 |
 | Real browser, **real screen**: a two-person call sharing the PC's actual screen (opens a window; needs a desktop) | `node server/dev/e2e/browser-real-share.cjs` | 1 |
 | Real browser: links, formatting, channel rename, leave and archive | `node server/dev/e2e/browser-features.cjs` | 12 |
+| Real browser: the new design (themes, panels, messages) **(Phase 9)** | `node server/dev/e2e/browser-redesign.cjs` | 17 |
+| Real browser: profile photos **(Phase 9)** | `node server/dev/e2e/browser-avatars.cjs` | 6 |
+| Real browser: the call screen, reactions, hands, stand-in host **(Phase 9)** | `node server/dev/e2e/browser-callscreen.cjs` | 11 |
+| Real browser: incoming-call card, add to call, merge **(Phase 9)** | `node server/dev/e2e/browser-invite.cjs` | 9 |
+| Real browser: whiteboard **(Phase 9)** | `node server/dev/e2e/browser-board.cjs` | 7 |
+| Real browser: recording (the saved file is played back) **(Phase 9)** | `node server/dev/e2e/browser-record.cjs` | 4 |
+| Real browser: breakout groups (checked on the real audio connections) **(Phase 9)** | `node server/dev/e2e/browser-breakout.cjs` | 7 |
 | Speed with heavy data (needs `SEED_HEAVY=1`) | `node server/dev/e2e/browser-perf.cjs` | 31 measurements |
 | Deploy scripts | `bash deploy/rehearse.sh` | 51 |
 
@@ -624,7 +668,9 @@ Measured on the developer PC against the in-memory test database, which is slowe
 
 **Only on the owner's word:** the chat inside the CRM, moving the CRM's automatic messages off Mattermost, importing Mattermost history, phone install.
 
-**Decided against (owner, 1 October 2026):** camera video; any paid service; "seen" marks on direct messages; a "mute everyone" button and passing the host role on; an audit screen; importing old Mattermost conversations; installing the chat as an app; dark mode. Link previews are also out: the server would have to fetch outside web pages.
+**Built, not deployed (Phase 9, 5 October 2026):** everything in the owner's `Updates/` file. See section 9.12. It needs database file `chat_005_theme_avatars.sql` applied before the new code starts.
+
+**Decided against (owner, 1 October 2026):** camera video; any paid service; "seen" marks on direct messages; a "mute everyone" button; an audit screen; importing old Mattermost conversations; installing the chat as an app. (Dark mode and a stand-in host were on this list; the owner's file of 5 October asks for both, and they are built.) Link previews are also out: the server would have to fetch outside web pages.
 
 ---
 
@@ -637,3 +683,4 @@ Measured on the developer PC against the in-memory test database, which is slowe
 | 1 Oct 2026 | Three call fixes and the colour theme. Chat moved to this repository (pull requests #1–#3). Code reshaped to the folder structure (#4). Own deploy script, settings file and server folder; chat2 switched to `/opt/chat` (#5–#8). Security items built and merged (#9), not deployed yet. |
 | 1 Oct 2026 (later) | Phase 5 built (#11): search finds part of a word, people and channels; the sharer sees their own screen; call host controls. Deployed with the security items at 16:22. |
 | 1 Oct 2026 (evening) | Phase 7: kept light with very long channels (measured with 100,000 messages), clickable links, simple formatting, channel rename, leave and archive. Deployed at 17:34 with one new database file (indexes). |
+| 5 Oct 2026 | Phase 9: the new design (light and dark, five accents), profile photos, the new call screen, incoming-call card, add to call and merge, whiteboard, recording, breakout groups. Built and tested; not deployed. |
