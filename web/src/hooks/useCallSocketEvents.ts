@@ -50,6 +50,8 @@ type Deps = {
   /** Who is recording the call (null: nobody). */
   setRecording: (value: { by: number; since: number } | null) => void;
   whiteboard: Whiteboard;
+  /** Someone else came into this tab's call. */
+  onPersonJoined: (name: string) => void;
   /** A reaction arrived: float it up the call screen. */
   showReaction: (userId: number, emoji: string) => void;
   /** Joins a call without asking the host (used once the host has let this person back in). */
@@ -72,6 +74,7 @@ export function useCallSocketEvents({
   setRecording,
   setBreakout,
   whiteboard,
+  onPersonJoined,
   showReaction,
   joinDirect,
 }: Deps): void {
@@ -133,7 +136,10 @@ export function useCallSocketEvents({
       if (isMyCall(p.call_id)) {
         setJoinRequests((list) => dropJoinRequest(list, joinerId)); // they are in: no longer waiting
         setInvites((list) => list.filter((i) => i.userId !== joinerId)); // nor ringing
+        // A re-join (their connection dropped and came back) is not news.
+        const alreadyHere = manager.current!.snapshot().participants.some((x) => x.userId === joinerId);
         manager.current!.addParticipant(joinerId, p.user_name || '');
+        if (!alreadyHere && ui.current.phase === 'in-call') onPersonJoined(p.user_name || 'Someone');
       } else if (startInFlight()) hold(p.call_id, () => manager.current?.addParticipant(joinerId, p.user_name || ''));
     };
 
@@ -345,6 +351,7 @@ export function useCallSocketEvents({
     setRecording,
     setBreakout,
     whiteboard,
+    onPersonJoined,
     showReaction,
     joinDirect,
   ]);

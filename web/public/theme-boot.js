@@ -13,4 +13,12 @@
   }
   document.body.setAttribute('data-mode', mode);
   document.body.setAttribute('data-accent', accent);
+  // Compact messages (web/src/utils/density.ts).
+  var density = 'comfortable';
+  try {
+    if (localStorage.getItem('chatDensity') === 'compact') density = 'compact';
+  } catch (e) {
+    /* keep the default */
+  }
+  document.body.setAttribute('data-density', density);
 })();

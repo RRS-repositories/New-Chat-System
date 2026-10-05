@@ -93,7 +93,7 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
   });
   await step('settings: sound preference saves and survives a reload', async () => {
     await ann.page.locator('button[aria-label="Settings"]').click();
-    const box = ann.page.locator('label.check-row', { hasText: 'Play a sound' }).locator('input');
+    const box = ann.page.locator('label.check-row', { hasText: 'Sounds' }).locator('input');
     await box.waitFor();
     if (!(await box.isChecked())) throw new Error('expected sound on by default');
     await box.uncheck();
@@ -105,7 +105,7 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
     await ann.page.reload({ waitUntil: 'domcontentloaded' });
     await ann.page.waitForSelector('.sidebar-user');
     await ann.page.locator('button[aria-label="Settings"]').click();
-    const again = ann.page.locator('label.check-row', { hasText: 'Play a sound' }).locator('input');
+    const again = ann.page.locator('label.check-row', { hasText: 'Sounds' }).locator('input');
     await again.waitFor();
     if (await again.isChecked()) throw new Error('sound setting did not persist');
     await ann.page.keyboard.press('Escape');

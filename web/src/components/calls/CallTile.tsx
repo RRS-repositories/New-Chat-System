@@ -1,5 +1,6 @@
+import { HangUp } from '../common/HangUp.tsx';
 import { memo, useRef, useState, type CSSProperties } from 'react';
-import { Hand, Mic, MicOff, MonitorUp, MoreHorizontal, Phone, PhoneOff, UserX } from 'lucide-react';
+import { Hand, Mic, MicOff, MonitorUp, MoreHorizontal, Phone, UserX } from 'lucide-react';
 import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
 import type { PeerState } from '../../services/callManager.ts';
 import { initials } from '../../utils/format.ts';
@@ -70,7 +71,7 @@ export const CallTile = memo(function CallTile({
           onCancelRing?.(person.userId);
         }}
       >
-        <PhoneOff size={15} />
+        <HangUp size={15} />
         <span>Stop ringing {first(person.name)}</span>
       </button>
     );

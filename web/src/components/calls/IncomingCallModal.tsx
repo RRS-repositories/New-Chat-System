@@ -1,5 +1,6 @@
+import { HangUp } from '../common/HangUp.tsx';
 import { useEffect, useState, type CSSProperties } from 'react';
-import { MessageSquare, Phone, PhoneOff, Send } from 'lucide-react';
+import { MessageSquare, Phone, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { paths } from '../../config/routes.ts';
 import { useCall } from '../../context/callContext.ts';
@@ -99,7 +100,7 @@ function Card({ inc, onACall }: { inc: IncomingCall; onACall: boolean }) {
               aria-label="Decline call"
               onClick={() => declineCall(inc.callId)}
             >
-              <PhoneOff size={23} />
+              <HangUp size={23} />
             </button>
             Decline
           </div>

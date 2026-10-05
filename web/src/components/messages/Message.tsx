@@ -1,6 +1,6 @@
 import { CallInviteCard } from './CallInviteCard.tsx';
 import { memo, useState, type ReactNode } from 'react';
-import { Phone, Pin } from 'lucide-react';
+import { MessageSquare, Phone, Pin } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
 import { formatClock, formatTime } from '../../utils/format.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
@@ -165,7 +165,15 @@ export const Message = memo(function Message({
         {renderExtra?.(m)}
         {!inThread && m.replyCount > 0 && (
           <button className="thlink thread-link" onClick={() => onThread(m)}>
+            {!!m.replyUsers?.length && (
+              <span className="avs">
+                {m.replyUsers.map((u) => (
+                  <UserAvatar key={u.id} userId={u.id} name={u.name} size="sm" />
+                ))}
+              </span>
+            )}
             {m.replyCount} {m.replyCount === 1 ? 'reply' : 'replies'}
+            <MessageSquare size={13} aria-hidden="true" />
           </button>
         )}
         {confirm && (

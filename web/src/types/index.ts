@@ -17,6 +17,8 @@ export type Message = {
   threadId: string | null;
   replyTo: { id: string; userId: number | null; userName: string; content: string } | null;
   replyCount: number;
+  /** The first three people who replied in the thread. */
+  replyUsers?: Array<{ id: number; name: string }>;
   pinned: boolean;
   reactions: Reaction[];
   files: ChatFile[];

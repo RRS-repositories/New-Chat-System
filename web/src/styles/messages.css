@@ -742,3 +742,37 @@ body[data-density='compact'] .msg.first {
     display: none;
   }
 }
+
+/* Thread link: the people who replied */
+.thlink .avs {
+  display: flex;
+}
+.thlink .avs .uav {
+  margin-left: -6px;
+  border: 2px solid var(--paper);
+  box-shadow: none;
+}
+.thlink .avs .uav:first-child {
+  margin-left: 0;
+}
+/* The "add a reaction" button and the formatting hint stay out of the way until they are wanted */
+.msg .rx.add {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.msg:hover .rx.add,
+.msg .rx.add:focus-visible,
+.msg .rx.add[aria-expanded='true'] {
+  opacity: 1;
+}
+.comp .input-hint {
+  visibility: hidden;
+}
+.comp:focus-within .input-hint {
+  visibility: visible;
+}
+@media (hover: none) {
+  .msg .rx.add {
+    opacity: 1;
+  }
+}

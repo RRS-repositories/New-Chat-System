@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import type { Socket } from 'socket.io-client';
 import { useActiveChannelCall } from '../hooks/useActiveChannelCall.ts';
 import { useCallHostActions } from '../hooks/useCallHostActions.ts';
@@ -62,6 +63,18 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const beforeTeardown = useRef<() => void>(() => {});
   const toast = useToast();
   const tell = useCallback((text: string) => void toast({ text }), [toast]);
+  const onPersonJoined = useCallback(
+    (name: string) =>
+      void toast({
+        icon: <Check size={16} />,
+        text: (
+          <>
+            <b>{name}</b> joined the call
+          </>
+        ),
+      }),
+    [toast],
+  );
   const whiteboard = useMemo(
     () =>
       new Whiteboard({
@@ -485,6 +498,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setRecording,
     setBreakout,
     whiteboard,
+    onPersonJoined,
     showReaction,
     joinDirect,
   });

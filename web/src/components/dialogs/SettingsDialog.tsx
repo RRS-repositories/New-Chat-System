@@ -13,6 +13,7 @@ import {
   pushSupported,
   type PushState,
 } from '../../services/push.ts';
+import { loadCompact, setCompact } from '../../utils/density.ts';
 import { AppearanceSettings } from './AppearanceSettings.tsx';
 import { ProfilePhotoSettings } from './ProfilePhotoSettings.tsx';
 
@@ -22,6 +23,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const signOut = useSignOut();
   const prefs = state.prefs;
   const [error, setError] = useState<string | null>(null);
+  const [compact, setCompactOn] = useState(loadCompact);
   const [statusEmoji, setStatusEmoji] = useState(prefs.statusEmoji);
   const [statusText, setStatusText] = useState(prefs.statusText);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -118,18 +120,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </div>
         <ProfilePhotoSettings onError={setError} />
         <AppearanceSettings onError={setError} />
-        <div className="ap-h">NOTIFICATIONS</div>
-        <label className="field">
-          <span>Notify me about</span>
-          <select value={prefs.desktopNotif} onChange={(e) => change({ desktopNotif: e.target.value as NotifyLevel })}>
-            <option value="all">All messages</option>
-            <option value="mentions">Mentions and direct messages</option>
-            <option value="nothing">Nothing</option>
-          </select>
-        </label>
+        <div className="ap-h">GENERAL</div>
         <label className="togrow check-row">
           <span className="tx">
-            <b>Play a sound</b>
+            <b>Sounds</b>
             <span>Message and call tones</span>
           </span>
           <input
@@ -138,6 +132,31 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             checked={prefs.soundEnabled}
             onChange={(e) => change({ soundEnabled: e.target.checked })}
           />
+        </label>
+        <label className="togrow check-row">
+          <span className="tx">
+            <b>Compact messages</b>
+            <span>Tighter spacing, more on screen</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            data-testid="compact-messages"
+            checked={compact}
+            onChange={(e) => {
+              setCompact(e.target.checked);
+              setCompactOn(e.target.checked);
+            }}
+          />
+        </label>
+        <div className="ap-h">NOTIFICATIONS</div>
+        <label className="field">
+          <span>Notify me about</span>
+          <select value={prefs.desktopNotif} onChange={(e) => change({ desktopNotif: e.target.value as NotifyLevel })}>
+            <option value="all">All messages</option>
+            <option value="mentions">Mentions and direct messages</option>
+            <option value="nothing">Nothing</option>
+          </select>
         </label>
         <label className="togrow check-row">
           <span className="tx">

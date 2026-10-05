@@ -625,3 +625,12 @@ svg {
     right: 10px;
   }
 }
+
+/* A toast only informs: clicks go through it to whatever is underneath. Its own buttons still work. */
+.toasts,
+.toast {
+  pointer-events: none;
+}
+.toast .ta {
+  pointer-events: auto;
+}

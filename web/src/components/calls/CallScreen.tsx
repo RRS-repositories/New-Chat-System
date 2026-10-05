@@ -1,5 +1,6 @@
+import { HangUp } from '../common/HangUp.tsx';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { LayoutGrid, Maximize2, Mic, MicOff, Minimize2, PhoneOff } from 'lucide-react';
+import { LayoutGrid, Maximize2, Mic, MicOff, Minimize2 } from 'lucide-react';
 import { FEATURES } from '../../config/features.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
@@ -281,7 +282,7 @@ export function CallScreen() {
             <Maximize2 size={16} />
           </button>
           <button className="hang" data-testid="call-leave" aria-label="Leave call" onClick={leaveCall}>
-            <PhoneOff size={16} />
+            <HangUp size={16} />
           </button>
         </div>
         {audio}
@@ -481,7 +482,7 @@ export function CallScreen() {
             <div className="ring-acts">
               <div className="ring-act">
                 <button className="rbtn no" data-testid="call-cancel" aria-label="Cancel call" onClick={leaveCall}>
-                  <PhoneOff size={26} />
+                  <HangUp size={26} />
                 </button>
                 Cancel
               </div>

@@ -288,7 +288,15 @@ export function chatReducer(state: State, action: Action): State {
             ...next,
             threads: { ...next.threads, [m.threadId]: { ...t, replies: [...t.replies, m].sort(byTime) } },
           };
-        return patchMessage(next, m.channelId, m.threadId, (root) => ({ ...root, replyCount: root.replyCount + 1 }));
+        return patchMessage(next, m.channelId, m.threadId, (root) => {
+          const repliers = root.replyUsers ?? [];
+          const known = repliers.some((u) => u.id === m.userId);
+          return {
+            ...root,
+            replyCount: root.replyCount + 1,
+            replyUsers: known || repliers.length >= 3 ? repliers : [...repliers, { id: m.userId, name: m.userName }],
+          };
+        });
       }
       const cur = next.messagesByChannel[m.channelId] || empty();
       // Looking at older history: the message is not glued under the window; scrolling down fetches it.

@@ -1,3 +1,4 @@
+import { HangUp } from '../common/HangUp.tsx';
 import { useState, type MutableRefObject, type ReactNode } from 'react';
 import {
   CircleDot,
@@ -8,7 +9,6 @@ import {
   MonitorOff,
   MonitorUp,
   PenTool,
-  PhoneOff,
   Smile,
   UserPlus,
 } from 'lucide-react';
@@ -175,7 +175,7 @@ export function CallDock(props: Props) {
         />
         <span className="c-sep" />
         <button className="c-leave" data-testid="call-leave" aria-label="Leave call" onClick={props.onLeave}>
-          <PhoneOff size={22} />
+          <HangUp size={22} />
         </button>
       </div>
     </div>
