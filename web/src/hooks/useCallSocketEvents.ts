@@ -39,6 +39,10 @@ type Deps = {
   setJoinRequests: Dispatch<SetStateAction<JoinRequest[]>>;
   /** A short note shown in the call panel. */
   setPanelNote: (note: string | null) => void;
+  /** Who has a hand raised. */
+  setHands: Dispatch<SetStateAction<number[]>>;
+  /** A reaction arrived: float it up the call screen. */
+  showReaction: (userId: number, emoji: string) => void;
   /** Joins a call without asking the host (used once the host has let this person back in). */
   joinDirect: (callId: string, channelId: string) => Promise<void>;
 };
@@ -54,6 +58,8 @@ export function useCallSocketEvents({
   setChannelCall,
   setJoinRequests,
   setPanelNote,
+  setHands,
+  showReaction,
   joinDirect,
 }: Deps): void {
   useEffect(() => {
@@ -142,6 +148,17 @@ export function useCallSocketEvents({
 
     const onDismissed = (p: { call_id: string }) => dispatch({ type: 'dismissed', callId: p.call_id });
 
+    const onReaction = (p: { call_id: string; from_user_id: number; emoji: string }) => {
+      if (isMyCall(p.call_id) && typeof p.emoji === 'string') showReaction(Number(p.from_user_id), p.emoji);
+    };
+    const onHand = (p: { call_id: string; user_id: number; up: boolean }) => {
+      if (!isMyCall(p.call_id)) return;
+      const who = Number(p.user_id);
+      setHands((list) => (p.up ? (list.includes(who) ? list : [...list, who]) : list.filter((id) => id !== who)));
+    };
+    const onHostChanged = (p: { call_id: string; host_user_id: number }) =>
+      dispatch({ type: 'host', callId: p.call_id, hostId: Number(p.host_user_id) });
+
     // The host muted me. I can unmute myself; the host cannot.
     const onMutedByHost = (p: { call_id: string; by_user_name?: string }) => {
       if (!isMyCall(p.call_id)) return;
@@ -222,6 +239,9 @@ export function useCallSocketEvents({
       ['call_participant_left', onLeft],
       ['call_ended', onEnded],
       ['call_dismissed', onDismissed],
+      ['call_reaction', onReaction],
+      ['call_hand_changed', onHand],
+      ['call_host_changed', onHostChanged],
       ['call_muted_by_host', onMutedByHost],
       ['call_removed', onRemoved],
       ['call_join_request', onJoinRequest],
@@ -236,5 +256,18 @@ export function useCallSocketEvents({
     return () => {
       for (const [event, handler] of handlers) socket.off(event, handler);
     };
-  }, [socket, callApi, userId, session, dispatch, teardown, setChannelCall, setJoinRequests, setPanelNote, joinDirect]);
+  }, [
+    socket,
+    callApi,
+    userId,
+    session,
+    dispatch,
+    teardown,
+    setChannelCall,
+    setJoinRequests,
+    setPanelNote,
+    setHands,
+    showReaction,
+    joinDirect,
+  ]);
 }

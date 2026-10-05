@@ -20,6 +20,20 @@ export function attachCallSignalling({ socket, user, calls }) {
       console.error('[chat] webrtc_signal relay failed', e?.message || e);
     }
   });
+  // In-call extras. Each is checked by the call service (the sender must be in that call, on this
+  // connection); a bad or unwanted one is dropped without an answer.
+  const relay = (event, run) =>
+    socket.on(event, (payload) => {
+      if (!payload || typeof payload !== 'object' || typeof payload.call_id !== 'string') return;
+      try {
+        run({ callId: payload.call_id, userId: user.id, socketId: socket.id }, payload);
+      } catch (e) {
+        console.error(`[chat] ${event} failed`, e?.message || e);
+      }
+    });
+  relay('call_reaction', (who, p) => calls.react?.({ ...who, emoji: p.emoji }));
+  relay('call_hand', (who, p) => calls.setHand?.({ ...who, up: p.up === true }));
+
   socket.on('disconnect', () => {
     try {
       calls.onSocketDisconnect(socket.id, user.id);

@@ -14,8 +14,10 @@ export type CallUiState = {
   /** The call this tab is joining or in. */
   callId: string | null;
   channelId: string | null;
-  /** Who started the call this tab is in. Only that person can mute or remove others. */
+  /** The host of the call this tab is in: only they can mute or remove others. */
   hostId: number | null;
+  /** When the call began (milliseconds), for the timer. */
+  since: number | null;
   incoming: IncomingCall | null;
   /** Calls the host removed this person from: joining them again means asking the host first. */
   removedFrom: string[];
@@ -31,7 +33,8 @@ export type CallAction =
   | { type: 'dismissed'; callId: string }
   | { type: 'ended'; callId: string; status: EndStatus }
   | { type: 'join_begin'; callId: string | null; channelId: string }
-  | { type: 'joined'; callId: string; channelId: string; hostId?: number | null }
+  | { type: 'joined'; callId: string; channelId: string; hostId?: number | null; since?: number | null }
+  | { type: 'host'; callId: string; hostId: number }
   | { type: 'failed'; error: string }
   | { type: 'left'; notice?: string | null }
   | { type: 'removed'; callId: string }
@@ -45,6 +48,7 @@ export const initialCallState: CallUiState = {
   callId: null,
   channelId: null,
   hostId: null,
+  since: null,
   incoming: null,
   removedFrom: [],
   asking: null,
@@ -57,6 +61,7 @@ const idle = (s: CallUiState, extra: Partial<CallUiState> = {}): CallUiState => 
   callId: null,
   channelId: null,
   hostId: null,
+  since: null,
   incoming: null,
   ...extra,
 });
@@ -89,6 +94,7 @@ export function callReducer(state: CallUiState, a: CallAction): CallUiState {
         callId: a.callId,
         channelId: a.channelId,
         hostId: null,
+        since: null,
         incoming: null,
         asking: null,
         error: null,
@@ -101,9 +107,12 @@ export function callReducer(state: CallUiState, a: CallAction): CallUiState {
         callId: a.callId,
         channelId: a.channelId,
         hostId: a.hostId ?? null,
+        since: a.since ?? Date.now(),
         incoming: null,
         error: null,
       };
+    case 'host':
+      return state.callId === a.callId && state.hostId !== a.hostId ? { ...state, hostId: a.hostId } : state;
     case 'failed':
       return idle(state, { error: a.error });
     case 'left':

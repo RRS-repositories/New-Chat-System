@@ -9,6 +9,7 @@
  */
 import { httpError } from '../../middleware/errors.js';
 import { buildIceServers } from './ice.js';
+import { createCallExtras } from './call.extras.js';
 import { createHostControls, REMOVED_MESSAGE } from './host.controls.js';
 import { getChannel, isMember, listMembers } from '../../models/channels.model.js';
 import { createMessage } from '../../models/messages.model.js';
@@ -70,6 +71,10 @@ export function createCallService({
   const toChannel = (id, event, payload) => send('toChannel', id, event, payload);
   const toUser = (id, event, payload) => send('toUser', id, event, payload);
   const toSocket = (id, event, payload) => send('toSocket', id, event, payload);
+  /** To everyone in the call (their call devices), and nobody else. */
+  const toCall = (callId, event, payload) => {
+    for (const socketId of devices.get(callId)?.values() || []) toSocket(socketId, event, payload);
+  };
 
   function arm(fn, ms) {
     const h = timers.setTimeout(
@@ -156,6 +161,7 @@ export function createCallService({
     for (const userId of devices.get(callId)?.keys() || []) clearGrace(callId, userId);
     devices.delete(callId);
     host.forget(callId);
+    extras.forget(callId);
   }
 
   async function postCallMessage(call, content) {
@@ -204,18 +210,21 @@ export function createCallService({
     return call;
   }
 
-  // Leave (caller holds the lock). Idempotent.
-  async function leaveLocked(callId, userId) {
+  // Leave (caller holds the lock). Idempotent. `reason` is 'removed' when the host took the person out.
+  async function leaveLocked(callId, userId, { reason = null } = {}) {
     clearGrace(callId, userId);
     const call = await getCall(db, callId);
     if (!call || !LIVE.has(call.status)) return;
+    const hostBefore = host.hostIdOf(call);
     const { wasParticipant, wasSharing } = await removeParticipant(db, { callId, userId, at: at() });
     devices.get(callId)?.delete(userId);
     if (!wasParticipant) return;
+    extras.onLeft(callId, userId);
     toChannel(call.channelId, 'call_participant_left', {
       call_id: callId,
       channel_id: call.channelId,
       user_id: userId,
+      ...(reason ? { reason } : {}),
     });
     if (wasSharing)
       toChannel(call.channelId, 'call_screen_share_stopped', {
@@ -230,7 +239,7 @@ export function createCallService({
     const remaining = await listParticipants(db, callId);
     const channel = await getChannel(db, call.channelId);
     if (remaining.length === 0 || channel?.type === 'dm') await end(callId, 'ended');
-    else if (userId === call.initiatedBy) host.onHostLeft(call);
+    else host.afterChange(call, hostBefore);
   }
 
   // Mute, remove, and the removed person's request to come back (see host.controls.js).
@@ -242,8 +251,17 @@ export function createCallService({
     leaveLocked,
     toSocket,
     toUser,
+    toCall,
     now,
     askAgainMs,
+  });
+  // Reactions and raised hands (see call.extras.js).
+  const extras = createCallExtras({ devices, toCall, now });
+  /** What a person who has just started or joined needs, beyond who is in the call. */
+  const liveState = (call, userId) => ({
+    hostId: host.hostIdOf(call),
+    joinRequests: host.joinRequestsFor(call, userId),
+    ...extras.snapshot(call.id),
   });
 
   // A live row this process cannot be carrying: unknown in memory (boot sweep failed or raced; a start
@@ -355,7 +373,12 @@ export function createCallService({
         fromName,
         userIds: members.map((m) => m.id).filter((id) => id !== user.id),
       });
-      return { call, participants: await listParticipants(db, call.id), iceServers: ice(user.id), joinRequests: [] };
+      return {
+        call,
+        participants: await listParticipants(db, call.id),
+        iceServers: ice(user.id),
+        ...liveState(call, user.id),
+      };
     },
 
     async join({ callId, user, socketId }) {
@@ -371,6 +394,7 @@ export function createCallService({
         if (host.isRemoved(callId, user.id)) throw httpError(403, 'removed', REMOVED_MESSAGE);
         const channel = await getChannel(db, call.channelId);
         if (await dmRestricted(channel, user.id)) throw httpError(403, 'restricted', RESTRICTED_CALL_MESSAGE);
+        const hostBefore = host.hostIdOf(call);
         const current = await listParticipants(db, callId);
         const already = current.some((p) => p.userId === user.id);
         if (!already && current.length >= maxParticipants) throw httpError(403, 'call_full', 'This call is full');
@@ -396,11 +420,13 @@ export function createCallService({
           user_id: user.id,
           user_name: user.fullName || '',
         });
+        // The starter coming back takes the host role back.
+        host.afterChange(call, hostBefore);
         return {
           call: await getCall(db, callId),
           participants: await listParticipants(db, callId),
           iceServers: ice(user.id),
-          joinRequests: host.joinRequestsFor(call, user.id),
+          ...liveState(call, user.id),
         };
       });
     },
@@ -410,7 +436,11 @@ export function createCallService({
       await withLock(callId, () => leaveLocked(callId, userId));
     },
 
-    /** Host controls: the person who started the call, while they are in it. */
+    /** Reactions and raised hands, from the sender's call device only. */
+    react: (args) => extras.react(args),
+    setHand: (args) => extras.setHand(args),
+
+    /** Host controls: the person who started the call, while they are in it (see host.controls.js for who stands in). */
     hostMute: (args) => host.mute(args),
     hostRemove: (args) => host.remove(args),
     askToJoin: (args) => host.ask(args),
@@ -461,7 +491,8 @@ export function createCallService({
       const found = await mustFindCall(callId);
       await mustBeMember(found.channelId, userId);
       const { call } = LIVE.has(found.status) ? await repair(callId) : { call: found };
-      return { call, participants: await listParticipants(db, callId) };
+      const live = call && LIVE.has(call.status) ? { hostId: host.hostIdOf(call), ...extras.snapshot(callId) } : {};
+      return { call, participants: await listParticipants(db, callId), ...live };
     },
 
     async activeCall({ channelId, userId }) {

@@ -1,0 +1,295 @@
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Maximize2, Mic, MicOff, Minimize2, PhoneOff } from 'lucide-react';
+import { FEATURES } from '../../config/features.ts';
+import { useChat } from '../../context/chatContext.ts';
+import { useCall } from '../../context/callContext.ts';
+import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
+import { useCallClock } from '../../hooks/useCallClock.ts';
+import { useSpeaking, type VoiceSource } from '../../hooks/useSpeaking.ts';
+import { initials } from '../../utils/format.ts';
+import { hueOf } from '../../utils/hue.ts';
+import { CallDock } from './CallDock.tsx';
+import { CallTile, type TilePerson } from './CallTile.tsx';
+import { JoinRequests } from './JoinRequests.tsx';
+import { OwnScreen } from './OwnScreen.tsx';
+import { RemoteAudio } from './RemoteAudio.tsx';
+import { RemoteScreen } from './RemoteScreen.tsx';
+
+const canShare = () =>
+  typeof navigator !== 'undefined' &&
+  !!navigator.mediaDevices &&
+  typeof navigator.mediaDevices.getDisplayMedia === 'function';
+
+/** How many columns the grid of people uses. */
+export function gridColumns(people: number, narrow: boolean): number {
+  if (people <= 1) return 1;
+  if (narrow) return 2;
+  if (people <= 4) return 2;
+  return people <= 6 ? 3 : 4;
+}
+
+const first = (name: string) => name.split(' ')[0] || name;
+
+/** The big round avatar on the "Calling…" screen. */
+function RingAvatar({ userId, name }: { userId: number | null; name: string }) {
+  const src = useAvatarSrc(userId);
+  return (
+    <div className="ring-av" style={{ '--h': hueOf(name) } as CSSProperties}>
+      <span className="w" />
+      <span className="w" />
+      <span className="c">{src ? <img src={src} alt="" /> : initials(name)}</span>
+    </div>
+  );
+}
+
+/**
+ * The call, over the whole app: people as tiles (or a shared screen with the people in a strip),
+ * and the dock of controls. It can be minimised to a small pill so the chat can be used meanwhile.
+ * Escape does not leave the call.
+ */
+export function CallScreen() {
+  const { state, user } = useChat();
+  const {
+    call,
+    snapshot,
+    panelError,
+    panelNote,
+    busy,
+    isHost,
+    joinRequests,
+    hands,
+    reactions,
+    toggleMute,
+    toggleShare,
+    toggleHand,
+    sendReaction,
+    dismissReaction,
+    leaveCall,
+    muteParticipant,
+    removeParticipant,
+    answerJoinRequest,
+  } = useCall();
+  const [minimised, setMinimised] = useState(false);
+  const [narrow, setNarrow] = useState(() => window.innerWidth < 760);
+  const clock = useCallClock(call.phase === 'in-call' ? call.since : null);
+
+  // A new call always opens full size.
+  useEffect(() => {
+    if (!busy) setMinimised(false);
+  }, [busy]);
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth < 760);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const others = snapshot.participants;
+  const voices = useMemo<VoiceSource[]>(
+    () => [
+      { userId: user.id, track: snapshot.ownAudioTrack, muted: snapshot.muted },
+      ...others.map((p) => ({ userId: p.userId, track: p.audioTrack, muted: p.muted })),
+    ],
+    [user.id, snapshot.ownAudioTrack, snapshot.muted, others],
+  );
+  const speaking = useSpeaking(busy ? voices : []);
+
+  const hostMute = useCallback((id: number) => void muteParticipant(id), [muteParticipant]);
+  const hostRemove = useCallback((id: number) => void removeParticipant(id), [removeParticipant]);
+
+  if (!busy) return null;
+
+  const channel = state.channels.find((c) => c.id === call.channelId);
+  const oneToOne = channel?.type === 'dm';
+  const title = channel ? (oneToOne ? channel.dmUserName || 'Direct call' : `#${channel.displayName}`) : 'Call';
+  const hostName =
+    call.hostId === user.id ? user.fullName : others.find((p) => p.userId === call.hostId)?.userName || '';
+
+  const people: TilePerson[] = [
+    {
+      userId: user.id,
+      name: user.fullName,
+      isSelf: true,
+      isHost: call.hostId === user.id,
+      muted: snapshot.muted,
+      sharing: snapshot.sharing,
+      hand: hands.includes(user.id),
+      speaking: speaking.has(user.id),
+      state: 'connected',
+    },
+    ...others.map((p) => ({
+      userId: p.userId,
+      name: p.userName,
+      isSelf: false,
+      isHost: call.hostId === p.userId,
+      muted: p.muted,
+      sharing: p.sharing,
+      hand: hands.includes(p.userId),
+      speaking: speaking.has(p.userId),
+      state: p.state,
+    })),
+  ];
+  const tiles = people.map((person) => (
+    <CallTile
+      key={person.userId}
+      person={person}
+      viewerIsHost={isHost}
+      hostName={hostName}
+      canRemove={!oneToOne}
+      onToggleOwnMute={toggleMute}
+      onHostMute={hostMute}
+      onHostRemove={hostRemove}
+    />
+  ));
+  const sharer = others.find((p) => p.screenTrack && p.state !== 'lost');
+  const calling = call.phase === 'in-call' && oneToOne && others.length === 0;
+  const status =
+    call.phase === 'joining' ? 'Connecting…' : others.length ? `${clock} · ${others.length + 1} people` : clock;
+
+  // The voices keep playing whether the call is full size or minimised.
+  const audio = others.map((p) => (p.audioTrack ? <RemoteAudio key={p.userId} track={p.audioTrack} /> : null));
+
+  if (minimised)
+    return (
+      <>
+        <div className="mini" role="region" aria-label="Voice call" data-testid="call-panel" data-minimised="true">
+          <span className="mi-i">
+            <b>{title}</b>
+            <span>
+              <span className="c-live" />
+              <span>{clock || 'Connecting…'}</span>
+            </span>
+          </span>
+          <button
+            className={snapshot.muted ? 'off' : ''}
+            data-testid="call-mute"
+            aria-label={snapshot.muted ? 'Unmute' : 'Mute'}
+            aria-pressed={snapshot.muted}
+            disabled={call.phase !== 'in-call'}
+            onClick={toggleMute}
+          >
+            {snapshot.muted ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
+          <button data-testid="call-expand" aria-label="Expand call" onClick={() => setMinimised(false)}>
+            <Maximize2 size={16} />
+          </button>
+          <button className="hang" data-testid="call-leave" aria-label="Leave call" onClick={leaveCall}>
+            <PhoneOff size={16} />
+          </button>
+        </div>
+        {audio}
+      </>
+    );
+
+  return (
+    <>
+      <section className="callov" aria-label="Voice call" data-testid="call-panel">
+        <div className="c-top">
+          <button
+            className="c-ic"
+            data-testid="call-minimise"
+            aria-label="Minimise call"
+            title="Minimise"
+            onClick={() => setMinimised(true)}
+          >
+            <Minimize2 size={18} />
+          </button>
+          <div>
+            <div className="nm call-title">{title}</div>
+            <div className="st">
+              <span className="c-live" />
+              <span data-testid="call-status">{status}</span>
+            </div>
+          </div>
+          <div className="sp" />
+          <div className="c-pills" />
+        </div>
+        <div className="c-notes">
+          {isHost && (
+            <JoinRequests requests={joinRequests} onAnswer={(id, accept) => void answerJoinRequest(id, accept)} />
+          )}
+          {panelNote && (
+            <p className="c-note" role="status" data-testid="call-panel-note">
+              {panelNote}
+            </p>
+          )}
+          {panelError && (
+            <p className="c-note is-error" role="alert">
+              {panelError}
+            </p>
+          )}
+        </div>
+        <div className="cstage">
+          {sharer || snapshot.ownScreenTrack ? (
+            <div className="c-present">
+              {sharer ? (
+                <RemoteScreen track={sharer.screenTrack!} name={first(sharer.userName)} />
+              ) : (
+                <RemoteScreen track={snapshot.ownScreenTrack!} name="You" own />
+              )}
+              <div className="c-strip">{tiles}</div>
+            </div>
+          ) : (
+            <div className="c-present">
+              <div className="c-grid" style={{ '--cols': gridColumns(people.length, narrow) } as CSSProperties}>
+                {tiles}
+              </div>
+            </div>
+          )}
+          {snapshot.ownScreenTrack && <OwnScreen track={snapshot.ownScreenTrack} onStop={() => void toggleShare()} />}
+        </div>
+        <div className="crlayer" aria-hidden="true">
+          {reactions.map((reaction) => (
+            <span
+              key={reaction.id}
+              className="remoji"
+              style={
+                {
+                  left: `${8 + ((reaction.id * 37) % 26)}%`,
+                  '--dx': `${((reaction.id * 53) % 60) - 30}px`,
+                } as CSSProperties
+              }
+              onAnimationEnd={() => dismissReaction(reaction.id)}
+            >
+              {reaction.emoji}
+              <small>
+                {reaction.userId === user.id
+                  ? 'You'
+                  : first(others.find((p) => p.userId === reaction.userId)?.userName || '')}
+              </small>
+            </span>
+          ))}
+        </div>
+        <CallDock
+          ready={call.phase === 'in-call'}
+          muted={snapshot.muted}
+          sharing={snapshot.sharing}
+          canShare={canShare()}
+          handUp={hands.includes(user.id)}
+          onToggleMute={toggleMute}
+          onToggleShare={() => void toggleShare()}
+          onToggleHand={toggleHand}
+          onReact={sendReaction}
+          onLeave={leaveCall}
+          onAdd={FEATURES.addToCall ? () => {} : undefined}
+        />
+        {calling && (
+          <div className="c-ring" data-testid="call-ringing-out">
+            <span className="ring-glow" style={{ '--h': hueOf(title) } as CSSProperties} />
+            <RingAvatar userId={channel?.dmUserId ?? null} name={title} />
+            <h2>{title}</h2>
+            <p>Calling…</p>
+            <div className="ring-acts">
+              <div className="ring-act">
+                <button className="rbtn no" data-testid="call-cancel" aria-label="Cancel call" onClick={leaveCall}>
+                  <PhoneOff size={26} />
+                </button>
+                Cancel
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+      {audio}
+    </>
+  );
+}

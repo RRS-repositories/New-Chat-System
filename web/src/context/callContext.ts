@@ -4,6 +4,9 @@ import type { JoinRequest } from '../types/index.ts';
 import type { CallUiState } from './callState.ts';
 
 /** A live call in a channel, as far as this tab knows (from the server's answer and the call events). */
+/** One reaction floating up the call screen. */
+export type CallReaction = { id: number; userId: number; emoji: string };
+
 export type ActiveCall = { callId: string; participantIds: number[] };
 
 export type CallContextValue = {
@@ -21,12 +24,20 @@ export type CallContextValue = {
   isHost: boolean;
   /** Host only: people the host removed who are asking to come back. */
   joinRequests: JoinRequest[];
+  /** People in the call with a hand raised. */
+  hands: number[];
+  /** Reactions on their way up the screen. Each is removed when its animation ends. */
+  reactions: CallReaction[];
   startCall: (channelId: string) => Promise<void>;
   joinCall: (callId: string, channelId: string) => Promise<void>;
   declineCall: (callId: string) => void;
   leaveCall: () => void;
   toggleMute: () => void;
   toggleShare: () => Promise<void>;
+  /** Raise or lower this person's hand. */
+  toggleHand: () => void;
+  sendReaction: (emoji: string) => void;
+  dismissReaction: (id: number) => void;
   /** Host only. Muting cannot be undone by the host: the person unmutes themselves. */
   muteParticipant: (userId: number) => Promise<void>;
   removeParticipant: (userId: number) => Promise<void>;

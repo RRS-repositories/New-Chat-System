@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import type { Socket } from 'socket.io-client';
-import { CallPanel } from './components/calls/CallPanel.tsx';
+import { CallScreen } from './components/calls/CallScreen.tsx';
 import { IncomingCallModal } from './components/calls/IncomingCallModal.tsx';
 import { ThemeSync } from './components/common/ThemeSync.tsx';
 import { paths } from './config/routes.ts';
@@ -49,7 +49,7 @@ export function App({ api, socket, user, getToken, onSignOut, onAuthError }: Pro
           <ThemeSync />
           <CallProvider socket={socket} getToken={getToken}>
             <IncomingCallModal />
-            <CallPanel />
+            <CallScreen />
             <Routes>
               <Route path="/" element={<ChatPage />} />
               <Route path="/channels/:channelId" element={<ChatPage />} />

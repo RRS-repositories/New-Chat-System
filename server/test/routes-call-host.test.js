@@ -218,22 +218,72 @@ test('asking twice shows the host one request; withdrawing it tells the host', a
   isErr(await post(`/calls/${callId}/join-requests/3`, 1, { accept: true }), 404, 'no_request');
 });
 
-test('with the host gone nobody can let a removed person back in, and waiting requests are answered', async () => {
-  const { callId, channelId } = await callWith();
-  ok(await post(`/calls/${callId}/participants/3/remove`, 1));
-  ok(await post(`/calls/${callId}/join-requests`, 3));
+test('when the starter leaves, the person in the call longest becomes host and takes over the waiting requests', async () => {
+  const { callId, channelId } = await callWith([2, 5]);
+  ok(await post(`/calls/${callId}/participants/5/remove`, 1));
+  ok(await post(`/calls/${callId}/join`, 3, { socketId: 's3' }));
+  ok(await post(`/calls/${callId}/join-requests`, 5));
   const mark = events.length;
   ok(await post(`/calls/${callId}/leave`, 1));
-  assert.deepEqual(since(mark, 'call_join_answer'), [
+  // Ann (2) joined before Bob (3): she is the host now. Both are told; she is shown who is waiting.
+  assert.deepEqual(
+    since(mark, 'call_host_changed').map((e) => [e.to, e.id, e.p.host_user_id]),
+    [
+      ['socket', 's2', 2],
+      ['socket', 's3', 2],
+    ],
+  );
+  assert.deepEqual(since(mark, 'call_join_request'), [
     {
-      to: 'user',
-      id: 3,
-      ev: 'call_join_answer',
-      p: { call_id: callId, channel_id: channelId, accepted: false, reason: 'host_left' },
+      to: 'socket',
+      id: 's2',
+      ev: 'call_join_request',
+      p: { call_id: callId, channel_id: channelId, user_id: 5, user_name: 'Cy Sales' },
     },
   ]);
-  isErr(await post(`/calls/${callId}/join-requests`, 3), 403, 'host_gone');
-  isErr(await post(`/calls/${callId}/join`, 3, { socketId: 's3' }), 403, 'removed');
+  assert.equal(since(mark, 'call_join_answer').length, 0, 'nobody is turned away just because the starter left');
+  isErr(await post(`/calls/${callId}/participants/2/mute`, 3), 403, 'not_host');
+  ok(await post(`/calls/${callId}/participants/3/mute`, 2));
+  ok(await post(`/calls/${callId}/join-requests/5`, 2, { accept: true }));
+  ok(await post(`/calls/${callId}/join`, 5, { socketId: 's5' }));
+  assert.deepEqual(await inCall(callId), [2, 3, 5]);
+});
+
+test('the starter coming back is the host again, and everyone is told', async () => {
+  const { callId } = await callWith();
+  ok(await post(`/calls/${callId}/leave`, 1));
+  const mark = events.length;
+  const back = await post(`/calls/${callId}/join`, 1, { socketId: 's1b' });
+  ok(back);
+  assert.equal(back.body.hostId, 1);
+  assert.deepEqual(
+    since(mark, 'call_host_changed').map((e) => e.p.host_user_id),
+    [1, 1, 1],
+    'told on each of the three call devices',
+  );
+  isErr(await post(`/calls/${callId}/participants/3/mute`, 2), 403, 'not_host');
+  ok(await post(`/calls/${callId}/participants/3/mute`, 1));
+});
+
+test('joining tells you who the host is; a host muting says who did it', async () => {
+  const { callId } = await callWith([2]);
+  const joined = await post(`/calls/${callId}/join`, 3, { socketId: 's3' });
+  assert.equal(joined.body.hostId, 1);
+  ok(await post(`/calls/${callId}/leave`, 1));
+  const mark = events.length;
+  ok(await post(`/calls/${callId}/participants/3/mute`, 2));
+  assert.equal(since(mark, 'call_muted_by_host')[0].p.by_user_name, 'Ann Agent');
+  const seen = await request(app).get(`/api/chat/calls/${callId}`).set('Authorization', auth(3));
+  assert.equal(seen.body.hostId, 2);
+});
+
+test('being removed is marked as such in the "left" event', async () => {
+  const { callId } = await callWith();
+  const mark = events.length;
+  ok(await post(`/calls/${callId}/participants/3/remove`, 1));
+  assert.equal(since(mark, 'call_participant_left')[0].p.reason, 'removed');
+  ok(await post(`/calls/${callId}/leave`, 2));
+  assert.equal(since(mark, 'call_participant_left')[1].p.reason, undefined);
 });
 
 test('someone outside the channel can do none of this', async () => {

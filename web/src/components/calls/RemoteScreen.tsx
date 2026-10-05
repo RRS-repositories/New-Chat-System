@@ -1,4 +1,4 @@
-import { ExternalLink, Maximize2, Undo2 } from 'lucide-react';
+import { ExternalLink, Maximize2, MonitorUp, Undo2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTrackStream } from '../../hooks/useTrackStream.ts';
 import type { TrackLike } from '../../services/callManager.ts';
@@ -29,12 +29,19 @@ function showInWindow(target: Window, track: TrackLike, title: string) {
   doc.body.appendChild(video);
 }
 
+type Props = {
+  track: TrackLike;
+  /** Whose screen it is; "You" when it is the viewer's own. */
+  name: string;
+  own?: boolean;
+};
+
 /**
- * Someone's shared screen. Small in the call panel by default; "Full screen" fills this monitor,
- * and "Open in a separate window" moves it to its own browser window (drag it to a second monitor,
- * maximise it). The window shows the same live stream — nothing extra is sent or received.
+ * A shared screen, filling the stage. "Full screen" fills this monitor, and "Open in a separate
+ * window" moves it to its own browser window (drag it to a second monitor, maximise it). The
+ * window shows the same live stream — nothing extra is sent or received.
  */
-export function RemoteScreen({ track, name }: { track: TrackLike; name: string }) {
+export function RemoteScreen({ track, name, own = false }: Props) {
   const videoRef = useTrackStream<HTMLVideoElement>(track);
   const windowRef = useRef<Window | null>(null);
   const [inWindow, setInWindow] = useState(false);
@@ -80,51 +87,68 @@ export function RemoteScreen({ track, name }: { track: TrackLike; name: string }
   };
 
   return (
-    <figure className="call-screen">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        data-testid="call-remote-screen"
-        aria-label={`${name}'s screen`}
-        onDoubleClick={fullScreen}
-      />
-      <figcaption className="call-screen-bar">
-        <span className="muted call-name">
-          {inWindow ? `${name}'s screen is open in its own window` : `${name} is sharing their screen`}
+    <figure className="c-scr call-screen">
+      <figcaption className="c-scrtop call-screen-bar">
+        <span className="who">
+          <MonitorUp size={14} />
+          <span>
+            {inWindow ? (
+              <>
+                <b>{name}’s screen</b> is open in its own window
+              </>
+            ) : (
+              <>
+                <b>{own ? 'You are' : `${name} is`}</b> presenting
+              </>
+            )}
+          </span>
         </span>
-        <button
-          className="icon-btn"
-          data-testid="call-screen-full"
-          aria-label="Full screen"
-          title="Full screen"
-          onClick={fullScreen}
-        >
-          <Maximize2 size={15} />
-        </button>
-        {inWindow ? (
-          <button
-            className="icon-btn"
-            data-testid="call-screen-back"
-            aria-label="Close the separate window"
-            title="Close the separate window"
-            onClick={closeWindow}
-          >
-            <Undo2 size={15} />
-          </button>
-        ) : (
-          <button
-            className="icon-btn"
-            data-testid="call-screen-pop"
-            aria-label="Open in a separate window"
-            title="Open in a separate window"
-            onClick={openWindow}
-          >
-            <ExternalLink size={15} />
-          </button>
+        {!own && (
+          <>
+            <button
+              className="c-ic"
+              data-testid="call-screen-full"
+              aria-label="Full screen"
+              title="Full screen"
+              onClick={fullScreen}
+            >
+              <Maximize2 size={16} />
+            </button>
+            {inWindow ? (
+              <button
+                className="c-ic"
+                data-testid="call-screen-back"
+                aria-label="Close the separate window"
+                title="Close the separate window"
+                onClick={closeWindow}
+              >
+                <Undo2 size={16} />
+              </button>
+            ) : (
+              <button
+                className="c-ic"
+                data-testid="call-screen-pop"
+                aria-label="Open in a separate window"
+                title="Open in a separate window"
+                onClick={openWindow}
+              >
+                <ExternalLink size={16} />
+              </button>
+            )}
+          </>
         )}
       </figcaption>
+      <div className="c-scrbody">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          data-testid={own ? 'call-own-screen-stage' : 'call-remote-screen'}
+          aria-label={own ? 'Your shared screen' : `${name}'s screen`}
+          onDoubleClick={own ? undefined : fullScreen}
+        />
+      </div>
     </figure>
   );
 }

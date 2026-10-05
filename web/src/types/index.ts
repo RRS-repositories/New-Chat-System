@@ -152,4 +152,8 @@ export type CallJoinResponse = {
   iceServers: IceServerInfo[];
   /** People waiting to be let back in. Filled for the host only. */
   joinRequests?: JoinRequest[];
+  /** Who the host is right now (the starter, or a stand-in while the starter is out of the call). */
+  hostId?: number | null;
+  /** People with a hand raised. */
+  hands?: number[];
 };

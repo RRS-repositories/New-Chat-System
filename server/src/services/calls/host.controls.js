@@ -1,6 +1,8 @@
 /**
- * Host controls for a live call. The host is the person who started it (`call.initiatedBy`),
- * and only while they are in the call themselves.
+ * Host controls for a live call.
+ *
+ * The host is the person who started the call, while they are in it. If they leave and the call
+ * goes on, the person who has been in the call longest is the host until the starter comes back.
  *
  *  - Mute someone: that person's call device is told to mute. Nobody can unmute another person.
  *  - Remove someone: they leave the call and cannot simply join back.
@@ -24,26 +26,45 @@ export function createHostControls({
   leaveLocked,
   toSocket,
   toUser,
+  toCall,
   now,
   askAgainMs,
 }) {
   const removed = new Map(); // callId -> Set(userId): removed by the host, must ask to come back
   const requests = new Map(); // callId -> Map(userId -> userName): waiting for the host's answer
   const refused = new Map(); // callId -> Map(userId -> when the host said no)
+  const allowed = new Map(); // callId -> Set(userId): may join although not in the channel (invited into the call)
 
-  const hostDevice = (call) => devices.get(call.id)?.get(call.initiatedBy);
+  /** Who the host is right now: the starter if they are in the call, else whoever has been in it longest. */
+  function hostIdOf(call) {
+    const inCall = devices.get(call.id);
+    if (!inCall || !inCall.size) return null;
+    return inCall.has(call.initiatedBy) ? call.initiatedBy : inCall.keys().next().value;
+  }
+  const hostDevice = (call) => {
+    const hostId = hostIdOf(call);
+    return hostId == null ? undefined : devices.get(call.id)?.get(hostId);
+  };
   const mustBeCallId = (callId) => {
     if (!isUuid(callId)) throw httpError(404, 'not_found', 'Call not found');
   };
+  /** In the channel, or invited into this call from outside it. */
+  const mustBelong = async (call, userId) => {
+    if (allowed.get(call.id)?.has(userId)) return;
+    await mustBeMember(call.channelId, userId);
+  };
 
-  // The checks every host action shares: the call is live, the caller started it and is in it now.
+  // The checks every host action shares: the call is live, the caller is in it and is its host.
   async function asHost(callId, user) {
     const call = await mustFindCall(callId);
-    await mustBeMember(call.channelId, user.id);
+    await mustBelong(call, user.id);
     if (!LIVE.has(call.status)) throw httpError(409, 'call_ended', 'This call has ended');
-    if (call.initiatedBy !== user.id)
-      throw httpError(403, 'not_host', 'Only the person who started the call can do that');
-    if (!devices.get(callId)?.has(user.id)) throw httpError(403, 'not_in_call', 'You are not in this call');
+    if (!devices.get(callId)?.has(user.id)) {
+      // The starter who has stepped out is told they are not in the call; anyone else, that they are not the host.
+      if (call.initiatedBy === user.id) throw httpError(403, 'not_in_call', 'You are not in this call');
+      throw httpError(403, 'not_host', 'Only the host of the call can do that');
+    }
+    if (hostIdOf(call) !== user.id) throw httpError(403, 'not_host', 'Only the host of the call can do that');
     return call;
   }
 
@@ -58,22 +79,45 @@ export function createHostControls({
 
   const answer = (call, userId, extra) =>
     toUser(userId, 'call_join_answer', { call_id: call.id, channel_id: call.channelId, ...extra });
+  const waiting = (callId) => [...(requests.get(callId) || [])].map(([id, userName]) => ({ userId: id, userName }));
 
   return {
+    hostIdOf,
+    asHost,
+
     /** True when the host removed this person from this call and has not let them back in. */
     isRemoved: (callId, userId) => !!removed.get(callId)?.has(userId),
 
+    /** People invited into the call from outside its channel may join it (the call only, never the channel's messages). */
+    allow(callId, userId) {
+      if (!allowed.has(callId)) allowed.set(callId, new Set());
+      allowed.get(callId).add(userId);
+    },
+    disallow: (callId, userId) => allowed.get(callId)?.delete(userId),
+    isAllowed: (callId, userId) => !!allowed.get(callId)?.has(userId),
+
     /** The waiting requests, for the host only (so they reappear after the host reconnects). */
     joinRequestsFor(call, userId) {
-      if (userId !== call.initiatedBy) return [];
-      return [...(requests.get(call.id) || [])].map(([id, userName]) => ({ userId: id, userName }));
+      return userId === hostIdOf(call) ? waiting(call.id) : [];
     },
 
-    /** The host left a call that goes on: nobody can answer, so everyone waiting is told no. */
-    onHostLeft(call) {
-      for (const userId of requests.get(call.id)?.keys() || [])
-        answer(call, userId, { accepted: false, reason: 'host_left' });
-      requests.delete(call.id);
+    /**
+     * Someone joined or left. If that changed who the host is, everyone in the call is told, and
+     * the new host is shown the people still waiting to be let back in.
+     */
+    afterChange(call, previousHostId) {
+      const hostId = hostIdOf(call);
+      if (hostId === previousHostId || hostId == null) return;
+      toCall(call.id, 'call_host_changed', { call_id: call.id, channel_id: call.channelId, host_user_id: hostId });
+      const device = devices.get(call.id)?.get(hostId);
+      if (device === undefined) return;
+      for (const request of waiting(call.id))
+        toSocket(device, 'call_join_request', {
+          call_id: call.id,
+          channel_id: call.channelId,
+          user_id: request.userId,
+          user_name: request.userName,
+        });
     },
 
     /** The call is over. */
@@ -81,6 +125,7 @@ export function createHostControls({
       removed.delete(callId);
       requests.delete(callId);
       refused.delete(callId);
+      allowed.delete(callId);
     },
 
     async mute({ callId, user, targetUserId }) {
@@ -92,7 +137,7 @@ export function createHostControls({
           call_id: callId,
           channel_id: call.channelId,
           by_user_id: user.id,
-          by_user_name: call.initiatedByName || '',
+          by_user_name: user.fullName || call.initiatedByName || '',
         });
       });
     },
@@ -107,9 +152,9 @@ export function createHostControls({
         toUser(target, 'call_removed', {
           call_id: callId,
           channel_id: call.channelId,
-          by_user_name: call.initiatedByName || '',
+          by_user_name: user.fullName || call.initiatedByName || '',
         });
-        await leaveLocked(callId, target); // in a one-to-one call this ends it (and forgets everything here)
+        await leaveLocked(callId, target, { reason: 'removed' }); // in a one-to-one call this ends it (and forgets everything here)
       });
     },
 
@@ -118,12 +163,11 @@ export function createHostControls({
       mustBeCallId(callId);
       return withLock(callId, async () => {
         const call = await mustFindCall(callId);
-        await mustBeMember(call.channelId, user.id);
+        await mustBelong(call, user.id);
         if (!LIVE.has(call.status)) throw httpError(409, 'call_ended', 'This call has ended');
         if (!removed.get(callId)?.has(user.id)) throw httpError(400, 'not_removed', 'You can join this call directly');
         const host = hostDevice(call);
-        if (host === undefined)
-          throw httpError(403, 'host_gone', 'The host has left the call, so nobody can let you back in');
+        if (host === undefined) throw httpError(403, 'host_gone', 'Nobody is in the call to let you back in');
         const saidNoAt = refused.get(callId)?.get(user.id);
         if (saidNoAt !== undefined && now() - saidNoAt < askAgainMs)
           throw httpError(429, 'too_soon', 'The host said no. You can ask again in a minute.');

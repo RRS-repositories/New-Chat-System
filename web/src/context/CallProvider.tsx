@@ -12,11 +12,18 @@ import { getMicrophone, getScreen } from '../services/media.ts';
 import type { CallJoinResponse, JoinRequest } from '../types/index.ts';
 import { callErrorText } from '../utils/callErrors.ts';
 import { stopRingtone } from '../utils/ringtone.ts';
-import { CallContext, type ActiveCall, type CallContextValue } from './callContext.ts';
+import { CallContext, type ActiveCall, type CallContextValue, type CallReaction } from './callContext.ts';
 import { callReducer, initialCallState } from './callState.ts';
 import { useChat } from './chatContext.ts';
 
-const NOBODY: CallSnapshot = { muted: false, sharing: false, ownScreenTrack: null, participants: [] };
+const NOBODY: CallSnapshot = {
+  muted: false,
+  sharing: false,
+  ownScreenTrack: null,
+  ownAudioTrack: null,
+  participants: [],
+};
+const MAX_REACTIONS_SHOWN = 24;
 const NOTICE_SHOWN_MS = 6000;
 
 type Props = { socket: Socket; getToken: () => string | null; children: ReactNode };
@@ -33,9 +40,13 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const [activeByChannel, setActive] = useState<Record<string, ActiveCall>>({});
   const [panelError, setPanelError] = useState<string | null>(null);
   const [panelNote, setPanelNote] = useState<string | null>(null);
+  const [hands, setHands] = useState<number[]>([]);
+  const [reactions, setReactions] = useState<CallReaction[]>([]);
+  const nextReaction = useRef(1);
   const prefsRef = useLatest(state.prefs);
 
   const ui = useLatest(call);
+  const handsRef = useLatest(hands);
   const manager = useRef<CallManager | null>(null);
   const callId = useRef<string | null>(null);
   const joinedSocket = useRef<string | null>(null);
@@ -81,6 +92,8 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setPanelError(null);
     setPanelNote(null);
     setJoinRequests([]);
+    setHands([]);
+    setReactions([]);
   }, []);
 
   const tellServerILeft = useCallback(
@@ -152,12 +165,16 @@ export function CallProvider({ socket, getToken, children }: Props) {
       let createdId: string | null = null;
       let hostId: number | null = null;
       let waiting: JoinRequest[] = [];
+      let raised: number[] = [];
+      let since = Date.now();
       try {
         const joined = await current.connect(async () => {
           const answer = await request(socketId);
           createdId = answer.call.id;
-          hostId = answer.call.initiatedBy;
+          hostId = answer.hostId ?? answer.call.initiatedBy;
           waiting = answer.joinRequests ?? [];
+          raised = answer.hands ?? [];
+          since = answer.call.startedAt ? Date.parse(answer.call.startedAt) : Date.now();
           if (stillCurrent()) callId.current = answer.call.id;
           // Anyone who joined (and offered) before this answer arrived: the manager holds them until the connections are built.
           const early = startBuffer.current;
@@ -168,8 +185,9 @@ export function CallProvider({ socket, getToken, children }: Props) {
         if (!stillCurrent()) return;
         joinedSocket.current = socketId;
         const id = createdId!;
-        dispatch({ type: 'joined', callId: id, channelId, hostId });
+        dispatch({ type: 'joined', callId: id, channelId, hostId, since });
         setJoinRequests(waiting);
+        setHands(raised);
         setSnapshot(current.snapshot());
         setChannelCall(channelId, () => ({ callId: id, participantIds: joined.participants.map((p) => p.userId) }));
       } catch (e) {
@@ -267,6 +285,24 @@ export function CallProvider({ socket, getToken, children }: Props) {
     if (!result.ok && result.reason !== 'cancelled' && manager.current === current) setPanelError(result.message);
   }, []);
 
+  const toggleHand = useCallback(() => {
+    if (!callId.current) return;
+    socket.emit('call_hand', { call_id: callId.current, up: !handsRef.current.includes(user.id) });
+  }, [socket, user.id, handsRef]);
+
+  const sendReaction = useCallback(
+    (emoji: string) => {
+      if (callId.current) socket.emit('call_reaction', { call_id: callId.current, emoji });
+    },
+    [socket],
+  );
+
+  const showReaction = useCallback((userId: number, emoji: string) => {
+    const id = nextReaction.current++;
+    setReactions((list) => [...list.slice(-(MAX_REACTIONS_SHOWN - 1)), { id, userId, emoji }]);
+  }, []);
+  const dismissReaction = useCallback((id: number) => setReactions((list) => list.filter((r) => r.id !== id)), []);
+
   const clearMessages = useCallback(() => {
     dispatch({ type: 'error', error: null });
     dispatch({ type: 'notice', notice: null });
@@ -282,6 +318,8 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setChannelCall,
     setJoinRequests,
     setPanelNote,
+    setHands,
+    showReaction,
     joinDirect,
   });
   useActiveChannelCall({ callApi, socket, channelId: currentChannelId, setChannelCall });
@@ -323,12 +361,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     [callApi],
   );
 
-  // On wide screens the call panel docks on the right: the page makes room for it (see calls.css `body.in-call`).
   const busy = call.phase === 'joining' || call.phase === 'in-call';
-  useEffect(() => {
-    document.body.classList.toggle('in-call', busy);
-    return () => document.body.classList.remove('in-call');
-  }, [busy]);
 
   // So does the note in the call panel.
   useEffect(() => {
@@ -356,12 +389,17 @@ export function CallProvider({ socket, getToken, children }: Props) {
       panelNote,
       isHost,
       joinRequests,
+      hands,
+      reactions,
       startCall,
       joinCall,
       declineCall,
       leaveCall,
       toggleMute,
       toggleShare,
+      toggleHand,
+      sendReaction,
+      dismissReaction,
       muteParticipant,
       removeParticipant,
       answerJoinRequest,
@@ -377,12 +415,17 @@ export function CallProvider({ socket, getToken, children }: Props) {
       panelNote,
       isHost,
       joinRequests,
+      hands,
+      reactions,
       startCall,
       joinCall,
       declineCall,
       leaveCall,
       toggleMute,
       toggleShare,
+      toggleHand,
+      sendReaction,
+      dismissReaction,
       muteParticipant,
       removeParticipant,
       answerJoinRequest,

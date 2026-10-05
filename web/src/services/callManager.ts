@@ -92,6 +92,8 @@ export type CallSnapshot = {
   sharing: boolean;
   /** My own shared screen while I am sharing (shown back to me as a small preview). Never sent anywhere extra. */
   ownScreenTrack: TrackLike | null;
+  /** My own microphone, for the "speaking" light on my tile and for recording. */
+  ownAudioTrack: TrackLike | null;
   participants: RemoteParticipant[];
 };
 export type ShareResult =
@@ -464,6 +466,7 @@ export class CallManager {
       muted: this.muted,
       sharing: !!this.screen,
       ownScreenTrack: this.screen?.track ?? null,
+      ownAudioTrack: this.mic?.getAudioTracks()[0] ?? null,
       participants: [...this.peers.values()].map((p) => ({
         userId: p.userId,
         userName: p.userName,

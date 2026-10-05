@@ -65,6 +65,12 @@ const inCallCount = (page, n) =>
       timeout: 15000,
     },
   );
+/** Opens the menu on one person's tile in the call. */
+const openTileMenu = async (page, name) => {
+  const tile = row(page, name);
+  await tile.hover();
+  await tile.locator(tid('call-tile-menu')).click();
+};
 const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-label');
 
 (async () => {
@@ -153,14 +159,21 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
       const tags = await p.page.locator('.call-host-tag').count();
       if (tags !== 1) throw new Error(`${p.label} sees ${tags} host tags`);
     }
-    if ((await meg.page.locator(tid('call-host-mute')).count()) !== 2) throw new Error('host lacks mute buttons');
-    if ((await meg.page.locator(tid('call-host-remove')).count()) !== 2) throw new Error('host lacks remove buttons');
-    for (const p of [ann, bob])
+    await openTileMenu(meg.page, 'Ann Agent');
+    await meg.page.waitForSelector(tid('call-host-mute'));
+    await meg.page.waitForSelector(tid('call-host-remove'));
+    await meg.page.keyboard.press('Escape');
+    for (const p of [ann, bob]) {
+      await openTileMenu(p.page, p === ann ? 'Bob Sales' : 'Ann Agent');
+      await p.page.locator('.cmenu .hint', { hasText: 'is the host' }).waitFor({ timeout: 5000 });
       if (await p.page.locator(`${tid('call-host-mute')}, ${tid('call-host-remove')}`).count())
         throw new Error(`${p.label} has host buttons`);
+      await p.page.keyboard.press('Escape');
+    }
   });
   await step('the host mutes Ann: Ann is muted and told so; the host has no way to unmute her', async () => {
-    await row(meg.page, 'Ann Agent').locator(tid('call-host-mute')).click();
+    await openTileMenu(meg.page, 'Ann Agent');
+    await meg.page.click(tid('call-host-mute'));
     await ann.page.waitForFunction(
       (sel) => document.querySelector(sel)?.getAttribute('aria-label') === 'Unmute',
       tid('call-mute'),
@@ -169,8 +182,10 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
     await ann.page.locator(tid('call-panel-note'), { hasText: 'muted you' }).waitFor({ timeout: 8000 });
     await row(meg.page, 'Ann Agent').locator('[aria-label="muted"]').waitFor({ timeout: 8000 });
     await row(bob.page, 'Ann Agent').locator('[aria-label="muted"]').waitFor({ timeout: 8000 });
-    if (!(await row(meg.page, 'Ann Agent').locator(tid('call-host-mute')).isDisabled()))
-      throw new Error('the host can still press mute on a muted person');
+    await openTileMenu(meg.page, 'Ann Agent');
+    const stillAllowed = !(await meg.page.locator(tid('call-host-mute')).isDisabled());
+    await meg.page.keyboard.press('Escape');
+    if (stillAllowed) throw new Error('the host can still press mute on a muted person');
   });
   await step('Ann unmutes herself', async () => {
     await ann.page.click(tid('call-mute'));
@@ -185,14 +200,16 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
     );
   });
   await step('removing asks first: "No" keeps the person in the call', async () => {
-    await row(meg.page, 'Bob Sales').locator(tid('call-host-remove')).click();
+    await openTileMenu(meg.page, 'Bob Sales');
+    await meg.page.click(tid('call-host-remove'));
     await meg.page.getByRole('button', { name: 'No, keep them in the call' }).click();
     await meg.page.waitForTimeout(500);
     await inCallCount(meg.page, 3);
     if (!(await bob.page.locator(tid('call-panel')).count())) throw new Error('Bob was removed on "No"');
   });
   await step('the host removes Bob: Bob is out and told why; the call goes on for the others', async () => {
-    await row(meg.page, 'Bob Sales').locator(tid('call-host-remove')).click();
+    await openTileMenu(meg.page, 'Bob Sales');
+    await meg.page.click(tid('call-host-remove'));
     await meg.page.click(tid('call-host-remove-yes'));
     await gone(bob.page, tid('call-panel'));
     await bob.page.getByText('The host removed you from the call').first().waitFor({ timeout: 8000 });
@@ -221,7 +238,8 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
   await step(
     'removed again (and Bob reloads his page): still has to ask; the host refuses; Bob stays out and is told',
     async () => {
-      await row(meg.page, 'Bob Sales').locator(tid('call-host-remove')).click();
+      await openTileMenu(meg.page, 'Bob Sales');
+      await meg.page.click(tid('call-host-remove'));
       await meg.page.click(tid('call-host-remove-yes'));
       await gone(bob.page, tid('call-panel'));
       // Bob reloads the page, so his browser no longer knows he was removed: the server still does.

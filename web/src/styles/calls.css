@@ -1,267 +1,1195 @@
-/* Calls: the banner, the incoming-call dialog, the call panel and the shared screen. */
-.msg-call {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  text-align: center;
-}
-.call-banner,
-.call-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-}
-.call-banner {
-  background: var(--green-soft);
-  color: var(--green);
-}
-.call-banner-text {
-  flex: 1;
-  min-width: 0;
-}
-.call-note {
-  justify-content: space-between;
-  color: var(--text-2);
-}
-.call-note.is-error {
-  color: var(--red);
-  background: var(--red-soft);
-}
-.call-scrim {
-  z-index: 45;
-}
-.incoming-call {
-  max-width: 320px;
-  justify-items: center;
-  text-align: center;
-}
-.incoming-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--green-soft);
-  color: var(--call);
-}
-.incoming-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-.incoming-call p {
-  margin: 0;
-}
-.incoming-actions {
-  justify-content: center;
-}
-.call-accept {
-  background: var(--call);
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-}
-.call-decline {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  color: var(--red);
-}
-body.in-call #root {
-  padding-right: var(--call-w);
-}
-.call-panel {
+/* The call screen: a dark stage over the app, people as tiles, a glass dock of controls, and the
+   small floating pill while the call is minimised. Always dark, whatever the theme mode. */
+.callov {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: var(--call-w);
-  z-index: 16;
+  inset: 0;
+  z-index: 200;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
-  border-left: 1px solid var(--border);
-}
-.call-head {
-  height: 48px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--call);
-}
-.call-title {
-  color: var(--text);
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.call-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 8px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.call-screen {
-  margin: 0 12px;
-  display: grid;
-  gap: 4px;
-}
-.call-screen video {
-  width: 100%;
-  max-height: 60vh;
-  aspect-ratio: 16 / 10;
-  object-fit: contain;
+  color: var(--dk-text);
   background: var(--dk);
-  border-radius: var(--radius);
-}
-.call-self-share {
-  margin: 0 12px;
-}
-.call-screen.call-own-screen video {
-  max-height: 28vh;
-  cursor: default;
-}
-.call-own-screen .call-self-share {
-  margin: 0;
-}
-.call-people {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.call-person {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-}
-.call-name {
-  flex: 1;
-  min-width: 0;
+  isolation: isolate;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-.call-person.state-lost .call-name {
-  color: var(--text-2);
+.callov::before,
+.callov::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  pointer-events: none;
 }
-.call-lost {
-  color: var(--red);
+.callov::before {
+  width: 560px;
+  height: 560px;
+  left: -140px;
+  top: -180px;
+  background: radial-gradient(circle, rgba(var(--vrgb), 0.85), transparent 70%);
+  animation: aur1 16s ease-in-out infinite alternate;
 }
-.call-panel .error {
-  padding: 0 12px;
+.callov::after {
+  width: 520px;
+  height: 520px;
+  right: -160px;
+  bottom: -200px;
+  background: radial-gradient(circle, rgba(var(--vrgb), 0.6), transparent 70%);
+  animation: aur2 19s ease-in-out infinite alternate;
 }
-.call-controls {
-  flex: none;
-  display: flex;
-  gap: 6px;
-  padding: 8px 12px 12px;
-  border-top: 1px solid var(--border);
-}
-.call-btn {
-  flex: 1;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 12px;
-}
-.call-btn:hover {
-  background: var(--hover);
-}
-.call-btn.on {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--violet-soft);
-}
-.call-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.call-btn.call-leave {
-  color: var(--on-accent);
-  background: var(--red);
-  border-color: var(--red);
-}
-@media (max-width: 720px) {
-  body.in-call #root {
-    padding-right: 0;
+@keyframes aur1 {
+  from {
+    transform: translate(0, 0);
   }
-  .call-panel {
-    width: auto;
-    left: 0;
-    z-index: 35;
-    border-left: 0;
-  }
-  .call-panel.collapsed {
-    top: auto;
-    border-top: 1px solid var(--border);
-    box-shadow: 0 -2px 8px rgba(17, 24, 39, 0.08);
-  }
-  body.in-call:has(.call-panel.collapsed) #root {
-    padding-bottom: 112px;
+  to {
+    transform: translate(70px, 50px);
   }
 }
-.call-screen-bar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.call-screen video {
-  cursor: zoom-in;
-}
-.call-screen video:fullscreen {
-  max-height: none;
-  border-radius: 0;
-  cursor: default;
+@keyframes aur2 {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-60px, -60px);
+  }
 }
 
-/* Host controls: mute and remove beside each person, and the people asking to come back. */
-.call-host-tag {
-  flex: none;
-  font-size: 11px;
-  line-height: 16px;
-}
-.call-host-actions {
-  flex: none;
-  display: inline-flex;
+/* Top bar */
+.c-top {
+  flex: 0 0 auto;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 12px;
+  padding: 12px 16px;
+  min-height: 56px;
+}
+.c-top .nm {
+  font-weight: 800;
+  font-size: 14.5px;
+  letter-spacing: -0.01em;
+}
+.c-top .st {
+  color: var(--dk-mut);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.c-live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2bd576;
+  animation: cpulse 2.2s infinite;
+}
+@keyframes cpulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(43, 213, 118, 0.4);
+  }
+  60% {
+    box-shadow: 0 0 0 6px rgba(43, 213, 118, 0);
+  }
+}
+.c-top .sp {
+  flex: 1;
+}
+.c-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--dk-mut);
+  transition:
+    background 0.14s,
+    color 0.14s;
+}
+.c-ic:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.c-pills {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.c-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--dk-glass);
+  border: 1px solid var(--dk-line);
+  font-size: 11.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(10px);
+  color: #e6e8fa;
+}
+.c-pill.rec {
+  color: #ff9aa0;
+  border-color: rgba(229, 72, 77, 0.45);
+}
+.c-pill.rec i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse-r 1.6s infinite;
+}
+@keyframes pulse-r {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.c-pill.bo {
+  color: var(--violet-3);
+  border-color: rgba(var(--vrgb), 0.45);
+}
+
+/* Notes inside the call (the host muted you, sharing refused) and people asking to come back */
+.c-notes {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+.c-notes:empty {
+  display: none;
+}
+.c-note {
+  margin: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--dk-glass);
+  border: 1px solid var(--dk-line);
+  backdrop-filter: blur(10px);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e6e8fa;
+}
+.c-note.is-error {
+  color: #ff9aa0;
+  border-color: rgba(229, 72, 77, 0.45);
 }
 .call-requests {
   list-style: none;
-  margin: 0 12px;
+  margin: 0;
   padding: 0;
-  border: 1px solid var(--accent-line);
-  border-radius: var(--radius);
-  background: var(--accent-soft);
+  display: grid;
+  gap: 6px;
 }
 .call-request {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--accent-line);
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 15px;
+  background: var(--dk-glass);
+  border: 1px solid rgba(var(--vrgb), 0.45);
+  backdrop-filter: blur(12px);
+  font-size: 12.5px;
+  color: #fff;
 }
-.call-request:last-child {
-  border-bottom: 0;
+.call-request .call-name {
+  flex: 1;
+  font-weight: 700;
 }
-.call-note-line {
+.call-request button {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 12px;
+  border-radius: 10px;
+}
+.call-request .ok {
+  background: var(--grad);
+  color: #fff;
+}
+.call-request .no {
+  color: var(--dk-mut);
+  border: 1px solid var(--dk-line);
+}
+
+/* Stage: the grid of people, or a shared screen with the people in a strip under it */
+.cstage {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 16px 10px;
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+.c-present {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+}
+/* grid-auto-rows: 1fr is essential: the tiles size themselves from their container and collapse to no height without it. */
+.c-grid {
+  flex: 1;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(var(--cols, 1), 1fr);
+  grid-auto-rows: 1fr;
+  min-height: 0;
+}
+.c-tile {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  container-type: size;
+  background: radial-gradient(
+    125% 115% at 28% 16%,
+    hsl(var(--h) 56% 48%) 0%,
+    hsl(var(--h) 60% 30%) 58%,
+    hsl(var(--h) 62% 20%) 100%
+  );
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  transition:
+    outline-color 0.2s,
+    box-shadow 0.2s,
+    opacity 0.2s;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 20px 50px -22px rgba(0, 0, 0, 0.65);
+}
+.c-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: var(--noise);
+}
+.c-tile.speaking {
+  outline-color: rgba(122, 243, 178, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1px rgba(34, 197, 94, 0.35),
+    0 14px 48px -14px rgba(34, 197, 94, 0.45);
+}
+.c-tile.state-lost,
+.c-tile.away {
+  opacity: 0.45;
+}
+.c-tile .av {
+  width: clamp(50px, 27cqmin, 120px);
+  height: clamp(50px, 27cqmin, 120px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  font-weight: 700;
+  font-size: clamp(18px, 10cqmin, 44px);
+  background: rgba(255, 255, 255, 0.17);
+  color: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+    0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.c-tile .av img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.c-tile.speaking .av {
+  animation: spk 1.6s ease-in-out infinite;
+}
+@keyframes spk {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+      0 0 0 0 rgba(143, 246, 186, 0.5);
+  }
+  55% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+      0 0 0 12px rgba(143, 246, 186, 0);
+  }
+}
+.c-tile .nmr {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100% - 54px);
+  background: rgba(8, 10, 24, 0.6);
+  backdrop-filter: blur(10px);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.c-tile .nmr .t {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.c-tile .nmr .yx {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+.c-mic {
+  color: #ff9aa0;
+  flex: 0 0 auto;
+}
+.c-share {
+  color: var(--violet-3);
+  flex: 0 0 auto;
+}
+.c-eq {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+.c-tile.speaking .c-eq {
+  display: flex;
+}
+.c-eq i {
+  width: 3px;
+  border-radius: 2px;
+  background: #8ff6ba;
+  animation: eq 0.9s ease-in-out infinite;
+}
+.c-eq i:nth-child(1) {
+  height: 5px;
+}
+.c-eq i:nth-child(2) {
+  height: 11px;
+  animation-delay: 0.15s;
+}
+.c-eq i:nth-child(3) {
+  height: 8px;
+  animation-delay: 0.3s;
+}
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.c-hand {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 158, 11, 0.95);
+  color: #241700;
+  box-shadow: 0 6px 14px -4px rgba(245, 158, 11, 0.6);
+  animation: handup 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes handup {
+  from {
+    transform: translateY(8px) scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.c-dots {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 10, 24, 0.55);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s;
+  backdrop-filter: blur(8px);
+}
+.c-tile:hover .c-dots,
+.c-dots:focus-visible,
+.c-dots[aria-expanded='true'] {
+  opacity: 1;
+}
+@media (hover: none) {
+  .c-dots {
+    opacity: 0.85;
+  }
+}
+.c-tile .c-state {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(8, 10, 24, 0.6);
+  font-size: 11px;
+  font-weight: 700;
+  color: #e6e8fa;
+  white-space: nowrap;
+}
+.c-tile .c-state.call-lost {
+  color: #ff9aa0;
+}
+/* A placeholder tile for someone being rung into the call */
+.ringov {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 10, 24, 0.55);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.ringov .ph {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 8px;
+  color: #fff;
+  animation: bnc 1.2s ease-in-out infinite;
+}
+.ringov p {
   margin: 0;
-  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e6e8fa;
+}
+
+/* A shared screen */
+.c-scr {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+  background: #090c1c;
+  border: 1px solid var(--dk-line);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.8);
+}
+.c-scrtop {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 13px;
+  background: rgba(255, 255, 255, 0.035);
+  border-bottom: 1px solid var(--dk-line);
+}
+.c-scrtop .who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dk-mut);
+}
+.c-scrtop .who b {
+  color: #fff;
+}
+.c-scrtop .who svg {
+  color: var(--violet-2);
+}
+.c-scrbody {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+/* The shared content keeps its own colours: it is someone's real screen. */
+.c-scrbody video,
+.selfpv .ph video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #05070f;
+}
+.c-scrbody video {
+  cursor: zoom-in;
+}
+.c-scrbody video:fullscreen {
+  cursor: default;
+}
+.c-strip {
+  display: flex;
+  gap: 10px;
+  height: 104px;
+  flex: 0 0 auto;
+  overflow-x: auto;
+}
+.c-strip .c-tile {
+  flex: 0 0 148px;
+  border-radius: 13px;
+}
+.c-strip .c-tile .av {
+  width: 42px;
+  height: 42px;
+  font-size: 15px;
+}
+.c-strip .c-tile .nmr {
+  left: 7px;
+  bottom: 7px;
+  padding: 3px 8px;
+  font-size: 10.5px;
+}
+/* The sharer's own preview, in the corner */
+.selfpv {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 212px;
+  margin: 0;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid rgba(var(--vrgb), 0.55);
+  background: #090c1c;
+  box-shadow: 0 18px 48px -14px rgba(0, 0, 0, 0.8);
+  z-index: 5;
+  animation: srise 0.2s;
+}
+.selfpv .ph {
+  height: 106px;
+  position: relative;
+  background: #0d1126;
+}
+.selfpv .cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--dk-glass);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.selfpv .cap span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--violet-3);
+}
+.selfpv .cap button {
+  color: #ff9aa0;
+  font-weight: 800;
+  font-size: 11.5px;
+  padding: 4px 9px;
+  border-radius: 7px;
+}
+.selfpv .cap button:hover {
+  background: rgba(229, 72, 77, 0.15);
+}
+
+/* Dock */
+.c-dock {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 0 12px 16px;
+  position: relative;
+  z-index: 20;
+}
+.c-dockin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 24px;
+  background: var(--dk-glass);
+  border: 1px solid var(--dk-line);
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 24px 70px -20px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.cc {
+  width: 52px;
+  height: 52px;
+  border-radius: 17px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  position: relative;
+  transition:
+    background 0.15s,
+    transform 0.08s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.cc:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+.cc:active:not(:disabled) {
+  transform: scale(0.93);
+}
+.cc:disabled {
+  opacity: 0.35;
+}
+.cc.off {
+  background: linear-gradient(135deg, #f0565c, #d63238);
+  box-shadow:
+    0 8px 20px -6px rgba(229, 72, 77, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.cc.lit {
+  background: var(--grad);
+  box-shadow:
+    0 8px 20px -6px rgba(var(--vrgb), 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.cc.amb {
+  background: linear-gradient(135deg, #ffb038, #e8930c);
+  color: #241700;
+  box-shadow:
+    0 8px 20px -6px rgba(245, 158, 11, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.cc .lbl {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #080a18;
+  border: 1px solid var(--dk-line);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.cc:hover .lbl,
+.cc:focus-visible .lbl {
+  opacity: 1;
+}
+.c-leave {
+  width: 70px;
+  height: 52px;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #f0565c, #d63238);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  margin-left: 4px;
+  transition:
+    filter 0.15s,
+    transform 0.08s;
+  box-shadow:
+    0 10px 24px -8px rgba(229, 72, 77, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.c-leave:hover {
+  filter: brightness(1.1);
+}
+.c-leave:active {
+  transform: scale(0.95);
+}
+.c-sep {
+  width: 1px;
+  height: 28px;
+  flex: 0 0 auto;
+  background: var(--dk-line);
+}
+
+/* Reactions: the picker above the dock, and the emoji that float up */
+.crpick {
+  position: absolute;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+  padding: 7px;
+  background: var(--dk-glass);
+  border: 1px solid var(--dk-line);
+  border-radius: 999px;
+  backdrop-filter: blur(18px);
+  z-index: 30;
+  box-shadow: 0 18px 50px -16px rgba(0, 0, 0, 0.7);
+}
+.crpick button {
+  width: 41px;
+  height: 41px;
+  border-radius: 50%;
+  font-size: 20px;
+  display: grid;
+  place-items: center;
+  transition:
+    transform 0.1s,
+    background 0.12s;
+}
+.crpick button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.16);
+}
+.crlayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 25;
+}
+.remoji {
+  position: absolute;
+  bottom: 96px;
+  font-size: 29px;
+  text-align: center;
+  animation: rfloat 2.5s ease-out forwards;
+}
+.remoji small {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(8, 10, 24, 0.7);
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-top: 3px;
+}
+@keyframes rfloat {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(-28px) scale(1.08);
+  }
+  100% {
+    transform: translateY(-52vh) translateX(var(--dx, 20px));
+    opacity: 0;
+  }
+}
+
+/* Ring screens: calling someone, and the incoming-call card */
+.c-ring {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: rgba(9, 11, 26, 0.6);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+}
+.ring-glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  background: radial-gradient(circle, hsl(var(--h) 65% 45%), transparent 70%);
+  pointer-events: none;
+}
+.ring-av {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  margin-bottom: 26px;
+}
+.ring-av .c {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 42px;
+  font-weight: 700;
+  color: #fff;
+  z-index: 2;
+  background: radial-gradient(130% 130% at 30% 20%, hsl(var(--h) 56% 50%), hsl(var(--h) 60% 28%));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 20px 50px -14px hsl(var(--h) 60% 30% / 0.9);
+}
+.ring-av .c img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.ring-av .w {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--vrgb), 0.55);
+  animation: wave 2s ease-out infinite;
+}
+.ring-av .w:nth-child(2) {
+  animation-delay: 0.65s;
+}
+@keyframes wave {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+.c-ring h2 {
+  margin: 0 0 5px;
+  font-size: 26px;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+}
+.c-ring p {
+  margin: 0 0 36px;
+  color: var(--dk-mut);
+  font-variant-numeric: tabular-nums;
+}
+.ring-acts {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+}
+.ring-act {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--dk-mut);
+  font-weight: 700;
+}
+.rbtn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  transition:
+    transform 0.1s,
+    filter 0.15s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.rbtn:hover {
+  filter: brightness(1.12);
+}
+.rbtn:active {
+  transform: scale(0.94);
+}
+.rbtn.yes {
+  background: linear-gradient(135deg, #2ed47a, #179a4e);
+  animation: bnc 1.4s ease-in-out infinite;
+  box-shadow:
+    0 14px 34px -10px rgba(34, 197, 94, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+@keyframes bnc {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.rbtn.no {
+  background: linear-gradient(135deg, #f0565c, #d63238);
+  box-shadow:
+    0 14px 34px -10px rgba(229, 72, 77, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.rbtn.msg {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.rbtn.msg:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.incbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background: rgba(7, 9, 22, 0.55);
+  backdrop-filter: blur(8px);
+  padding: 16px;
+}
+.inc-card {
+  width: min(400px, 100%);
+  background: var(--dk-glass);
+  border: 1px solid var(--dk-line);
+  border-radius: 24px;
+  backdrop-filter: blur(22px);
+  box-shadow:
+    0 36px 100px -26px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 26px 20px 20px;
+  text-align: center;
+  color: var(--dk-text);
+  animation: srise 0.22s cubic-bezier(0.18, 1.15, 0.4, 1);
+}
+.inc-card .ring-av {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 18px;
+}
+.inc-card .ring-av .c {
+  font-size: 33px;
+}
+.inc-card h2 {
+  margin: 0 0 4px;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+.inc-sub {
+  margin: 0 0 24px;
+  color: var(--dk-mut);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.inc-acts {
+  gap: 30px;
+}
+.inc-acts .rbtn {
+  width: 56px;
+  height: 56px;
+}
+.inc-replies {
+  display: flex;
+  margin-top: 20px;
+  gap: 7px;
+  flex-direction: column;
+  text-align: left;
+  animation: srise 0.18s;
+}
+.inc-q {
+  width: 100%;
+  text-align: left;
+  padding: 10px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--dk-line);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6e8fa;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.inc-q:hover {
+  background: rgba(var(--vrgb), 0.2);
+  border-color: rgba(var(--vrgb), 0.5);
+}
+.inc-type {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+.inc-type input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--dk-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 16px;
+  outline: none;
+}
+.inc-type input:focus {
+  border-color: var(--violet-2);
+}
+.inc-type input::placeholder {
+  color: var(--dk-mut);
+}
+.inc-type button {
+  width: 42px;
+  border-radius: 12px;
+  background: var(--grad);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  box-shadow: 0 6px 14px -5px rgba(var(--vrgb), 0.7);
+}
+
+/* The call, minimised: a floating pill in the corner while you use the chat */
+.mini {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 19px;
+  color: #fff;
+  background: var(--dk-glass);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--dk-line);
+  box-shadow:
+    0 24px 64px -18px rgba(12, 15, 34, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: srise 0.2s;
+}
+.mini .mi-i {
+  min-width: 0;
+}
+.mini .mi-i b {
+  display: block;
+  font-size: 12.5px;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 800;
+}
+.mini .mi-i span {
+  font-size: 11px;
+  color: var(--dk-mut);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.mini .c-live {
+  width: 6px;
+  height: 6px;
+  animation: none;
+  box-shadow: 0 0 7px rgba(43, 213, 118, 0.9);
+}
+.mini button {
+  width: 37px;
+  height: 37px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.13s;
+}
+.mini button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.mini button.off,
+.mini button.hang {
+  background: linear-gradient(135deg, #f0565c, #d63238);
+}
+.mini button.hang:hover {
+  filter: brightness(1.1);
+}
+
+/* Menus opened from inside the call are dark, like the call */
+.cmenu.dark {
+  background: rgba(15, 18, 39, 0.96);
+  border-color: var(--dk-line);
+  color: #fff;
+}
+.cmenu.dark button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+.cmenu.dark button:disabled {
+  color: var(--dk-mut);
+}
+.cmenu.dark .hint {
+  color: var(--dk-mut);
+}
+.cmenu.dark button.danger {
+  color: #ff9aa0;
+}
+.cmenu.dark button.danger:hover:not(:disabled) {
+  background: rgba(229, 72, 77, 0.18);
+}
+
+@media (max-width: 760px) {
+  .c-dockin {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .cstage {
+    padding: 4px 10px 8px;
+  }
+  .c-grid {
+    gap: 8px;
+  }
+  .cc {
+    width: 47px;
+    height: 47px;
+    border-radius: 14px;
+  }
+  .c-leave {
+    width: 58px;
+    height: 47px;
+    border-radius: 14px;
+  }
+  .cc .lbl {
+    display: none;
+  }
+  .c-strip {
+    height: 86px;
+  }
+  .c-strip .c-tile {
+    flex: 0 0 120px;
+  }
+  .selfpv {
+    width: 154px;
+  }
+  .selfpv .ph {
+    height: 80px;
+  }
+  .mini {
+    right: 10px;
+    bottom: 10px;
+  }
 }

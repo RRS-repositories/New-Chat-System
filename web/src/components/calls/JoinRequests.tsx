@@ -14,7 +14,7 @@ export function JoinRequests({ requests, onAnswer }: Props) {
         <li key={request.userId} className="call-request" data-testid="call-request" data-user-id={request.userId}>
           <span className="call-name">{request.userName} asks to rejoin</span>
           <button
-            className="btn-accent btn-small"
+            className="ok"
             data-testid="call-request-accept"
             aria-label={`Let ${request.userName} back in`}
             onClick={() => onAnswer(request.userId, true)}
@@ -22,7 +22,7 @@ export function JoinRequests({ requests, onAnswer }: Props) {
             Let in
           </button>
           <button
-            className="btn-ghost btn-small"
+            className="no"
             data-testid="call-request-refuse"
             aria-label={`Refuse ${request.userName}`}
             onClick={() => onAnswer(request.userId, false)}
