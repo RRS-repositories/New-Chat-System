@@ -329,3 +329,41 @@
   height: 10px;
   border: 2.5px solid #181c39;
 }
+
+/* Presence in the sidebar. The sidebar is dark in every theme, so the dots are drawn for a dark
+   background: larger, bright when online, amber when away, and a clear hollow ring when offline. */
+.s-item .dmav .dot,
+.s-me .dmav .dot {
+  width: 12px;
+  height: 12px;
+  right: -3px;
+  bottom: -3px;
+  border: 2px solid var(--side);
+  box-sizing: border-box;
+}
+.s-item .dmav .dot.online,
+.s-me .dmav .dot.online {
+  background: var(--pres-on);
+  box-shadow: 0 0 8px rgba(52, 224, 127, 0.9);
+}
+.s-item .dmav .dot.away,
+.s-me .dmav .dot.away {
+  background: var(--pres-away);
+  box-shadow: 0 0 6px rgba(255, 184, 41, 0.6);
+}
+.s-item .dmav .dot.offline,
+.s-me .dmav .dot.offline {
+  background: var(--side);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: none;
+}
+.s-item.active .dmav .dot {
+  border-color: rgba(255, 255, 255, 0.9);
+}
+.s-item.active .dmav .dot.offline {
+  background: rgba(0, 0, 0, 0.35);
+}
+/* A person who is offline is also written a little fainter, so the list reads at a glance. */
+.s-item:has(.dot.offline):not(.active) .chan-name {
+  opacity: 0.72;
+}

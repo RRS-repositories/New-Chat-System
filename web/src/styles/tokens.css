@@ -32,6 +32,9 @@
 
   /* Meaning */
   --green: #1fa75a;
+  /* Presence dots on a dark surface (the sidebar is dark in every theme). */
+  --pres-on: #34e07f;
+  --pres-away: #ffb829;
   --amber: #e8930c;
   --red: #e5484d;
   --red-soft: rgba(229, 72, 77, 0.12);

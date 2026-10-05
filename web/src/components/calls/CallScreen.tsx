@@ -361,7 +361,7 @@ export function CallScreen() {
         <div className="cstage">
           {boardOpen && !sharer ? (
             <div className="c-present">
-              <WhiteboardView board={whiteboard} isHost={isHost} onClose={closeBoard} />
+              <WhiteboardView board={whiteboard} isHost={isHost} hostName={hostName} onClose={closeBoard} />
               <div className="c-strip">{tiles}</div>
             </div>
           ) : sharer || snapshot.ownScreenTrack ? (

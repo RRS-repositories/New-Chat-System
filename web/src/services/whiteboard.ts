@@ -13,11 +13,26 @@ export type BoardOp =
   | { type: 'stroke'; id: string; points: Point[]; color?: string; size?: number; eraser?: boolean; userId?: number }
   | { type: 'undo'; stroke_id: string }
   | { type: 'clear' }
-  | { type: 'full'; stroke_id: string };
+  | { type: 'full'; stroke_id: string }
+  | { type: 'view'; x: number; y: number; zoom: number };
+/** Where on the board the screen is looking (its top-left corner, in screenfuls) and how far zoomed in. */
+export type View = { x: number; y: number; zoom: number };
+export const HOME_VIEW: View = { x: 0, y: 0, zoom: 1 };
+export const ZOOM_MIN = 0.25;
+export const ZOOM_MAX = 4;
+/** How far the view can travel from the first screenful, in screenfuls. */
+const VIEW_MIN = -9;
+const VIEW_MAX = 9;
+const clamp = (n: number, low: number, high: number) => Math.min(high, Math.max(low, n));
+export const cleanView = (v: View): View => ({
+  x: clamp(v.x, VIEW_MIN, VIEW_MAX),
+  y: clamp(v.y, VIEW_MIN, VIEW_MAX),
+  zoom: clamp(v.zoom, ZOOM_MIN, ZOOM_MAX),
+});
 /** What changed, for whoever is drawing the board on a canvas. */
 export type BoardChange =
   | { kind: 'segment'; stroke: Stroke; from: number } // points from index `from` were added: draw just those
-  | { kind: 'redraw' }; // strokes were removed or replaced: draw everything again
+  | { kind: 'redraw' }; // strokes were removed or replaced, or the view moved: draw everything again
 
 export const PEN_COLOURS = ['#1B1F3A', '#6C4DE6', '#E0507A', '#1FA75A', '#E8930C'];
 export const PEN_SIZES = [3, 6, 10];
@@ -45,6 +60,9 @@ export class Whiteboard {
   private unsent: Point[] = [];
   private announced = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private viewTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Where this screen is looking. The host's view is sent to everyone, and theirs follow it. */
+  view: View = HOME_VIEW;
   private readonly timers: NonNullable<Deps['timers']>;
   private readonly deps: Deps;
   /** Set when the server refused a stroke because the board is full. */
@@ -81,7 +99,8 @@ export class Whiteboard {
   }
 
   /** The board as the server holds it, on joining the call. */
-  load(strokes: Stroke[] | undefined): void {
+  load(strokes: Stroke[] | undefined, view?: View | null): void {
+    this.view = view ? cleanView(view) : HOME_VIEW;
     this.strokes.clear();
     for (const s of strokes || []) this.strokes.set(s.id, { ...s, points: [...s.points] });
     this.full = false;
@@ -91,12 +110,31 @@ export class Whiteboard {
   /** The call is over. */
   reset(): void {
     if (this.timer) this.timers.clearTimeout(this.timer);
+    if (this.viewTimer) this.timers.clearTimeout(this.viewTimer);
     this.timer = null;
+    this.viewTimer = null;
     this.drawing = null;
     this.unsent = [];
     this.strokes.clear();
     this.full = false;
+    this.view = HOME_VIEW;
     this.tell({ kind: 'redraw' });
+  }
+
+  /**
+   * Moves or zooms this screen's view. With `share` (the host), everyone else's view follows:
+   * the latest position is sent a few times a second while it is changing.
+   */
+  setView(view: View, { share = false }: { share?: boolean } = {}): void {
+    const next = cleanView(view);
+    if (next.x === this.view.x && next.y === this.view.y && next.zoom === this.view.zoom) return;
+    this.view = next;
+    this.tell({ kind: 'redraw' });
+    if (!share || this.viewTimer) return;
+    this.viewTimer = this.timers.setTimeout(() => {
+      this.viewTimer = null;
+      this.deps.send({ type: 'view', ...this.view });
+    }, SEND_EVERY_MS);
   }
 
   /** A change made by someone else in the call. */
@@ -130,11 +168,18 @@ export class Whiteboard {
       if (this.strokes.delete(op.stroke_id) || op.type === 'full') this.tell({ kind: 'redraw' });
       return;
     }
+    if (op.type === 'view') {
+      if (![op.x, op.y, op.zoom].every((n) => typeof n === 'number' && Number.isFinite(n))) return;
+      this.view = cleanView({ x: op.x, y: op.y, zoom: op.zoom });
+      this.tell({ kind: 'redraw' });
+      return;
+    }
     if (op.type === 'clear') {
       this.strokes.clear();
       this.drawing = null;
       this.unsent = [];
       this.full = false;
+      this.view = HOME_VIEW;
       this.tell({ kind: 'redraw' });
     }
   }
@@ -228,6 +273,7 @@ export class Whiteboard {
     this.unsent = [];
     this.strokes.clear();
     this.full = false;
+    this.view = HOME_VIEW;
     this.deps.send({ type: 'clear' });
     this.tell({ kind: 'redraw' });
   }

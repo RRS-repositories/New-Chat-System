@@ -164,6 +164,8 @@ export type CallJoinResponse = {
   invites?: CallInvite[];
   /** Breakout groups: the arrangement, and whether the groups are open. */
   breakout?: { active: boolean; groups: Array<{ id: string; name: string; member_ids: number[] }> };
+  /** Where the host is looking on the whiteboard. */
+  whiteboardView?: { x: number; y: number; zoom: number } | null;
   /** Who is recording the call, and since when (milliseconds). Null when nobody is. */
   recording?: { by: number; since: number } | null;
   /** The call's whiteboard as it is now. */

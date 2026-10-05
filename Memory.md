@@ -166,6 +166,12 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 5 Oct 2026 (evening) — whiteboard: host only, move and zoom; clearer presence dots (built, **not deployed yet**)
+The owner tried the board on chat2 and asked for: Ctrl + click/drag, zoom in and out, more room to write further down, and only the host able to use the board; and said that in dark mode he could not tell who is online.
+- Whiteboard: only the host draws (the server refuses others); the board is larger than the screen; Ctrl + drag, the hand tool or scrolling moves it; Ctrl + scroll or the buttons zoom; everyone's view follows the host's. "Ctrl click" was read as the same gesture as Ctrl + drag.
+- Presence dots in the sidebar are larger and bright (green online, amber away, a hollow ring offline), and offline names are a little fainter. Same colours on dark panels.
+- Checked: server 480, web 178, browser-board 9/9. Waiting for the owner's word to deploy (he may be in a test call on chat2).
+
 ### 5 Oct 2026, 16:56 — Phase 9 deployed to chat2 ✅
 The owner compared the build with the prototype and found differences; Settings order and Compact messages, "joined the call" toasts, the hang-up icon, thread reply avatars and click-through toasts were fixed (commit `df7475f`). He then said "push on prod". No call was live and nobody had posted for ten minutes. `chat_005_theme_avatars.sql` was applied first, then `deploy/deploy.sh`; the health check passed and the public site answers. Not yet compared side by side with the prototype: search box, right-hand panels, whiteboard, breakout panel, incoming-call card, phone layout.
 

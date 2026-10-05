@@ -12,7 +12,7 @@ import { createCallApi } from '../services/callApi.ts';
 import { CallError, CallManager, type CallSnapshot, type PeerLike } from '../services/callManager.ts';
 import { canRecord as browserCanRecord } from '../services/callRecorder.ts';
 import { getMicrophone, getScreen } from '../services/media.ts';
-import { Whiteboard, type Stroke } from '../services/whiteboard.ts';
+import { Whiteboard, type Stroke, type View } from '../services/whiteboard.ts';
 import type { CallInvite, CallJoinResponse, JoinRequest } from '../types/index.ts';
 import { NO_BREAKOUT, roomOf, type Breakout, type BreakoutGroup } from '../utils/breakout.ts';
 import { callErrorText } from '../utils/callErrors.ts';
@@ -234,6 +234,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
       let raised: number[] = [];
       let ringingNow: CallInvite[] = [];
       let drawn: Stroke[] = [];
+      let looking: View | null = null;
       let beingRecorded: { by: number; since: number } | null = null;
       let groupsNow: Breakout = NO_BREAKOUT;
       let since = Date.now();
@@ -246,6 +247,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
           raised = answer.hands ?? [];
           ringingNow = answer.invites ?? [];
           drawn = answer.whiteboard ?? [];
+          looking = answer.whiteboardView ?? null;
           beingRecorded = answer.recording ?? null;
           groupsNow = answer.breakout ?? NO_BREAKOUT;
           since = answer.call.startedAt ? Date.parse(answer.call.startedAt) : Date.now();
@@ -263,7 +265,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         setJoinRequests(waiting);
         setHands(raised);
         setInvites(ringingNow);
-        whiteboard.load(drawn);
+        whiteboard.load(drawn, looking);
         setRecording(beingRecorded);
         setBreakout(groupsNow);
         setSnapshot(current.snapshot());

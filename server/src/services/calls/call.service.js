@@ -56,6 +56,7 @@ export function createCallService({
   const ringTimers = new Map(); // callId -> handle
   const graceTimers = new Map(); // `${callId}:${userId}` -> { handle, socketId }
   const locks = new Map(); // callId -> tail promise
+  const starters = new Map(); // callId -> who started it (for the whiteboard's host check)
   const pendingStarts = new Map(); // channelId -> starts in flight (their row may exist before `devices` knows it)
   let closed = false;
 
@@ -175,6 +176,7 @@ export function createCallService({
     extras.forget(callId);
     invites.forget(callId);
     board.forget(callId);
+    starters.delete(callId);
     breakouts.forget(callId);
   }
 
@@ -532,14 +534,16 @@ export function createCallService({
       return extras.setRecording({ callId, userId, socketId, on, isHost });
     },
 
-    /** One change to the call's whiteboard, from the sender's call device. Wiping the board is the host's alone. */
+    /** One change to the call's whiteboard, from the host's call device. Only the host draws. */
     async whiteboard({ callId, userId, socketId, op }) {
       if (!isUuid(callId) || devices.get(callId)?.get(userId) !== socketId) return false;
-      let isHost = false;
-      if (op?.type === 'clear') {
+      // Who started the call never changes, so it is looked up once per call, not once per pen movement.
+      if (!starters.has(callId)) {
         const call = await getCall(db, callId);
-        isHost = !!call && host.hostIdOf(call) === userId;
+        if (!call || !LIVE.has(call.status)) return false;
+        starters.set(callId, call.initiatedBy);
       }
+      const isHost = host.hostIdOf({ id: callId, initiatedBy: starters.get(callId) }) === userId;
       return board.apply({ callId, userId, socketId, op, isHost });
     },
 

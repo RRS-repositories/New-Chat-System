@@ -143,3 +143,33 @@ test('clearing sends one message and empties my board; leaving the call empties 
   assert.equal(board.isEmpty, true);
   assert.equal(sent.length, 0);
 });
+
+test('the view: the host’s moves are shared a few times a second; a watcher’s own moves are not; everyone follows the host', () => {
+  const { board, sent, changes, tick } = setup();
+  board.setView({ x: 0, y: 0.5, zoom: 1 }, { share: true });
+  board.setView({ x: 0, y: 1, zoom: 2 }, { share: true });
+  assert.deepEqual(board.view, { x: 0, y: 1, zoom: 2 }, 'on my screen at once');
+  assert.equal(sent.length, 0);
+  tick();
+  assert.deepEqual(sent, [{ type: 'view', x: 0, y: 1, zoom: 2 }], 'only the latest position is sent');
+  sent.length = 0;
+  board.setView({ x: 0.2, y: 1, zoom: 2 }); // looking around without sharing: no timer is set, nothing is sent
+  assert.equal(sent.length, 0);
+  board.applyRemote({ type: 'view', x: 0, y: 3, zoom: 0.5 }, 1);
+  assert.deepEqual(board.view, { x: 0, y: 3, zoom: 0.5 });
+  assert.equal(changes.at(-1)?.kind, 'redraw');
+});
+
+test('the view stays within the board and the zoom limits; clearing and leaving put it back', () => {
+  const { board } = setup();
+  board.setView({ x: -500, y: 500, zoom: 99 });
+  assert.deepEqual(board.view, { x: -9, y: 9, zoom: 4 });
+  board.setView({ x: 0, y: 0, zoom: 0.01 });
+  assert.equal(board.view.zoom, 0.25);
+  board.applyRemote({ type: 'clear' }, 1);
+  assert.deepEqual(board.view, { x: 0, y: 0, zoom: 1 });
+  board.load([], { x: 0, y: 2, zoom: 1.5 });
+  assert.deepEqual(board.view, { x: 0, y: 2, zoom: 1.5 }, 'a late joiner starts where the host is looking');
+  board.reset();
+  assert.deepEqual(board.view, { x: 0, y: 0, zoom: 1 });
+});

@@ -124,3 +124,18 @@ body[data-mode='dark'] {
     0 0 0 2px var(--paper),
     0 0 0 4.5px var(--violet);
 }
+
+/* Presence dots on dark surfaces (members list, panels): brighter, and offline is a visible ring. */
+body[data-mode='dark'] .dot.online {
+  background: var(--pres-on);
+}
+body[data-mode='dark'] .dot.away {
+  background: var(--pres-away);
+}
+body[data-mode='dark'] .dot.offline {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+body[data-mode='dark'] .dmav .dot.offline {
+  background: var(--paper);
+}
