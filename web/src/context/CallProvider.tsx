@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type Rea
 import type { Socket } from 'socket.io-client';
 import { useActiveChannelCall } from '../hooks/useActiveChannelCall.ts';
 import { useCallHostActions } from '../hooks/useCallHostActions.ts';
+import { useCallRecording } from '../hooks/useCallRecording.ts';
 import { useCallSocketEvents, type CallSession } from '../hooks/useCallSocketEvents.ts';
 import { useLatest } from '../hooks/useLatest.ts';
 import { useRinging } from '../hooks/useRinging.ts';
 import { ApiError } from '../services/apiClient.ts';
 import { createCallApi } from '../services/callApi.ts';
 import { CallError, CallManager, type CallSnapshot, type PeerLike } from '../services/callManager.ts';
+import { canRecord as browserCanRecord } from '../services/callRecorder.ts';
 import { getMicrophone, getScreen } from '../services/media.ts';
 import { Whiteboard, type Stroke } from '../services/whiteboard.ts';
 import type { CallInvite, CallJoinResponse, JoinRequest } from '../types/index.ts';
@@ -16,6 +18,7 @@ import { stopRingtone } from '../utils/ringtone.ts';
 import { CallContext, type ActiveCall, type CallContextValue, type CallReaction } from './callContext.ts';
 import { callReducer, initialCallState, type IncomingCall } from './callState.ts';
 import { useChat } from './chatContext.ts';
+import { useToast } from './ToastProvider.tsx';
 
 const NOBODY: CallSnapshot = {
   muted: false,
@@ -53,6 +56,10 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const manager = useRef<CallManager | null>(null);
   const callId = useRef<string | null>(null);
   const joinedSocket = useRef<string | null>(null);
+  /** Run just before this tab's call is dropped: a recording in progress is stopped and saved. */
+  const beforeTeardown = useRef<() => void>(() => {});
+  const toast = useToast();
+  const tell = useCallback((text: string) => void toast({ text }), [toast]);
   const whiteboard = useMemo(
     () =>
       new Whiteboard({
@@ -93,6 +100,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
 
   /** Drops this tab's call locally: closes every connection and releases the microphone. */
   const teardown = useCallback(() => {
+    beforeTeardown.current();
     const current = manager.current;
     manager.current = null;
     current?.leave();
@@ -108,8 +116,23 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setHands([]);
     setReactions([]);
     setInvites([]);
+    setRecordingRef.current(null);
     whiteboard.reset();
   }, [whiteboard]);
+
+  const setRecordingRef = useRef<(value: { by: number; since: number } | null) => void>(() => {});
+  const { recording, setRecording, toggleRecording, finishRecording } = useCallRecording({
+    socket,
+    callApi,
+    userId: user.id,
+    callId,
+    ui,
+    snapshot,
+    tell,
+    setPanelError,
+  });
+  setRecordingRef.current = setRecording;
+  beforeTeardown.current = finishRecording;
 
   const tellServerILeft = useCallback(
     (id: string) => {
@@ -195,6 +218,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
       let raised: number[] = [];
       let ringingNow: CallInvite[] = [];
       let drawn: Stroke[] = [];
+      let beingRecorded: { by: number; since: number } | null = null;
       let since = Date.now();
       try {
         const joined = await current.connect(async () => {
@@ -205,6 +229,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
           raised = answer.hands ?? [];
           ringingNow = answer.invites ?? [];
           drawn = answer.whiteboard ?? [];
+          beingRecorded = answer.recording ?? null;
           since = answer.call.startedAt ? Date.parse(answer.call.startedAt) : Date.now();
           if (stillCurrent()) callId.current = answer.call.id;
           // Anyone who joined (and offered) before this answer arrived: the manager holds them until the connections are built.
@@ -221,6 +246,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         setHands(raised);
         setInvites(ringingNow);
         whiteboard.load(drawn);
+        setRecording(beingRecorded);
         setSnapshot(current.snapshot());
         setChannelCall(channelId, () => ({ callId: id, participantIds: joined.participants.map((p) => p.userId) }));
       } catch (e) {
@@ -249,7 +275,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         dispatch({ type: 'failed', error: callErrorText(e) });
       }
     },
-    [socket, createManager, tellServerILeft, setChannelCall, askToJoin, teardown, whiteboard, ui],
+    [socket, createManager, tellServerILeft, setChannelCall, askToJoin, teardown, whiteboard, setRecording, ui],
   );
 
   const startCall = useCallback(
@@ -423,6 +449,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setPanelNote,
     setHands,
     setInvites,
+    setRecording,
     whiteboard,
     showReaction,
     joinDirect,
@@ -484,6 +511,9 @@ export function CallProvider({ socket, getToken, children }: Props) {
   }, [panelNote]);
 
   const isHost = call.phase === 'in-call' && call.hostId === user.id;
+  // Recording saves into the call's conversation, so the person must be in it (not only added to the call).
+  const canRecord =
+    browserCanRecord() && (isHost || recording?.by === user.id) && state.channels.some((c) => c.id === call.channelId);
 
   // Notices fade on their own.
   useEffect(() => {
@@ -504,6 +534,9 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      recording,
+      canRecord,
+      toggleRecording,
       whiteboard,
       invites,
       startCall,
@@ -536,6 +569,9 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      recording,
+      canRecord,
+      toggleRecording,
       whiteboard,
       invites,
       startCall,

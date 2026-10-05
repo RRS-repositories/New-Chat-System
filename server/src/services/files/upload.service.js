@@ -18,13 +18,30 @@ export function checkUploads(files) {
   }
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * A call recording says which call it is of and how long it is. Only this exact shape is ever
+ * stored from an upload: one WebM file, a call id, a whole number of seconds. Otherwise null.
+ */
+export function recordingMetadata(body, files) {
+  const callId = body?.recordingCallId;
+  if (typeof callId !== 'string' || !UUID.test(callId)) return null;
+  if (files.length !== 1 || files[0].mimetype !== 'video/webm') return null;
+  const secs = Math.round(Number(body?.recordingSecs));
+  return {
+    kind: 'call_recording',
+    call_id: callId.toLowerCase(),
+    duration_secs: Number.isFinite(secs) && secs > 0 ? Math.min(secs, 24 * 3600) : 0,
+  };
+}
+
 /**
  * Saves the files and creates one `file` message that carries them. If anything fails part-way,
  * whatever was written to disk is removed again. Returns the stored message with its files.
  */
 export async function postFiles(
   { db, uploadsDir },
-  { channelId, userId, files, content, replyToId = null, threadId = null },
+  { channelId, userId, files, content, replyToId = null, threadId = null, metadata = null },
 ) {
   const saved = [];
   try {
@@ -32,7 +49,15 @@ export async function postFiles(
       const { relPath } = await saveUpload({ uploadsDir, channelId, filename: file.originalname, buffer: file.buffer });
       saved.push({ file, relPath, thumb: await makeThumbnail({ uploadsDir, relPath, mime: file.mimetype }) });
     }
-    const created = await createMessage(db, { channelId, userId, content, type: 'file', replyToId, threadId });
+    const created = await createMessage(db, {
+      channelId,
+      userId,
+      content,
+      type: 'file',
+      replyToId,
+      threadId,
+      metadata,
+    });
     for (const { file, relPath, thumb } of saved) {
       await insertFile(db, {
         messageId: created.id,

@@ -482,6 +482,14 @@ export function createCallService({
     react: (args) => extras.react(args),
     setHand: (args) => extras.setHand(args),
 
+    /** The host's "recording started / stopped", told to everyone in the call. */
+    async setRecording({ callId, userId, socketId, on }) {
+      if (!isUuid(callId) || devices.get(callId)?.get(userId) !== socketId) return false;
+      const call = await getCall(db, callId);
+      const isHost = !!call && host.hostIdOf(call) === userId;
+      return extras.setRecording({ callId, userId, socketId, on, isHost });
+    },
+
     /** One change to the call's whiteboard, from the sender's call device. Wiping the board is the host's alone. */
     async whiteboard({ callId, userId, socketId, op }) {
       if (!isUuid(callId) || devices.get(callId)?.get(userId) !== socketId) return false;

@@ -38,6 +38,23 @@ export function createCallApi({ api, getToken }: Deps) {
     merge: (ringingCallId: string, intoCallId: string) =>
       api.post(`${callPath(ringingCallId)}/merge`, { into_call_id: intoCallId }),
     get: (callId: string) => api.get<{ call: Call }>(callPath(callId)),
+    /** Saves a finished call recording into the call's conversation as a file message. */
+    async uploadRecording(channelId: string, file: File, callId: string, durationSecs: number): Promise<void> {
+      const form = new FormData();
+      form.append('files', file, file.name);
+      form.append('content', 'Call recording');
+      form.append('recordingCallId', callId);
+      form.append('recordingSecs', String(durationSecs));
+      const res = await fetch(`${channelPath(channelId)}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'The recording could not be saved');
+      }
+    },
     /** The live call in a channel, if any (for the "Call in progress — Join" banner). */
     active: (channelId: string) => api.get<ActiveCallResponse>(`${channelPath(channelId)}/calls/active`),
 

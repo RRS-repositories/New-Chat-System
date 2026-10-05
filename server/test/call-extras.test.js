@@ -68,7 +68,7 @@ test('at most five reactions in three seconds per person; the allowance comes ba
 
 test('raising a hand tells the call once; lowering it too; late joiners get the raised hands', () => {
   const { extras, sent } = setup();
-  assert.deepEqual(extras.snapshot('k1'), { hands: [] });
+  assert.deepEqual(extras.snapshot('k1').hands, []);
   extras.setHand({ callId: 'k1', userId: 2, socketId: 's2', up: true });
   extras.setHand({ callId: 'k1', userId: 2, socketId: 's2', up: true });
   assert.equal(sent.length, 2, 'the repeat is not announced');
@@ -77,10 +77,10 @@ test('raising a hand tells the call once; lowering it too; late joiners get the 
     event: 'call_hand_changed',
     payload: { call_id: 'k1', user_id: 2, up: true },
   });
-  assert.deepEqual(extras.snapshot('k1'), { hands: [2] });
-  assert.deepEqual(extras.snapshot('k2'), { hands: [] });
+  assert.deepEqual(extras.snapshot('k1').hands, [2]);
+  assert.deepEqual(extras.snapshot('k2').hands, []);
   extras.setHand({ callId: 'k1', userId: 2, socketId: 's2', up: false });
-  assert.deepEqual(extras.snapshot('k1'), { hands: [] });
+  assert.deepEqual(extras.snapshot('k1').hands, []);
   assert.equal(sent.at(-1).payload.up, false);
 });
 
@@ -108,7 +108,7 @@ test('leaving lowers the hand; the end of the call forgets everything', () => {
   assert.equal(sent.length, 1, 'nothing more to say');
   extras.setHand({ callId: 'k1', userId: 1, socketId: 's1', up: true });
   extras.forget('k1');
-  assert.deepEqual(extras.snapshot('k1'), { hands: [] });
+  assert.deepEqual(extras.snapshot('k1').hands, []);
 });
 
 test('the socket passes reactions and hands to the call service with the senderâ€™s own id and connection', () => {
@@ -131,4 +131,52 @@ test('the socket passes reactions and hands to the call service with the senderâ
     ['hand', { callId: 'k1', userId: 9, socketId: 'sock-9', up: true }],
     ['hand', { callId: 'k1', userId: 9, socketId: 'sock-9', up: false }],
   ]);
+});
+
+test('recording: only the host starts it, everyone in the call is told, and a late joiner is told by the snapshot', () => {
+  const { extras, sent } = setup();
+  assert.equal(extras.setRecording({ callId: 'k1', userId: 2, socketId: 's2', on: true, isHost: false }), false);
+  assert.equal(extras.setRecording({ callId: 'k1', userId: 1, socketId: 'other-tab', on: true, isHost: true }), false);
+  assert.equal(sent.length, 0);
+  assert.equal(extras.snapshot('k1').recording, null);
+  assert.equal(extras.setRecording({ callId: 'k1', userId: 1, socketId: 's1', on: true, isHost: true }), true);
+  assert.deepEqual(
+    sent.map((e) => [e.socketId, e.event, e.payload]),
+    [
+      ['s1', 'call_rec_changed', { call_id: 'k1', on: true, by: 1 }],
+      ['s2', 'call_rec_changed', { call_id: 'k1', on: true, by: 1 }],
+    ],
+  );
+  assert.equal(extras.snapshot('k1').recording.by, 1);
+  assert.equal(extras.snapshot('k2').recording, null);
+  assert.equal(
+    extras.setRecording({ callId: 'k1', userId: 1, socketId: 's1', on: true, isHost: true }),
+    false,
+    'already on',
+  );
+});
+
+test('recording: the person recording or the host stops it; it also stops when the person recording leaves', () => {
+  const { extras, sent } = setup();
+  extras.setRecording({ callId: 'k1', userId: 1, socketId: 's1', on: true, isHost: true });
+  assert.equal(extras.setRecording({ callId: 'k1', userId: 2, socketId: 's2', on: false, isHost: false }), false);
+  assert.equal(extras.setRecording({ callId: 'k1', userId: 1, socketId: 's1', on: false, isHost: false }), true);
+  assert.equal(extras.snapshot('k1').recording, null);
+  assert.equal(
+    extras.setRecording({ callId: 'k1', userId: 1, socketId: 's1', on: false, isHost: true }),
+    false,
+    'nothing to stop',
+  );
+
+  extras.setRecording({ callId: 'k1', userId: 1, socketId: 's1', on: true, isHost: true });
+  sent.length = 0;
+  extras.onLeft('k1', 2);
+  assert.equal(extras.snapshot('k1').recording.by, 1, 'someone else leaving changes nothing');
+  extras.onLeft('k1', 1);
+  assert.equal(extras.snapshot('k1').recording, null);
+  assert.ok(sent.some((e) => e.event === 'call_rec_changed' && e.payload.on === false && e.payload.by === 1));
+
+  extras.setRecording({ callId: 'k1', userId: 1, socketId: 's1', on: true, isHost: true });
+  extras.forget('k1');
+  assert.equal(extras.snapshot('k1').recording, null);
 });

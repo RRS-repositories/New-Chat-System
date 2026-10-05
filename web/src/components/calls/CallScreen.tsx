@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { Maximize2, Mic, MicOff, Minimize2, PhoneOff } from 'lucide-react';
 import { FEATURES } from '../../config/features.ts';
 import { useChat } from '../../context/chatContext.ts';
+import { useToast } from '../../context/ToastProvider.tsx';
 import { useCall } from '../../context/callContext.ts';
 import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
 import { useCallClock } from '../../hooks/useCallClock.ts';
@@ -61,6 +62,9 @@ export function CallScreen() {
     joinRequests,
     hands,
     reactions,
+    recording,
+    canRecord,
+    toggleRecording,
     whiteboard,
     invites,
     inviteToCall,
@@ -86,6 +90,21 @@ export function CallScreen() {
   const addButton = useRef<HTMLButtonElement | null>(null);
   const [narrow, setNarrow] = useState(() => window.innerWidth < 760);
   const clock = useCallClock(call.phase === 'in-call' ? call.since : null);
+  const recClock = useCallClock(recording ? recording.since : null);
+  const toast = useToast();
+  const recordingBy = recording?.by ?? null;
+  const namesRef = useRef<Record<number, string>>({});
+  // A call is never recorded silently: everyone is told when it starts, and so is anyone who joins meanwhile.
+  useEffect(() => {
+    if (recordingBy === null) return;
+    const who = namesRef.current[recordingBy];
+    toast({
+      text:
+        recordingBy === user.id
+          ? 'Recording started. Everyone in the call has been told.'
+          : `This call is being recorded${who ? ` by ${who}` : ''}.`,
+    });
+  }, [recordingBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new call always opens full size.
   useEffect(() => {
@@ -101,6 +120,7 @@ export function CallScreen() {
   }, []);
 
   const others = snapshot.participants;
+  namesRef.current = Object.fromEntries(others.map((p) => [p.userId, p.userName]));
   const remoteSharing = others.some((p) => p.screenTrack && p.state !== 'lost');
 
   // Someone else draws while this person's board is closed: offer to open it.
@@ -217,6 +237,7 @@ export function CallScreen() {
             <span>
               <span className="c-live" />
               <span>{clock || 'Connecting…'}</span>
+              {recording && <span className="mini-rec"> · REC</span>}
             </span>
           </span>
           <button
@@ -261,7 +282,19 @@ export function CallScreen() {
             </div>
           </div>
           <div className="sp" />
-          <div className="c-pills" />
+          <div className="c-pills">
+            {recording && (
+              <span
+                className="c-pill rec"
+                role="status"
+                data-testid="call-rec-pill"
+                title="This call is being recorded"
+              >
+                <i />
+                REC {recClock}
+              </span>
+            )}
+          </div>
         </div>
         <div className="c-notes">
           {isHost && (
@@ -353,6 +386,11 @@ export function CallScreen() {
           onAdd={FEATURES.addToCall ? () => setAdding((open) => !open) : undefined}
           addRef={addButton}
           whiteboard={FEATURES.whiteboard ? { open: boardOpen, onToggle: toggleBoard } : undefined}
+          recording={
+            FEATURES.recording
+              ? { on: recording?.by === user.id, onToggle: toggleRecording, allowed: canRecord }
+              : undefined
+          }
         />
         {adding && (
           <AddPeople

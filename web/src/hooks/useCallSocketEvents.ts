@@ -44,6 +44,8 @@ type Deps = {
   setHands: Dispatch<SetStateAction<number[]>>;
   /** Who is being rung into this tab's call. */
   setInvites: Dispatch<SetStateAction<CallInvite[]>>;
+  /** Who is recording the call (null: nobody). */
+  setRecording: (value: { by: number; since: number } | null) => void;
   whiteboard: Whiteboard;
   /** A reaction arrived: float it up the call screen. */
   showReaction: (userId: number, emoji: string) => void;
@@ -64,6 +66,7 @@ export function useCallSocketEvents({
   setPanelNote,
   setHands,
   setInvites,
+  setRecording,
   whiteboard,
   showReaction,
   joinDirect,
@@ -192,6 +195,11 @@ export function useCallSocketEvents({
       void joinDirect(p.join_call_id, p.channel_id, { switching: true });
     };
 
+    // Recording started or stopped: everyone in the call is told.
+    const onRecording = (p: { call_id: string; on: boolean; by: number }) => {
+      if (isMyCall(p.call_id)) setRecording(p.on ? { by: Number(p.by), since: Date.now() } : null);
+    };
+
     // Someone drew on the whiteboard, took a stroke back, or the host wiped it.
     const onBoard = (p: { call_id: string; from_user_id: number | null; op: BoardOp }) => {
       if (isMyCall(p.call_id)) whiteboard.applyRemote(p.op, p.from_user_id == null ? null : Number(p.from_user_id));
@@ -292,6 +300,7 @@ export function useCallSocketEvents({
       ['call_invite_pending', onInvitePending],
       ['call_invite_ended', onInviteEnded],
       ['call_merge', onMerge],
+      ['call_rec_changed', onRecording],
       ['call_wb', onBoard],
       ['call_reaction', onReaction],
       ['call_hand_changed', onHand],
@@ -322,6 +331,7 @@ export function useCallSocketEvents({
     setPanelNote,
     setHands,
     setInvites,
+    setRecording,
     whiteboard,
     showReaction,
     joinDirect,

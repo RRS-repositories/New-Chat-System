@@ -1,5 +1,6 @@
 /**
- * What happens inside a live call besides the audio: reactions and raised hands.
+ * What happens inside a live call besides the audio: reactions, raised hands, and the
+ * "this call is being recorded" flag (the recording itself is made in the host's browser).
  *
  * All of it is kept in memory for the life of the call and relayed only to the people in it, the
  * same way call set-up messages are. Nothing here is stored in the database.
@@ -20,6 +21,7 @@ export function isEmoji(value) {
 export function createCallExtras({ devices, toCall, now }) {
   const hands = new Map(); // callId -> Set(userId) with a hand up
   const recent = new Map(); // `${callId}:${userId}` -> times of their latest reactions
+  const recordings = new Map(); // callId -> { by, since }: who is recording, and from when
 
   const fromCallDevice = (callId, userId, socketId) =>
     typeof socketId === 'string' && devices.get(callId)?.get(userId) === socketId;
@@ -27,7 +29,7 @@ export function createCallExtras({ devices, toCall, now }) {
   return {
     /** What a person joining needs to draw the call as it is now. */
     snapshot(callId) {
-      return { hands: [...(hands.get(callId) || [])] };
+      return { hands: [...(hands.get(callId) || [])], recording: recordings.get(callId) || null };
     },
 
     /** A reaction floats up on everyone's call screen. Returns false when it was dropped. */
@@ -56,8 +58,30 @@ export function createCallExtras({ devices, toCall, now }) {
       return true;
     },
 
-    /** Someone left the call: their hand goes down with them. */
+    /**
+     * The host says recording has started or stopped. Everyone in the call is told: a call is never
+     * recorded silently. Only the host starts one; the host or the person recording stops it.
+     */
+    setRecording({ callId, userId, socketId, on, isHost }) {
+      if (!fromCallDevice(callId, userId, socketId)) return false;
+      const current = recordings.get(callId);
+      if (on === true) {
+        if (!isHost || current) return false;
+        recordings.set(callId, { by: userId, since: now() });
+      } else {
+        if (!current || (current.by !== userId && !isHost)) return false;
+        recordings.delete(callId);
+      }
+      toCall(callId, 'call_rec_changed', { call_id: callId, on: on === true, by: userId });
+      return true;
+    },
+
+    /** Someone left the call: their hand goes down with them, and a recording they were making is over. */
     onLeft(callId, userId) {
+      if (recordings.get(callId)?.by === userId) {
+        recordings.delete(callId);
+        toCall(callId, 'call_rec_changed', { call_id: callId, on: false, by: userId });
+      }
       recent.delete(`${callId}:${userId}`);
       if (hands.get(callId)?.delete(userId))
         toCall(callId, 'call_hand_changed', { call_id: callId, user_id: userId, up: false });
@@ -66,6 +90,7 @@ export function createCallExtras({ devices, toCall, now }) {
     /** The call is over. */
     forget(callId) {
       hands.delete(callId);
+      recordings.delete(callId);
       for (const key of recent.keys()) if (key.startsWith(`${callId}:`)) recent.delete(key);
     },
   };

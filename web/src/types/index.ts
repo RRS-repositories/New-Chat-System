@@ -160,6 +160,8 @@ export type CallJoinResponse = {
   hands?: number[];
   /** People being rung into the call right now. */
   invites?: CallInvite[];
+  /** Who is recording the call, and since when (milliseconds). Null when nobody is. */
+  recording?: { by: number; since: number } | null;
   /** The call's whiteboard as it is now. */
   whiteboard?: Array<{
     id: string;

@@ -6,7 +6,7 @@ import { getFile, listChannelFiles } from '../models/files.model.js';
 import { assertMember } from '../services/channels.service.js';
 import { assertCanPost, announceMessage } from '../services/messages.service.js';
 import { MAX_FILE_BYTES } from '../services/files/storage.js';
-import { checkUploads, postFiles } from '../services/files/upload.service.js';
+import { checkUploads, postFiles, recordingMetadata } from '../services/files/upload.service.js';
 import { contentDisposition } from '../utils/filenames.js';
 import { cleanMessageContent } from '../utils/sanitize.js';
 
@@ -55,6 +55,7 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
           content: caption,
           replyToId: req.body?.replyToId || null,
           threadId: req.body?.threadId || null,
+          metadata: recordingMetadata(req.body, files),
         },
       );
       announceMessage({ emit, notifier }, { message, channelId, sender: req.user });

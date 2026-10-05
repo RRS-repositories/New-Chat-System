@@ -29,6 +29,12 @@ export type CallContextValue = {
   hands: number[];
   /** Reactions on their way up the screen. Each is removed when its animation ends. */
   reactions: CallReaction[];
+  /** Who is recording this tab's call, and since when. Everyone in the call sees it. */
+  recording: { by: number; since: number } | null;
+  /** This person may press Record / Stop: the host, or whoever is recording. */
+  canRecord: boolean;
+  /** Host only: start recording, or stop and save the file into the conversation. */
+  toggleRecording: () => void;
   /** The whiteboard of this tab's call. The same object for the life of the page; empty outside a call. */
   whiteboard: Whiteboard;
   /** People being rung into this tab's call: each is shown as a "Ringing…" tile. */

@@ -131,7 +131,15 @@ export function CallDock(props: Props) {
           onClick={whiteboard?.onToggle}
         />
         <DockButton
-          label={recording ? (recording.on ? 'Stop recording' : 'Record meeting') : soon('Record meeting')}
+          label={
+            recording
+              ? recording.on
+                ? 'Stop recording'
+                : recording.allowed
+                  ? 'Record meeting'
+                  : 'Record meeting (host only)'
+              : soon('Record meeting')
+          }
           icon={<CircleDot size={21} />}
           tone={recording?.on ? 'off' : ''}
           testId="call-record"
