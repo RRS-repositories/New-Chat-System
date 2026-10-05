@@ -1,3 +1,4 @@
+import { AVATAR_COLUMNS, avatarUrl } from './avatars.model.js';
 import { markMentionsRead } from './mentions.model.js';
 
 const fail = (code, message, status = 400) => Object.assign(new Error(message), { code, status });
@@ -211,11 +212,18 @@ export async function removeMember(db, channelId, userId) {
 
 export async function listMembers(db, channelId) {
   const { rows } = await db.query(
-    `SELECT u.id, u.full_name, u.role, m.role AS channel_role FROM chat.channel_members m JOIN public.users u ON u.id = m.user_id
+    `SELECT u.id, u.full_name, u.role, m.role AS channel_role, ${AVATAR_COLUMNS('u.id')}
+       FROM chat.channel_members m JOIN public.users u ON u.id = m.user_id
       WHERE m.channel_id = $1 ORDER BY u.full_name`,
     [channelId],
   );
-  return rows.map((r) => ({ id: r.id, fullName: r.full_name, role: r.role, channelRole: r.channel_role }));
+  return rows.map((r) => ({
+    id: r.id,
+    fullName: r.full_name,
+    role: r.role,
+    channelRole: r.channel_role,
+    avatarUrl: avatarUrl(r.id, r.avatar_updated_at),
+  }));
 }
 
 export async function markRead(db, channelId, userId, at = new Date()) {

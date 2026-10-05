@@ -1,3 +1,4 @@
+import { AVATAR_COLUMNS, avatarUrl } from './avatars.model.js';
 // People come from the CRM's own `users` table; chat only reads it.
 //
 // Chat is switched on for Management and IT by role, and for anyone else who holds the CRM
@@ -43,10 +44,16 @@ export async function loadSessionUser(db, { userId, iat }) {
 /** Everyone who can sign in except `exceptUserId`, by name — the list people pick from. */
 export async function listActiveUsers(db, { exceptUserId }) {
   const { rows } = await db.query(
-    `SELECT u.id, u.full_name, u.role FROM public.users u WHERE u.is_approved = TRUE AND u.is_active IS NOT FALSE AND u.id <> $1 ORDER BY u.full_name`,
+    `SELECT u.id, u.full_name, u.role, ${AVATAR_COLUMNS('u.id')}
+       FROM public.users u WHERE u.is_approved = TRUE AND u.is_active IS NOT FALSE AND u.id <> $1 ORDER BY u.full_name`,
     [exceptUserId],
   );
-  return rows.map((u) => ({ id: u.id, fullName: u.full_name || '', role: u.role }));
+  return rows.map((u) => ({
+    id: u.id,
+    fullName: u.full_name || '',
+    role: u.role,
+    avatarUrl: avatarUrl(u.id, u.avatar_updated_at),
+  }));
 }
 
 /** Everyone who can sign in, with whether chat is on for them and how many people they are blocked from / by. */

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { avatarStore } from '../../services/avatars.ts';
 import type { PreferencePatch } from '../../services/chatApi.ts';
 import type { Preferences } from '../../types/index.ts';
 import { withSelfSorted } from '../../utils/restrictions.ts';
@@ -44,5 +45,15 @@ export function usePeopleActions({ chatApi, user, dispatch, stateRef }: ActionDe
     [chatApi, dispatch, stateRef, user.id],
   );
 
-  return { listUsers, allUsers, updatePrefs, setStatus };
+  /** The photo shows here at once; everyone else's open tabs are told by the server. */
+  const setProfilePhoto = useCallback(
+    async (picture: Blob) => avatarStore.set(user.id, await chatApi.uploadAvatar(picture)),
+    [chatApi, user.id],
+  );
+  const removeProfilePhoto = useCallback(async () => {
+    await chatApi.removeAvatar();
+    avatarStore.set(user.id, null);
+  }, [chatApi, user.id]);
+
+  return { listUsers, allUsers, updatePrefs, setStatus, setProfilePhoto, removeProfilePhoto };
 }

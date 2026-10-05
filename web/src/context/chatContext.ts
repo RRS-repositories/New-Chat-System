@@ -72,6 +72,9 @@ export type ChatActions = {
   /** Shown at once; the changed settings are put back and the error rethrown if the server refuses. */
   updatePrefs: (patch: PreferencePatch) => Promise<void>;
   setStatus: (text: string, emoji: string) => Promise<void>;
+  /** Saves a picture (already cut square and shrunk) as the signed-in person's profile photo. */
+  setProfilePhoto: (picture: Blob) => Promise<void>;
+  removeProfilePhoto: () => Promise<void>;
   /** Shown at once; put back and rethrown on failure. */
   setChannelNotify: (channelId: string, pref: ChannelNotifyPref) => Promise<void>;
 };

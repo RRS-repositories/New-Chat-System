@@ -74,7 +74,15 @@ export function createApp({
   app.use('/api/chat', createCallRoutes({ db, calls, config })); // /calls/... and /channels/:id/calls — before the channels router
   app.use('/api/chat/channels', createChannelRoutes({ db, emit }));
   app.use('/api/chat/users', createPrefRoutes({ db, presence, emit })); // /online, /me/preferences, /me/status — before the users router
-  app.use('/api/chat/users', createUserRoutes({ db }));
+  app.use(
+    '/api/chat/users',
+    createUserRoutes({
+      db,
+      emit,
+      uploadsDir: config.uploadsDir,
+      avatarLimiter: perUserLimiter({ windowMs: 60_000, max: 5 }),
+    }),
+  );
   app.use(
     '/api/chat',
     createFileRoutes({

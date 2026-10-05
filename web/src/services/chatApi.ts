@@ -128,6 +128,18 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       return res.blob();
     },
 
+    /** Saves a profile photo (already cut square and shrunk in the browser) and returns its address. */
+    async uploadAvatar(picture: Blob): Promise<string> {
+      const form = new FormData();
+      form.append('file', picture, 'avatar.jpg');
+      const res = await fetch('/api/chat/users/me/avatar', { method: 'POST', headers: authHeader(), body: form });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) throw signedOut();
+      if (!res.ok) throw new Error(data.message || 'Could not save your photo');
+      return data.avatarUrl;
+    },
+    removeAvatar: () => api.del('/api/chat/users/me/avatar'),
+
     // Search
     search: (query: string, channelId: string | null = null, page = 1) =>
       api.get<SearchPage>(`/api/chat/search?q=${id(query)}${channelId ? `&channelId=${channelId}` : ''}&page=${page}`),

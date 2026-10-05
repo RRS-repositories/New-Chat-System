@@ -3,7 +3,7 @@ import { BellOff, ChevronDown, Hash, Lock } from 'lucide-react';
 import { STORAGE_KEYS } from '../../config/constants.ts';
 import type { Channel } from '../../types/index.ts';
 import { presenceOf, type Presence } from '../../utils/presence.ts';
-import { Avatar } from '../common/Avatar.tsx';
+import { UserAvatar } from '../common/UserAvatar.tsx';
 import { StatusBadge } from '../common/PresenceDot.tsx';
 
 const NOBODY: Presence = { online: {}, away: {}, statuses: {} };
@@ -97,7 +97,12 @@ export function ChannelList({ channels, currentId, onSelect, presence = NOBODY }
             row(
               c,
               c.dmUserName || 'Direct message',
-              <Avatar name={c.dmUserName || '?'} size="sm" presence={presenceOf(presence, c.dmUserId)} />,
+              <UserAvatar
+                userId={c.dmUserId}
+                name={c.dmUserName || '?'}
+                size="sm"
+                presence={presenceOf(presence, c.dmUserId)}
+              />,
               c.dmUserId != null ? <StatusBadge status={presence.statuses[c.dmUserId]} /> : null,
             ),
           )}

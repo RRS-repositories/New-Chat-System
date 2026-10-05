@@ -1,6 +1,7 @@
 import { useEffect, useRef, type Dispatch, type MutableRefObject } from 'react';
 import type { Socket } from 'socket.io-client';
 import type { ChatApi } from '../services/chatApi.ts';
+import { avatarStore } from '../services/avatars.ts';
 import type { Action } from '../context/chatReducer.ts';
 import { backFromAway, computeAway } from '../utils/presence.ts';
 
@@ -35,7 +36,9 @@ export function usePresence({
       chatApi
         .presence()
         .then((r) => {
-          if (live) dispatch({ type: 'presence_loaded', snapshot: r });
+          if (!live) return;
+          dispatch({ type: 'presence_loaded', snapshot: r });
+          avatarStore.setAll(r.avatars || {});
         })
         .catch(() => {});
     };
@@ -43,6 +46,8 @@ export function usePresence({
     const onOffline = (p: { user_id: number }) => dispatch({ type: 'user_offline', userId: Number(p.user_id) });
     const onAway = (p: { user_id: number; away: boolean }) =>
       dispatch({ type: 'user_away', userId: Number(p.user_id), away: !!p.away });
+    const onUpdated = (p: { user_id: number; avatar_url?: string | null }) =>
+      avatarStore.set(Number(p.user_id), p.avatar_url || null);
     const onStatus = (p: { user_id: number; text?: string; emoji?: string }) =>
       dispatch({ type: 'user_status', userId: Number(p.user_id), text: p.text || '', emoji: p.emoji || '' });
 
@@ -82,6 +87,7 @@ export function usePresence({
       ['user_offline', onOffline],
       ['user_away', onAway],
       ['user_status', onStatus],
+      ['user_updated', onUpdated],
     ];
     for (const [ev, fn] of handlers) socket.on(ev, fn);
     for (const ev of INPUT_EVENTS) window.addEventListener(ev, active, { capture: true, passive: true });

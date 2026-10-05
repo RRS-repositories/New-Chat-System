@@ -9,6 +9,7 @@ import { usePresence } from '../hooks/usePresence.ts';
 import { useReadTracking } from '../hooks/useReadTracking.ts';
 import type { ApiClient } from '../services/apiClient.ts';
 import { createChatApi } from '../services/chatApi.ts';
+import { avatarStore } from '../services/avatars.ts';
 import { restorePush } from '../services/push.ts';
 import { paths } from '../config/routes.ts';
 import type { ChatUser } from '../types/index.ts';
@@ -50,6 +51,15 @@ export function ChatProvider({
 
   const { looking, lookingRef, notLookingSince } = useAttention();
   usePresence({ chatApi, socket, dispatch, looking, notLookingSince });
+  // Profile photos need the sign-in token to fetch; they are let go of on sign-out.
+  useEffect(() => {
+    avatarStore.configure(chatApi.fileBlob);
+    return () => {
+      avatarStore.configure(null);
+      avatarStore.reset();
+    };
+  }, [chatApi]);
+
   useEffect(() => {
     void restorePush(api);
   }, [api]);
@@ -77,9 +87,17 @@ export function ChatProvider({
   const toast = useToast();
   const navigate = useNavigate();
   const onNotice = useLatest(
-    ({ message, title, body }: { message: { channelId: string; userName: string }; title: string; body: string }) => {
+    ({
+      message,
+      title,
+      body,
+    }: {
+      message: { channelId: string; userName: string; userId: number };
+      title: string;
+      body: string;
+    }) => {
       toast({
-        avatar: { name: message.userName || '?' },
+        avatar: { name: message.userName || '?', userId: message.userId },
         text: <b>{title}</b>,
         detail: body,
         ms: 5200,

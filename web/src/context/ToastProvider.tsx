@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Avatar } from '../components/common/Avatar.tsx';
+import { UserAvatar } from '../components/common/UserAvatar.tsx';
 
 export type ToastAction = { label: string; kind?: 'ok' | 'no'; onClick?: () => void };
 export type ToastInput = {
@@ -9,7 +9,7 @@ export type ToastInput = {
   detail?: string;
   icon?: ReactNode;
   /** Shows this person's avatar instead of an icon. */
-  avatar?: { name: string; src?: string | null };
+  avatar?: { name: string; userId?: number | null };
   actions?: ToastAction[];
   /** How long it stays (milliseconds). Ignored when `sticky`. */
   ms?: number;
@@ -59,7 +59,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div key={t.id} className="toast" data-testid="toast">
             {t.avatar ? (
-              <Avatar name={t.avatar.name} src={t.avatar.src} size="md" />
+              <UserAvatar userId={t.avatar.userId} name={t.avatar.name} size="md" />
             ) : (
               t.icon && <span className="tic">{t.icon}</span>
             )}

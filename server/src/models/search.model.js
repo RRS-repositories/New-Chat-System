@@ -35,7 +35,7 @@ export async function searchMessages(db, { userId, q, channelId = null, page = 1
   const scope = channelId ? ` AND x.channel_id = ${add(channelId)}` : '';
 
   const { rows } = await db.query(
-    `SELECT x.id, x.channel_id, c.display_name, c.type, c.name, u.full_name AS user_name, x.created_at, x.content,
+    `SELECT x.id, x.channel_id, x.user_id, c.display_name, c.type, c.name, u.full_name AS user_name, x.created_at, x.content,
             ts_headline('english', x.content, plainto_tsquery('english', $2), 'StartSel=<b>, StopSel=</b>, MaxWords=24, MinWords=8') AS headline
        FROM chat.messages x
        JOIN chat.channel_members me ON me.channel_id = x.channel_id AND me.user_id = $1
@@ -51,6 +51,7 @@ export async function searchMessages(db, { userId, q, channelId = null, page = 1
     messageId: r.id,
     channelId: r.channel_id,
     channelName: r.type === 'dm' ? 'Direct message' : r.display_name || r.name,
+    userId: r.user_id,
     userName: r.user_name,
     snippet: excerpt(r.content, terms) ?? r.headline,
     createdAt: new Date(r.created_at).toISOString(),

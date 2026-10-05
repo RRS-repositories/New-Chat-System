@@ -147,7 +147,7 @@ test('GET /users excludes the caller and inactive users (SQL shape)', async () =
   const db = makeDb({ rows: { 'FROM public\\.users u WHERE': [{ id: 8, full_name: 'Bob', role: 'Sales' }] } });
   const r = await request(app(db)).get('/api/chat/users').set('Authorization', token(7));
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body.users, [{ id: 8, fullName: 'Bob', role: 'Sales' }]);
+  assert.deepEqual(r.body.users, [{ id: 8, fullName: 'Bob', role: 'Sales', avatarUrl: null }]);
   const q = db.calls.find((x) => /FROM public\.users u WHERE/.test(x.sql));
   assert.ok(/is_approved = TRUE/.test(q.sql) && /is_active IS NOT FALSE/.test(q.sql) && /u\.id <> \$1/.test(q.sql));
 });

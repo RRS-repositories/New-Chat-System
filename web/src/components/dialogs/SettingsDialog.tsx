@@ -14,6 +14,7 @@ import {
   type PushState,
 } from '../../services/push.ts';
 import { AppearanceSettings } from './AppearanceSettings.tsx';
+import { ProfilePhotoSettings } from './ProfilePhotoSettings.tsx';
 
 /** Own notification preferences, status and this device's push subscription. Every change applies at once. */
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
@@ -115,6 +116,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <X size={15} />
           </button>
         </div>
+        <ProfilePhotoSettings onError={setError} />
         <AppearanceSettings onError={setError} />
         <div className="ap-h">NOTIFICATIONS</div>
         <label className="field">

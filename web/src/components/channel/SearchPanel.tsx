@@ -209,7 +209,7 @@ export function SearchPanel({
                 onClose();
               }}
             >
-              <Avatar name={h.userName} size="md" />
+              <UserAvatar userId={h.userId} name={h.userName} size="md" />
               <span className="bd">
                 <b>
                   {h.userName} · {h.channelName}

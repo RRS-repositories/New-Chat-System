@@ -53,7 +53,13 @@ export type Preferences = {
 };
 export type UserStatus = { text: string; emoji: string };
 /** GET /api/chat/users/online */
-export type PresenceSnapshot = { online: number[]; away: number[]; statuses: Record<string, UserStatus> };
+export type PresenceSnapshot = {
+  online: number[];
+  away: number[];
+  statuses: Record<string, UserStatus>;
+  /** Each person's profile photo address, for those who have one. */
+  avatars?: Record<string, string>;
+};
 /** A public channel as listed by GET /api/chat/channels/browse (ordered by displayName). */
 export type BrowseChannel = {
   id: string;
@@ -68,6 +74,8 @@ export type SearchHit = {
   messageId: string;
   channelId: string;
   channelName: string;
+  /** The sender, for their avatar. */
+  userId?: number;
   userName: string;
   snippet: string;
   createdAt: string;

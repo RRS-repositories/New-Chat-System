@@ -84,6 +84,7 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
             channels={state.channels}
             currentId={currentChannelId}
             presence={state.presence}
+            userId={user.id}
             userName={user.fullName}
             ownPresence={state.connected ? presenceOf(state.presence, user.id) : 'offline'}
             ownStatus={state.presence.statuses[user.id]}

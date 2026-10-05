@@ -3,13 +3,14 @@ import type { ReactNode } from 'react';
 import { APP_TITLE, ORG_NAME } from '../../config/constants.ts';
 import type { Channel, UserStatus } from '../../types/index.ts';
 import type { Presence, PresenceState } from '../../utils/presence.ts';
-import { Avatar } from '../common/Avatar.tsx';
+import { UserAvatar } from '../common/UserAvatar.tsx';
 import { ChannelList } from './ChannelList.tsx';
 
 type Props = {
   channels: Channel[];
   currentId: string | null;
   presence: Presence;
+  userId: number;
   userName: string;
   /** The signed-in person's own presence and status, shown on their card at the bottom. */
   ownPresence: PresenceState;
@@ -41,8 +42,19 @@ function FootRow({ icon, label, active, onClick }: FootRowProps) {
 
 /** The left panel: the brand, search, your channels and people, the actions, and your own card (which opens Settings). */
 export function Sidebar(props: Props) {
-  const { channels, currentId, presence, userName, ownPresence, ownStatus, adminActive, onSelect, onSearch, onAdmin } =
-    props;
+  const {
+    channels,
+    currentId,
+    presence,
+    userId,
+    userName,
+    ownPresence,
+    ownStatus,
+    adminActive,
+    onSelect,
+    onSearch,
+    onAdmin,
+  } = props;
   const statusLine = [ownStatus?.emoji, ownStatus?.text].filter(Boolean).join(' ');
   return (
     <div className="sidebar-inner">
@@ -72,7 +84,7 @@ export function Sidebar(props: Props) {
         <FootRow icon={<Hash size={15} />} label="Browse channels" onClick={props.onBrowse} />
         {onAdmin && <FootRow icon={<Shield size={15} />} label="Admin" active={adminActive} onClick={onAdmin} />}
         <button className="s-me" aria-label="Settings" title="Settings" onClick={props.onSettings}>
-          <Avatar name={userName} presence={ownPresence} />
+          <UserAvatar userId={userId} name={userName} presence={ownPresence} />
           <span className="nm">
             <b className="sidebar-user">{userName}</b>
             <span>{statusLine || `${PRESENCE_LABEL[ownPresence]} · tap for settings`}</span>

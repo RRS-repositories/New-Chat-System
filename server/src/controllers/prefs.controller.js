@@ -6,13 +6,14 @@ import {
   listStatuses,
   setChannelNotifyPref,
 } from '../models/prefs.model.js';
+import { listAvatars } from '../models/avatars.model.js';
 
 export function createPrefController({ db, presence, emit }) {
   return {
-    /** Who is online or away right now, plus everyone's status message. */
+    /** Who is online or away right now, plus everyone's status message and profile photo address. */
     online: wrap(async (_req, res) => {
       const { online = [], away = [] } = presence?.snapshot?.() || {};
-      res.json({ success: true, online, away, statuses: await listStatuses(db) });
+      res.json({ success: true, online, away, statuses: await listStatuses(db), avatars: await listAvatars(db) });
     }),
 
     getPreferences: wrap(async (req, res) => {

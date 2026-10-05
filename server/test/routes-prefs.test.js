@@ -92,6 +92,7 @@ test('GET /users/online: the registry snapshot plus non-empty statuses', async (
     online: [1, 2],
     away: [3],
     statuses: { 2: { text: 'On a call', emoji: '📞' } },
+    avatars: {},
   });
 });
 
