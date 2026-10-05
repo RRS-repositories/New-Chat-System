@@ -8,9 +8,10 @@ import {
   type ClipboardEvent,
   type KeyboardEvent,
 } from 'react';
-import { Send, Paperclip, X } from 'lucide-react';
+import { Paperclip, Send, Smile, X } from 'lucide-react';
 import type { Message } from '../../types/index.ts';
 import { ReplyingToBar } from './ReplyingToBar.tsx';
+import { EmojiPicker } from './EmojiPicker.tsx';
 import { MentionAutocomplete } from './MentionAutocomplete.tsx';
 import { mentionQueryAt, insertMention, mentionItems } from '../../utils/mentions.ts';
 import { ACCEPT, formatBytes, validateFiles } from '../../utils/files.ts';
@@ -25,11 +26,25 @@ type Props = {
   onUpload?: (files: File[], content: string) => Promise<void>;
   /** false: Enter adds a new line and Ctrl/Cmd+Enter sends. */
   sendOnEnter?: boolean;
+  placeholder?: string;
+  /** The formatting reminder under the box (left out in the narrow thread panel). */
+  hint?: boolean;
 };
 export type MessageInputHandle = { addFiles: (files: File[]) => void };
 
 export const MessageInput = forwardRef<MessageInputHandle, Props>(function MessageInput(
-  { onSend, onTyping, disabled, replyTo, onCancelReply, members = [], onUpload, sendOnEnter = true },
+  {
+    onSend,
+    onTyping,
+    disabled,
+    replyTo,
+    onCancelReply,
+    members = [],
+    onUpload,
+    sendOnEnter = true,
+    placeholder = 'Message',
+    hint = true,
+  },
   ref,
 ) {
   const [text, setText] = useState('');
@@ -41,6 +56,8 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
   const [pending, setPending] = useState<File[]>([]);
   const ta = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const emojiButton = useRef<HTMLButtonElement>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   useEffect(() => {
     if (replyTo) ta.current?.focus();
   }, [replyTo]);
@@ -123,10 +140,22 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
       addFiles(files);
     }
   }
+  /** Puts an emoji where the cursor is. */
+  function insertEmoji(emoji: string) {
+    const at = ta.current?.selectionStart ?? text.length;
+    const next = text.slice(0, at) + emoji + text.slice(at);
+    setText(next);
+    const after = at + emoji.length;
+    setCaret(after);
+    requestAnimationFrame(() => {
+      ta.current?.focus();
+      ta.current?.setSelectionRange(after, after);
+    });
+  }
   const syncCaret = () => setCaret(ta.current?.selectionStart ?? text.length);
   const canSend = (text.trim() !== '' || pending.length > 0) && !busy && !disabled;
   return (
-    <div className="input-bar">
+    <div className="comp input-bar">
       {replyTo && onCancelReply && <ReplyingToBar target={replyTo} onCancel={onCancelReply} />}
       {pending.length > 0 && (
         <div className="pending-files">
@@ -146,7 +175,7 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
       )}
       {error && <p className="error">{error}</p>}
       {listOpen && <MentionAutocomplete items={items} idx={idx} onPick={pick} />}
-      <div className="input-row">
+      <div className="comp-in input-row">
         {onUpload && (
           <>
             <input
@@ -161,7 +190,7 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
               }}
             />
             <button
-              className="icon-btn"
+              className="cbtn"
               aria-label="Attach files"
               title="Attach"
               disabled={disabled}
@@ -175,7 +204,7 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
           ref={ta}
           value={text}
           rows={1}
-          placeholder={pending.length ? 'Add a message (optional)' : 'Type a message'}
+          placeholder={pending.length ? 'Add a message (optional)' : placeholder}
           disabled={disabled}
           onChange={(e) => {
             setText(e.target.value);
@@ -190,13 +219,28 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
           onBlur={() => setMentionsOpen(false)}
           onFocus={() => setMentionsOpen(true)}
         />
-        <button className="icon-btn send" aria-label="Send" disabled={!canSend} onClick={() => void submit()}>
-          <Send size={18} />
+        <button
+          ref={emojiButton}
+          className="cbtn"
+          aria-label="Emoji"
+          title="Emoji"
+          disabled={disabled}
+          onClick={() => setEmojiOpen(!emojiOpen)}
+        >
+          <Smile size={18} />
+        </button>
+        {emojiOpen && (
+          <EmojiPicker anchor={emojiButton} verb="Insert" onPick={insertEmoji} onClose={() => setEmojiOpen(false)} />
+        )}
+        <button className="sendb send" aria-label="Send" disabled={!canSend} onClick={() => void submit()}>
+          <Send size={17} />
         </button>
       </div>
-      <p className="input-hint muted" aria-hidden="true">
-        **bold** · `code` · - list · links become clickable · Shift+Enter for a new line
-      </p>
+      {hint && (
+        <p className="input-hint" aria-hidden="true">
+          **bold** · `code` · - list · links become clickable · Shift+Enter for a new line
+        </p>
+      )}
     </div>
   );
 });

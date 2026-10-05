@@ -1,230 +1,126 @@
-/* The colour theme, applied on top of the structural styles above.
-   Deep indigo sidebar, violet accent. Colours come from tokens.css. */
-::selection {
-  background: var(--accent-line);
+/* The theme: what changes for each accent colour and for dark mode.
+   The values come from the approved design (Updates/chat-app-redesign-v2.html); tokens.css holds the defaults.
+   The page carries two attributes on <body>: data-mode (light | dark) and data-accent. */
+body[data-accent='ocean'] {
+  --violet: #0b84f3;
+  --violet-2: #3fa3ff;
+  --violet-3: #9ed1ff;
+  --violet-ink: #085fbd;
+  --vrgb: 11, 132, 243;
+  --violet-soft: #eaf4ff;
+  --violet-soft-2: #d7ebff;
+  --grad: linear-gradient(120deg, #3fa3ff 0%, #0b84f3 55%, #0a6ad1 100%);
+  --side: #0f1d38;
+  --side-2: #0a152b;
 }
-a,
-.link {
-  color: var(--accent);
+body[data-accent='sunset'] {
+  --violet: #ff4365;
+  --violet-2: #ff7a45;
+  --violet-3: #ffb3c0;
+  --violet-ink: #c2184b;
+  --vrgb: 255, 67, 101;
+  --violet-soft: #ffeff1;
+  --violet-soft-2: #ffdfe4;
+  --grad: linear-gradient(120deg, #ff7a45 0%, #ff4365 55%, #e12a54 100%);
+  --side: #2a0f22;
+  --side-2: #1b0917;
 }
-.btn-accent {
-  background: var(--accent);
+body[data-accent='emerald'] {
+  --violet: #0fb573;
+  --violet-2: #35e09a;
+  --violet-3: #9ff0cc;
+  --violet-ink: #077a4d;
+  --vrgb: 15, 181, 115;
+  --violet-soft: #e8fbf2;
+  --violet-soft-2: #d1f5e6;
+  --grad: linear-gradient(120deg, #35e09a 0%, #0fb573 55%, #0b9a61 100%);
+  --side: #0b241e;
+  --side-2: #071914;
 }
-.btn-accent:hover:not(:disabled) {
-  background: var(--accent-strong);
+body[data-accent='magenta'] {
+  --violet: #e31fa9;
+  --violet-2: #ff5bcb;
+  --violet-3: #ffade4;
+  --violet-ink: #ac0f7e;
+  --vrgb: 227, 31, 169;
+  --violet-soft: #fdedf8;
+  --violet-soft-2: #fbdcf1;
+  --grad: linear-gradient(120deg, #ff5bcb 0%, #e31fa9 55%, #c2138f 100%);
+  --side: #2a0c24;
+  --side-2: #1a0716;
 }
-.btn-ghost:hover:not(:disabled) {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
-}
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--accent-line);
-  outline-offset: 0;
-  border-color: var(--accent);
-}
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* Sidebar */
-.chat-sidebar {
-  background: var(--side-bg);
-  border-right: 0;
-  color: var(--side-text);
-}
-.sidebar-head {
-  border-bottom-color: var(--side-line);
-}
-.sidebar-user {
-  color: var(--side-strong);
-  font-weight: 600;
-}
-.chat-sidebar .icon-btn {
-  color: var(--side-text);
-}
-.chat-sidebar .icon-btn:hover {
-  background: var(--side-hover);
-  color: var(--side-strong);
-}
-.chat-sidebar .link {
-  color: var(--side-text-2);
-}
-.chat-sidebar .link:hover {
-  color: var(--side-strong);
-}
-.chat-sidebar .muted,
-.chan-group-title,
-button.chan-group-title {
-  color: var(--side-text-2);
-}
-button.chan-group-title:hover {
-  color: var(--side-strong);
-}
-.chat-sidebar .chan-row {
-  color: var(--side-text);
-  border-radius: 6px;
-  width: calc(100% - 16px);
-  margin: 1px 8px;
-  padding: 0 8px;
-}
-.chat-sidebar .chan-row:hover {
-  background: var(--side-hover);
-  color: var(--side-strong);
-}
-.chat-sidebar .chan-row.active {
-  background: var(--side-active);
-  color: var(--side-strong);
-}
-.chat-sidebar .chan-row.unread .chan-name {
-  color: var(--side-strong);
-}
-.chat-sidebar .muted-icon {
-  color: var(--side-text-2);
-}
-.chat-sidebar .dot {
-  border-color: var(--side-text-2);
-}
-.chat-sidebar .dot.online {
-  border-color: var(--call);
-}
-.chat-sidebar .dot.away {
-  border-color: #f59e0b;
-}
-.sidebar-foot {
-  border-top-color: var(--side-line);
-}
-.chan-list {
-  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
-  scrollbar-width: thin;
-}
-.chat-sidebar .badge {
-  background: #8b6cff;
-}
-.chat-sidebar .badge.mention {
-  background: #ef4444;
+body[data-mode='dark'] {
+  --paper: #161a33;
+  --paper-2: #11142a;
+  --paper-3: #0d1022;
+  --ink: #eef0fb;
+  --mut: #9fa6cb;
+  --dim: #6e759b;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-2: rgba(255, 255, 255, 0.16);
+  --hov: rgba(255, 255, 255, 0.05);
+  --glass: rgba(15, 18, 39, 0.85);
+  --glass-2: rgba(21, 25, 50, 0.95);
+  --violet-soft: rgba(var(--vrgb), 0.18);
+  --violet-soft-2: rgba(var(--vrgb), 0.32);
+  --violet-ink: var(--violet-3);
+  --mark: rgba(255, 196, 77, 0.26);
+  --mark-ink: #ffd88a;
+  --pin: #ffc24d;
+  --red-soft: rgba(229, 72, 77, 0.2);
+  --green-soft: rgba(31, 167, 90, 0.22);
+  --sh: 0 12px 38px -14px rgba(0, 0, 0, 0.55);
+  --sh-sm: 0 5px 18px -7px rgba(0, 0, 0, 0.5);
+  --sh-lg: 0 32px 90px -24px rgba(0, 0, 0, 0.72);
+  color-scheme: dark;
 }
 
-/* Conversation */
-.chan-head {
-  background: var(--bg);
+/* Appearance controls in Settings */
+.ap-h {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  margin: 14px 2px 4px;
 }
-.chan-title {
-  font-weight: 600;
+.seg {
+  display: flex;
+  background: var(--paper-3);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 3px;
+  gap: 2px;
 }
-.msg:hover {
-  background: var(--hover);
-}
-.msg-author {
-  color: var(--text);
-}
-.msg.highlight {
-  background: var(--accent-soft);
-}
-.mention {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-}
-.reaction-pill.mine {
-  border-color: var(--accent);
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-}
-.replying-bar {
-  border-left-color: var(--accent);
-}
-.feed {
-  scrollbar-color: #cfcbe6 transparent;
-  scrollbar-width: thin;
-}
-.input-row textarea {
+.seg button {
+  padding: 6px 14px;
   border-radius: 8px;
-  background: var(--bg);
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--mut);
 }
-.send {
-  color: #fff;
-  background: var(--accent);
-  border-radius: 8px;
+.seg button.on {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--sh-sm);
 }
-.send:hover:not(:disabled) {
-  background: var(--accent-strong);
+.swr {
+  display: flex;
+  gap: 11px;
+  padding: 6px 2px 2px;
 }
-.send:disabled {
-  color: var(--text-2);
-  background: var(--hover);
+.swb {
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+  transition: transform 0.12s;
 }
-.new-pill {
-  color: var(--accent);
-  border-color: var(--accent-line);
+.swb:hover {
+  transform: scale(1.1);
 }
-.call-btn.on {
-  color: var(--accent-strong);
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.admin-tab.active {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-}
-.modal,
-.menu {
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(27, 31, 58, 0.16);
-}
-.modal-scrim,
-.sidebar-open .chat-scrim {
-  background: rgba(27, 31, 58, 0.45);
-}
-
-/* Avatars: one steady colour per person */
-.avatar {
-  border: 0;
-  border-radius: 8px;
-  color: #fff;
-  font-weight: 600;
-  background: #6c4de6;
-}
-.av-0 {
-  background: #6c4de6;
-}
-.av-1 {
-  background: #0e9f8e;
-}
-.av-2 {
-  background: #e0672b;
-}
-.av-3 {
-  background: #2f7de1;
-}
-.av-4 {
-  background: #c2418b;
-}
-.av-5 {
-  background: #5b8c2a;
-}
-.av-6 {
-  background: #8a5cd6;
-}
-.av-7 {
-  background: #c98a0b;
-}
-
-/* Sign-in */
-.login {
-  background: linear-gradient(140deg, #1b1f3a 0%, #2b2466 55%, #6c4de6 130%);
-}
-.login-card {
-  border: 0;
-  border-radius: 12px;
-  padding: 28px;
-  box-shadow: 0 20px 50px rgba(10, 12, 30, 0.35);
-}
-.login-title {
-  font-weight: 600;
-  color: var(--text);
-}
-.not-enabled {
-  background: var(--bg-side);
+.swb.on {
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 4.5px var(--violet);
 }

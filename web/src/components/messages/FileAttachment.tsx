@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FileText, Download, Play } from 'lucide-react';
 import type { ChatFile } from '../../types/index.ts';
 import { useChat } from '../../context/chatContext.ts';
-import { formatBytes, isImage, isVideo } from '../../utils/files.ts';
+import { fileKind, formatBytes, isImage, isVideo } from '../../utils/files.ts';
 import { Lightbox } from './Lightbox.tsx';
 
 /** Hand a fetched file to the browser's download UI, then release the memory. */
@@ -59,9 +59,13 @@ export function FileAttachment({ file }: { file: ChatFile }) {
           {thumb ? (
             <img src={thumb} alt={file.filename} width={200} />
           ) : (
-            <span className="file-card">
-              <FileText size={18} />
-              <span className="file-name">{file.filename}</span>
+            <span className="fcard file-card">
+              <span className="fic">
+                <FileText size={17} />
+              </span>
+              <span className="fmeta">
+                <b className="file-name">{file.filename}</b>
+              </span>
             </span>
           )}
         </button>
@@ -71,19 +75,22 @@ export function FileAttachment({ file }: { file: ChatFile }) {
   }
   if (isVideo(file.mimeType)) return <VideoAttachment file={file} src={dl} />;
   return (
-    <div className="file-card">
-      <FileText size={18} />
-      <div className="file-meta">
-        <div className="file-name">{file.filename}</div>
-        <div className="muted">
-          {formatBytes(file.sizeBytes)}
+    <button
+      className="fcard file-card"
+      disabled={busy}
+      aria-label={`Download ${file.filename}`}
+      title="Download"
+      onClick={() => void download()}
+    >
+      <span className="fic">{busy ? <Download size={17} /> : <FileText size={17} />}</span>
+      <span className="fmeta file-meta">
+        <b className="file-name">{file.filename}</b>
+        <span>
+          {formatBytes(file.sizeBytes)} · {fileKind(file.mimeType, file.filename)}
           {error ? ` · ${error}` : ''}
-        </div>
-      </div>
-      <button className="btn-ghost" disabled={busy} onClick={() => void download()}>
-        <Download size={14} /> Download
-      </button>
-    </div>
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -101,7 +108,7 @@ function VideoAttachment({ file, src }: { file: ChatFile; src: string }) {
   if (url) return <video className="file-video" src={url} controls autoPlay preload="metadata" />;
   return (
     <button
-      className="file-card"
+      className="fcard file-card"
       disabled={busy}
       onClick={() => {
         setBusy(true);
@@ -111,10 +118,12 @@ function VideoAttachment({ file, src }: { file: ChatFile; src: string }) {
           .catch(() => setBusy(false));
       }}
     >
-      <Play size={18} />
-      <span className="file-meta">
-        <span className="file-name">{file.filename}</span>
-        <span className="muted"> · {formatBytes(file.sizeBytes)} · tap to play</span>
+      <span className="fic">
+        <Play size={17} />
+      </span>
+      <span className="fmeta file-meta">
+        <b className="file-name">{file.filename}</b>
+        <span>{formatBytes(file.sizeBytes)} · tap to play</span>
       </span>
     </button>
   );

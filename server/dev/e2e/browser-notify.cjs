@@ -92,7 +92,7 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
       .waitFor({ timeout: 8000 });
   });
   await step('settings: sound preference saves and survives a reload', async () => {
-    await ann.page.locator('.sidebar-foot .chan-row', { hasText: 'Settings' }).click();
+    await ann.page.locator('button[aria-label="Settings"]').click();
     const box = ann.page.locator('label.check-row', { hasText: 'Play a sound' }).locator('input');
     await box.waitFor();
     if (!(await box.isChecked())) throw new Error('expected sound on by default');
@@ -104,14 +104,14 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
     });
     await ann.page.reload({ waitUntil: 'domcontentloaded' });
     await ann.page.waitForSelector('.sidebar-user');
-    await ann.page.locator('.sidebar-foot .chan-row', { hasText: 'Settings' }).click();
+    await ann.page.locator('button[aria-label="Settings"]').click();
     const again = ann.page.locator('label.check-row', { hasText: 'Play a sound' }).locator('input');
     await again.waitFor();
     if (await again.isChecked()) throw new Error('sound setting did not persist');
     await ann.page.keyboard.press('Escape');
   });
   await step('settings: own status shows to the other person', async () => {
-    await meg.page.locator('.sidebar-foot .chan-row', { hasText: 'Settings' }).click();
+    await meg.page.locator('button[aria-label="Settings"]').click();
     await meg.page.fill('[aria-label="Status text"]', 'In court today');
     const save = meg.page
       .locator('[role=dialog][aria-label="Settings"] button', { hasText: /save|set|update/i })

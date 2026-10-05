@@ -1,43 +1,77 @@
 /* The sign-in page and the "chat is not enabled" screen. */
-.login {
-  min-height: 100%;
-  overflow-y: auto;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: var(--bg-side);
-}
-.login-card {
-  width: 100%;
-  max-width: 360px;
-  display: grid;
-  gap: 12px;
-  padding: 24px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-}
-.login-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 500;
-}
+.login,
 .not-enabled {
+  min-height: 100%;
   height: 100%;
   overflow-y: auto;
   display: grid;
   place-items: center;
   padding: 16px;
-  background: var(--bg-side);
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(160deg, var(--side-2) 0%, var(--side) 55%, var(--side-2) 100%);
+}
+.login::before,
+.not-enabled::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(620px 420px at 18% 8%, rgba(var(--vrgb), 0.42), transparent 62%),
+    radial-gradient(560px 460px at 92% 96%, rgba(var(--vrgb), 0.24), transparent 60%);
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: grid;
+  gap: 4px;
+  padding: 28px 26px 26px;
+  border-radius: 24px;
+  background: var(--paper);
+  box-shadow: var(--sh-lg);
+  animation: srise 0.22s cubic-bezier(0.18, 1.15, 0.4, 1);
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 14px;
+}
+.login-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.login-brand .muted {
+  font-weight: 600;
+}
+.login-card > .muted {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+.login-card .btn-accent {
+  margin-top: 6px;
+  padding: 12px 18px;
+}
+.login-card .error {
+  margin-bottom: 6px;
 }
 .not-enabled-card {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   justify-items: center;
+  max-width: 400px;
+  padding: 28px 26px;
+  border-radius: 24px;
+  background: var(--paper);
+  box-shadow: var(--sh-lg);
 }
 .not-enabled p {
-  max-width: 360px;
   margin: 0;
   text-align: center;
-  color: var(--text-2);
+  color: var(--mut);
 }

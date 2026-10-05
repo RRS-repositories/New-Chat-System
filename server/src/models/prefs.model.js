@@ -10,10 +10,24 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   sendOnEnter: true,
   statusText: '',
   statusEmoji: '',
+  theme: null,
 });
 export const STATUS_TEXT_MAX = 100;
 export const STATUS_EMOJI_MAX = 16;
 const LEVELS = ['all', 'mentions', 'nothing'];
+export const THEME_MODES = ['light', 'dark'];
+export const THEME_ACCENTS = ['violet', 'ocean', 'sunset', 'emerald', 'magenta'];
+const isTheme = (v) => !!v && typeof v === 'object' && THEME_MODES.includes(v.mode) && THEME_ACCENTS.includes(v.accent);
+/** The stored text → { mode, accent }, or null when the person has not chosen (or the text is not a theme). */
+function readTheme(text) {
+  if (!text) return null;
+  try {
+    const v = JSON.parse(text);
+    return isTheme(v) ? { mode: v.mode, accent: v.accent } : null;
+  } catch {
+    return null;
+  }
+}
 export const CHANNEL_NOTIFY_PREFS = ['all', 'mentions', 'nothing', 'default'];
 
 // Known PATCH keys → column + validator. Anything else in a body is ignored.
@@ -30,6 +44,13 @@ const FIELDS = {
   },
   soundEnabled: { col: 'sound_enabled', ok: (v) => typeof v === 'boolean', msg: 'soundEnabled must be true or false' },
   sendOnEnter: { col: 'send_on_enter', ok: (v) => typeof v === 'boolean', msg: 'sendOnEnter must be true or false' },
+  // The colour theme follows the person across devices. Stored as a small piece of JSON with only the two known keys.
+  theme: {
+    col: 'theme',
+    ok: isTheme,
+    msg: 'theme must be { mode: light or dark, accent: violet, ocean, sunset, emerald or magenta }',
+    toDb: (v) => JSON.stringify({ mode: v.mode, accent: v.accent }),
+  },
 };
 
 const mapPrefs = (r) =>
@@ -41,6 +62,7 @@ const mapPrefs = (r) =>
         sendOnEnter: r.send_on_enter,
         statusText: r.status_text || '',
         statusEmoji: r.status_emoji || '',
+        theme: readTheme(r.theme),
       }
     : { ...DEFAULT_PREFERENCES };
 
@@ -48,7 +70,7 @@ export async function getPreferences(db, userId) {
   const {
     rows: [r],
   } = await db.query(
-    `SELECT desktop_notif, mobile_notif, sound_enabled, send_on_enter, status_text, status_emoji FROM chat.user_preferences WHERE user_id = $1`,
+    `SELECT desktop_notif, mobile_notif, sound_enabled, send_on_enter, status_text, status_emoji, theme FROM chat.user_preferences WHERE user_id = $1`,
     [userId],
   );
   return mapPrefs(r);
@@ -61,7 +83,7 @@ async function upsert(db, userId, cols, values) {
   } = await db.query(
     `INSERT INTO chat.user_preferences (user_id, ${cols.join(', ')}) VALUES ($1, ${cols.map((_, i) => `$${i + 2}`).join(', ')})
      ON CONFLICT (user_id) DO UPDATE SET ${cols.map((c) => `${c} = EXCLUDED.${c}`).join(', ')}, updated_at = now()
-     RETURNING desktop_notif, mobile_notif, sound_enabled, send_on_enter, status_text, status_emoji`,
+     RETURNING desktop_notif, mobile_notif, sound_enabled, send_on_enter, status_text, status_emoji, theme`,
     [userId, ...values],
   );
   return r;
@@ -76,7 +98,7 @@ export async function updatePreferences(db, userId, patch) {
     if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
     if (!f.ok(body[key])) throw fail(f.msg);
     cols.push(f.col);
-    values.push(body[key]);
+    values.push(f.toDb ? f.toDb(body[key]) : body[key]);
   }
   if (!cols.length) return getPreferences(db, userId);
   return mapPrefs(await upsert(db, userId, cols, values));

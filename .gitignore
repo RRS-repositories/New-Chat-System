@@ -11,3 +11,4 @@ Tasks/
 *.log
 uploads/
 .DS_Store
+Updates/*.zip

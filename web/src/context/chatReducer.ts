@@ -89,6 +89,7 @@ export const defaultPrefs: Preferences = {
   sendOnEnter: true,
   statusText: '',
   statusEmoji: '',
+  theme: null,
 };
 export const initialState: State = {
   channels: [],

@@ -31,6 +31,28 @@ export function formatTime(iso: string, now = new Date()): string {
   if (now.getTime() - d.getTime() < 7 * DAY) return `${WEEKDAYS[a.wd] ?? ''} ${a.hm}`.trim();
   return `${a.d} ${MONTHS[a.m - 1]}`;
 }
+const WEEKDAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** The time of day, 24-hour, in UK time: "14:05". */
+export const formatClock = (iso: string): string => londonParts(new Date(iso)).hm;
+
+/** One value per calendar day in UK time, to tell when the day changes between two messages. */
+export function dayKey(iso: string): string {
+  const p = londonParts(new Date(iso));
+  return `${p.y}-${p.m}-${p.d}`;
+}
+
+/** The label on the chip between days: "Today", "Yesterday", or "Monday, 6 Oct" (with the year when it is not this one). */
+export function dayLabel(iso: string, now = new Date()): string {
+  const a = londonParts(new Date(iso));
+  const b = londonParts(now);
+  const days = Math.round((Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / DAY);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  const label = `${WEEKDAYS_LONG[a.wd] ?? ''}, ${a.d} ${MONTHS[a.m - 1]}`;
+  return a.y === b.y ? label : `${label} ${a.y}`;
+}
+
 export function groupWithPrevious(
   prev: Pick<Message, 'userId' | 'createdAt'> | undefined,
   cur: Pick<Message, 'userId' | 'createdAt'>,
@@ -45,9 +67,3 @@ export const initials = (name: string) =>
     .slice(0, 2)
     .map((s) => s[0]!.toUpperCase())
     .join('') || '?';
-/** A stable tone (0-7) per person, so each avatar keeps its own colour everywhere. */
-export const avatarTone = (name: string): number => {
-  let h = 0;
-  for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
-  return h % 8;
-};

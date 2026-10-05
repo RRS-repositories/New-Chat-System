@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, X, FileText } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { ChannelFileRow } from '../../types/index.ts';
 import { formatBytes } from '../../utils/files.ts';
 import { formatTime } from '../../utils/format.ts';
-import { presenceOf } from '../../utils/presence.ts';
-import { PresenceDot, StatusBadge } from '../common/PresenceDot.tsx';
+import { presenceOf, type PresenceState } from '../../utils/presence.ts';
+import { StatusBadge } from '../common/PresenceDot.tsx';
+import { UserAvatar } from '../common/UserAvatar.tsx';
 import { ChannelOptions } from './ChannelOptions.tsx';
 import { useCanModerate } from './MessagePanel.tsx';
 
@@ -16,12 +17,16 @@ type Props = {
   onGone: () => void;
 };
 
+const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 'Away', offline: 'Offline' };
+
+/** The right-hand panel about a conversation: who is in it, the files shared in it, and its options. */
 export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
-  const { state, actions } = useChat();
+  const { state, user, actions } = useChat();
   const [tab, setTab] = useState<'members' | 'files' | 'options'>('members');
   const channel = state.channels.find((c) => c.id === channelId);
   const canManage = useCanModerate(channelId);
-  const hasOptions = !!channel && channel.type !== 'dm';
+  const isDm = channel?.type === 'dm';
+  const hasOptions = !!channel && !isDm;
   const [files, setFiles] = useState<ChannelFileRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,20 +62,19 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
       setError(e?.message || 'Could not download');
     }
   }
+  const dmPresence = isDm ? presenceOf(state.presence, channel!.dmUserId) : 'offline';
+  const dmStatus = isDm && channel!.dmUserId != null ? state.presence.statuses[channel!.dmUserId] : undefined;
   return (
     <aside className="thread-panel" aria-label="Channel details">
-      <header className="chan-head">
-        <button className="icon-btn only-mobile" aria-label="Back" onClick={onClose}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 className="chan-title">Details</h2>
-        <button className="icon-btn only-desktop push-right" aria-label="Close" onClick={onClose}>
-          <X size={16} />
+      <header className="p-h">
+        <h2>Details</h2>
+        <button className="p-x" aria-label="Close" onClick={onClose}>
+          <X size={15} />
         </button>
       </header>
       <div className="tabs">
         <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>
-          Members ({members.length})
+          {isDm ? 'About' : `Members (${members.length})`}
         </button>
         <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>
           Files
@@ -85,39 +89,82 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
           </button>
         )}
       </div>
-      <div className="feed">
-        {tab === 'members' &&
-          members.map((m) => (
-            <div key={m.id} className="pick-row">
-              <PresenceDot state={presenceOf(state.presence, m.id)} />
-              <span>{m.fullName}</span>
-              <StatusBadge status={state.presence.statuses[m.id]} withText />
-              <span className="muted"> · {m.channelRole === 'owner' ? 'owner' : m.role}</span>
-            </div>
-          ))}
+      <div className="p-b">
+        {tab === 'members' && (
+          <>
+            {isDm && (
+              <div className="prof-card">
+                <UserAvatar userId={channel!.dmUserId} name={channel!.dmUserName || '?'} size="xl" />
+                <b>{channel!.dmUserName}</b>
+                <span className="st2">
+                  {[dmStatus?.emoji, dmStatus?.text].filter(Boolean).join(' ') || PRESENCE_LABEL[dmPresence]}
+                </span>
+              </div>
+            )}
+            {channel && !isDm && (
+              <>
+                <div className="inf-sec">About</div>
+                <div className="inf-topic">{channel.purpose || 'No purpose set'}</div>
+              </>
+            )}
+            <div className="inf-sec">Members — {members.length}</div>
+            {members.map((m) => {
+              const presence = presenceOf(state.presence, m.id);
+              return (
+                <div key={m.id} className="mrow pick-row">
+                  <UserAvatar userId={m.id} name={m.fullName} size="md" presence={presence} />
+                  <span className="pi">
+                    <b>
+                      {m.fullName}
+                      {m.id === user.id ? ' (you)' : ''}
+                    </b>
+                    <span>
+                      {PRESENCE_LABEL[presence]} · {m.role}
+                    </span>
+                  </span>
+                  <StatusBadge status={state.presence.statuses[m.id]} withText />
+                  {(m.channelRole === 'owner' || m.channelRole === 'admin') && (
+                    <span className="rolechip">{m.channelRole === 'owner' ? 'Owner' : 'Admin'}</span>
+                  )}
+                </div>
+              );
+            })}
+            {channel && !isDm && (
+              <p className="p-note">
+                {channel.type === 'public'
+                  ? 'Public channel — anyone can find and join it from Browse channels.'
+                  : 'Private — people join by invitation only.'}
+              </p>
+            )}
+          </>
+        )}
         {tab === 'options' && channel && hasOptions && (
           <ChannelOptions key={channel.id} channel={channel} canManage={canManage} onGone={onGone} />
         )}
         {tab === 'files' && (
           <>
             {files.map((f) => (
-              <div key={f.id} className="pick-row file-row">
-                <FileText size={16} />
-                <button className="pin-body" onClick={() => void download(f)}>
-                  <div className="file-name">{f.filename}</div>
-                  <div className="muted">
+              <div key={f.id} className="pinrow file-row">
+                <span className="hashic md" aria-hidden="true">
+                  <FileText size={14} />
+                </span>
+                <button className="bd pin-body" onClick={() => void download(f)} title="Download">
+                  <b className="file-name">{f.filename}</b>
+                  <p className="muted">
                     {formatBytes(f.sizeBytes)} · {f.userName}
                     {f.createdAt ? ` · ${formatTime(f.createdAt)}` : ''}
-                  </div>
+                  </p>
                 </button>
               </div>
             ))}
-            {!files.length && !loading && <p className="muted pad">No files shared yet</p>}
+            {!files.length && !loading && <div className="p-empty">No files shared yet</div>}
             {error && <p className="error pad">{error}</p>}
             {cursor && (
-              <button className="btn-ghost" disabled={loading} onClick={() => void loadFiles(true)}>
-                Load more
-              </button>
+              <p className="center pad">
+                <button className="btn-ghost btn-small" disabled={loading} onClick={() => void loadFiles(true)}>
+                  Load more
+                </button>
+              </p>
             )}
           </>
         )}

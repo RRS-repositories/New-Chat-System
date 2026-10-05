@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { ChatUser } from '../../types/index.ts';
+import { presenceOf } from '../../utils/presence.ts';
+import { UserAvatar } from '../common/UserAvatar.tsx';
 export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpened: (channelId: string) => void }) {
-  const { actions } = useChat();
+  const { actions, state } = useChat();
   const [users, setUsers] = useState<ChatUser[]>([]);
   const [q, setQ] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +38,8 @@ export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpen
       <div className="modal" role="dialog" aria-label="New message" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>New message</h2>
-          <button className="icon-btn" aria-label="Close" onClick={onClose}>
-            <X size={16} />
+          <button className="p-x" aria-label="Close" onClick={onClose}>
+            <X size={15} />
           </button>
         </div>
         <label className="field">
@@ -47,11 +49,14 @@ export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpen
         <div className="pick-list">
           {shown.map((u) => (
             <button key={u.id} className="pick-row" disabled={busy} onClick={() => void pick(u)}>
-              {u.fullName}
-              <span className="muted"> · {u.role}</span>
+              <UserAvatar userId={u.id} name={u.fullName} size="md" presence={presenceOf(state.presence, u.id)} />
+              <span className="pi">
+                <b>{u.fullName}</b>
+                <span>{u.role}</span>
+              </span>
             </button>
           ))}
-          {!shown.length && <p className="muted">No one found</p>}
+          {!shown.length && <p className="muted pad">No one found</p>}
         </div>
         {error && <p className="error">{error}</p>}
       </div>

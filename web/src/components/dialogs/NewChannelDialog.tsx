@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { ChatUser } from '../../types/index.ts';
+import { UserAvatar } from '../common/UserAvatar.tsx';
 export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const { actions } = useChat();
   const [name, setName] = useState('');
@@ -35,44 +36,53 @@ export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; 
     <div className="modal-scrim" onClick={onClose}>
       <div className="modal" role="dialog" aria-label="New channel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h2>New channel</h2>
-          <button className="icon-btn" aria-label="Close" onClick={onClose}>
-            <X size={16} />
+          <h2>Create a channel</h2>
+          <button className="p-x" aria-label="Close" onClick={onClose}>
+            <X size={15} />
           </button>
         </div>
         <label className="field">
           <span>Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. claims-team" autoFocus />
         </label>
-        <label className="field">
-          <span>Type</span>
-          <select value={type} onChange={(e) => setType(e.target.value as 'public' | 'private')}>
-            <option value="public">Public — anyone can join</option>
-            <option value="private">Private — invite only</option>
-          </select>
+        <label className="togrow check-row">
+          <span className="tx">
+            <b>Private channel</b>
+            <span>Only invited people can see it</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={type === 'private'}
+            onChange={(e) => setType(e.target.checked ? 'private' : 'public')}
+          />
         </label>
         <div className="field">
           <span>Members</span>
           <div className="pick-list">
             {users.map((u) => (
-              <label key={u.id} className="pick-row">
+              <label key={u.id} className="pick-row pick-check">
                 <input
                   type="checkbox"
                   checked={picked.includes(u.id)}
                   onChange={(e) => setPicked(e.target.checked ? [...picked, u.id] : picked.filter((x) => x !== u.id))}
                 />
-                {u.fullName}
+                <UserAvatar userId={u.id} name={u.fullName} size="md" />
+                <span className="pi">
+                  <b>{u.fullName}</b>
+                  <span>{u.role}</span>
+                </span>
               </label>
             ))}
           </div>
         </div>
         {error && <p className="error">{error}</p>}
-        <div className="row gap end">
+        <div className="modal-acts">
           <button className="btn-ghost" onClick={onClose}>
             Cancel
           </button>
           <button className="btn-accent" disabled={!name.trim() || busy} onClick={() => void create()}>
-            Create
+            Create channel
           </button>
         </div>
       </div>

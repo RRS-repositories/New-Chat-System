@@ -46,3 +46,25 @@ export function validateFiles(files: File[]): { ok: File[]; errors: string[] } {
 }
 export const isImage = (mime: string) => /^image\/(jpeg|png|gif|webp)$/.test(mime);
 export const isVideo = (mime: string) => /^video\/(mp4|webm)$/.test(mime);
+
+const KINDS: Record<string, string> = {
+  pdf: 'PDF',
+  docx: 'Word document',
+  xlsx: 'Spreadsheet',
+  pptx: 'Presentation',
+  csv: 'Spreadsheet',
+  txt: 'Text',
+  zip: 'Archive',
+  svg: 'Image',
+  webm: 'Recording',
+  mp4: 'Video',
+};
+/** A plain word for what a file is, shown on its card: "PDF", "Spreadsheet", "Image". */
+export function fileKind(mime: string, filename: string): string {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  if (KINDS[ext]) return KINDS[ext];
+  if (mime.startsWith('image/')) return 'Image';
+  if (mime.startsWith('audio/')) return 'Audio';
+  if (mime.startsWith('video/')) return 'Video';
+  return 'File';
+}

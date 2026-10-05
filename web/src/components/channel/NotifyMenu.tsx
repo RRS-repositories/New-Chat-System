@@ -58,7 +58,7 @@ export function NotifyMenu({
     <span className="menu-wrap" ref={box}>
       <button
         ref={trigger}
-        className="icon-btn"
+        className={`hbtn${open ? ' on' : ''}`}
         aria-label="Notifications"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -68,25 +68,19 @@ export function NotifyMenu({
           setOpen(!open);
         }}
       >
-        {muted ? <BellOff size={16} /> : <Bell size={16} />}
+        {muted ? <BellOff size={18} /> : <Bell size={18} />}
       </button>
       {open && (
-        <div className="menu" role="menu" aria-label="Notifications">
-          <div className="menu-title muted">Notifications</div>
+        <div className="cmenu right" role="menu" aria-label="Notifications">
+          <div className="hint">Notifications</div>
           {OPTIONS.map(([pref, label]) => (
-            <button
-              key={pref}
-              role="menuitemradio"
-              aria-checked={pref === value}
-              className="menu-item"
-              onClick={() => void pick(pref)}
-            >
+            <button key={pref} role="menuitemradio" aria-checked={pref === value} onClick={() => void pick(pref)}>
               <span className="menu-check">{pref === value && <Check size={14} />}</span>
               {label}
             </button>
           ))}
           {error && (
-            <p className="error menu-error" role="alert">
+            <p className="error" role="alert">
               {error}
             </p>
           )}

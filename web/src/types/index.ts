@@ -1,3 +1,4 @@
+import type { Theme } from '../utils/theme.ts';
 export type ChatUser = { id: number; fullName: string; role: string; email?: string };
 export type Reaction = { emoji: string; count: number; userIds: number[] };
 export type ChatFile = { id: string; filename: string; mimeType: string; sizeBytes: number; hasThumb: boolean };
@@ -47,6 +48,8 @@ export type Preferences = {
   sendOnEnter: boolean;
   statusText: string;
   statusEmoji: string;
+  /** The saved colour theme, or null when the person has never chosen one. */
+  theme?: Theme | null;
 };
 export type UserStatus = { text: string; emoji: string };
 /** GET /api/chat/users/online */

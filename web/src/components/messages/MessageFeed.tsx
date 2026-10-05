@@ -1,8 +1,9 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, memo, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
 import { Message } from './Message.tsx';
-import { groupWithPrevious } from '../../utils/format.ts';
+import { dayKey, dayLabel, groupWithPrevious } from '../../utils/format.ts';
+import { firstNewMessageId } from '../../utils/firstNew.ts';
 import { MAX_HELD } from '../../utils/messageWindow.ts';
 
 type Props = {
@@ -16,6 +17,10 @@ type Props = {
   onLoadLatest?: () => Promise<void>;
   /** At the newest end with more than the cap on the page: let go of the oldest. */
   onTrim?: () => void;
+  /** How many messages were unread when the channel was opened: the NEW line goes above the first of them. */
+  unreadAtOpen?: number;
+  /** Shown when the conversation has no messages yet. */
+  empty?: ReactNode;
   selfId: number;
   canModerate: boolean;
   highlightId: string | null;
@@ -65,6 +70,8 @@ export const MessageFeed = memo(function MessageFeed({
   onLoadNewer,
   onLoadLatest,
   onTrim,
+  unreadAtOpen = 0,
+  empty,
   selfId,
   canModerate,
   highlightId,
@@ -87,6 +94,16 @@ export const MessageFeed = memo(function MessageFeed({
   // Following the newest message only makes sense when the newest message is on the page.
   const pinned = atBottom && !windowed;
 
+  // The NEW line is worked out once, when the channel's messages and its unread count are both known,
+  // and then stays put while the person reads (it does not chase messages that arrive afterwards).
+  const [newFromId, setNewFromId] = useState<string | null>(null);
+  const newDecided = useRef(false);
+  useEffect(() => {
+    if (newDecided.current || !items.length || unreadAtOpen <= 0) return;
+    newDecided.current = true;
+    setNewFromId(firstNewMessageId(items, selfId, unreadAtOpen));
+  }, [items, selfId, unreadAtOpen]);
+
   // The list is about to change and the page still shows the old one: note where a surviving message is.
   const shown = useRef(items);
   const mark = useRef<Mark | null>(null);
@@ -106,7 +123,7 @@ export const MessageFeed = memo(function MessageFeed({
     mark.current = null;
     const now = was && document.getElementById(was.id);
     if (was && now) el.scrollTop += now.getBoundingClientRect().top - was.top;
-  }, [items, pinned, highlightId]);
+  }, [items, pinned, highlightId, newFromId]);
 
   useEffect(() => {
     if (!pinned && lastId && !windowed) setFresh(true);
@@ -149,36 +166,58 @@ export const MessageFeed = memo(function MessageFeed({
     else if (fromBottom < NEAR_EDGE_PX && windowed && onLoadNewer) await loadOnce(onLoadNewer);
   }
 
-  if (!items.length)
-    return (
-      <div className="feed">
-        <p className="muted pad">No messages yet</p>
-      </div>
-    );
+  if (!items.length) return <div className="feed">{empty ?? <p className="muted pad">No messages yet</p>}</div>;
+
+  let previousDay = '';
   return (
     <div className="feed-wrap">
-      <div className="feed" ref={box} onScroll={() => void onScroll()}>
-        {hasOlder && <p className="muted center">Scroll up for older messages</p>}
-        {items.map((m, i) => (
-          <Message
-            key={m.id}
-            m={m}
-            grouped={items[i - 1]?.type !== 'call' && groupWithPrevious(items[i - 1], m)}
-            own={m.userId === selfId}
-            canModerate={canModerate}
-            highlighted={m.id === highlightId}
-            renderContent={renderContent}
-            renderExtra={renderExtra}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onReply={onReply}
-            onThread={onThread}
-            onPin={onPin}
-            onReact={onReact}
-            onJump={onJump}
-          />
-        ))}
-        {windowed && <p className="muted center">Scroll down for newer messages</p>}
+      <div className="feed" ref={box} role="log" aria-label="Messages" onScroll={() => void onScroll()}>
+        {hasOlder && <p className="feed-edge">Scroll up for older messages</p>}
+        {items.map((m, i) => {
+          const day = dayKey(m.createdAt);
+          const newDay = day !== previousDay;
+          previousDay = day;
+          const isNew = m.id === newFromId;
+          const previous = items[i - 1];
+          // A day chip or the NEW line breaks a run of messages: the next one shows its author again.
+          const grouped =
+            !newDay &&
+            !isNew &&
+            previous?.type === m.type &&
+            previous?.type !== 'call' &&
+            groupWithPrevious(previous, m);
+          return (
+            <Fragment key={m.id}>
+              {newDay && (
+                <div className="day">
+                  <span>{dayLabel(m.createdAt)}</span>
+                </div>
+              )}
+              {isNew && (
+                <div className="newdiv" data-testid="new-divider">
+                  NEW
+                </div>
+              )}
+              <Message
+                m={m}
+                grouped={grouped}
+                own={m.userId === selfId}
+                canModerate={canModerate}
+                highlighted={m.id === highlightId}
+                renderContent={renderContent}
+                renderExtra={renderExtra}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onReply={onReply}
+                onThread={onThread}
+                onPin={onPin}
+                onReact={onReact}
+                onJump={onJump}
+              />
+            </Fragment>
+          );
+        })}
+        {windowed && <p className="feed-edge">Scroll down for newer messages</p>}
       </div>
       {windowed && onLoadLatest ? (
         <button

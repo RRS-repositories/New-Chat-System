@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { APP_TITLE } from '../config/constants.ts';
+import { MessageCircle } from 'lucide-react';
+import { APP_TITLE, ORG_NAME } from '../config/constants.ts';
 import { signIn } from '../services/authApi.ts';
 import type { Session } from '../types/index.ts';
 
@@ -26,7 +27,15 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (session: Session) => vo
   return (
     <main className="login">
       <form className="login-card" onSubmit={submit}>
-        <h1 className="login-title">{APP_TITLE}</h1>
+        <div className="login-brand">
+          <span className="s-logo">
+            <MessageCircle size={17} strokeWidth={2.2} />
+          </span>
+          <div>
+            <h1 className="login-title">{APP_TITLE}</h1>
+            <span className="muted">{ORG_NAME}</span>
+          </div>
+        </div>
         <p className="muted">Sign in with your CRM email and password.</p>
         <label className="field">
           <span>Email</span>

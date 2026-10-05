@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChannelDetailsPanel } from '../components/channel/ChannelDetailsPanel.tsx';
+import { PinsPanel } from '../components/channel/PinsPanel.tsx';
 import { MessagePanel } from '../components/channel/MessagePanel.tsx';
 import { ThreadPanel } from '../components/channel/ThreadPanel.tsx';
 import { AppShell } from '../components/layout/AppShell.tsx';
@@ -11,7 +12,7 @@ import { useSidebar } from '../hooks/useSidebar.ts';
 import { readLastChannel } from '../utils/lastChannel.ts';
 
 /** The main screen: one channel's conversation, with a thread or the channel details beside it when asked for. */
-export function ChatPage({ details = false }: { details?: boolean }) {
+export function ChatPage({ details = false, pins = false }: { details?: boolean; pins?: boolean }) {
   const { channelId = null, messageId = null } = useParams();
   const navigate = useNavigate();
   const { state, actions } = useChat();
@@ -39,6 +40,20 @@ export function ChatPage({ details = false }: { details?: boolean }) {
   if (channelId && messageId) panel = <ThreadPanel rootId={messageId} channelId={channelId} onClose={backToChannel} />;
   else if (channelId && details)
     panel = <ChannelDetailsPanel channelId={channelId} onClose={backToChannel} onGone={() => navigate(paths.home)} />;
+  else if (channelId && pins)
+    panel = (
+      <PinsPanel
+        channelId={channelId}
+        onClose={backToChannel}
+        onJump={(id) => {
+          // On a narrow screen the panel covers the conversation: close it so the message can be seen.
+          if (window.matchMedia('(max-width: 900px)').matches) navigate(paths.channel(channelId));
+          const held = state.messagesByChannel[channelId]?.items.some((m) => m.id === id);
+          if (held) actions.highlight(id);
+          else void actions.jumpTo(channelId, id).catch(() => {});
+        }}
+      />
+    );
 
   return (
     <AppShell
@@ -50,7 +65,11 @@ export function ChatPage({ details = false }: { details?: boolean }) {
           channelId={channelId}
           onOpenSidebar={sidebar.openSidebar}
           onOpenThread={(m) => navigate(paths.thread(m.channelId, m.threadId || m.id))}
-          onOpenDetails={() => channelId && navigate(paths.channelDetails(channelId))}
+          openPanel={details ? 'details' : pins ? 'pins' : null}
+          onOpenDetails={() =>
+            channelId && navigate(details ? paths.channel(channelId) : paths.channelDetails(channelId))
+          }
+          onOpenPins={() => channelId && navigate(pins ? paths.channel(channelId) : paths.channelPins(channelId))}
         />
       }
     />

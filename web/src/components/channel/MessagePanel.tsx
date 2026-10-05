@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { ReactionBar } from '../messages/ReactionBar.tsx';
-import { PinnedList } from './PinnedMessagesBar.tsx';
 import { FileList } from '../messages/FileAttachment.tsx';
 import type { MessageInputHandle } from '../messages/MessageInput.tsx';
 import { useChat } from '../../context/chatContext.ts';
-import type { Message } from '../../types/index.ts';
+import type { Channel, Message } from '../../types/index.ts';
 import { renderRich } from '../messages/RichText.tsx';
 import { presenceOf } from '../../utils/presence.ts';
+import { UserAvatar } from '../common/UserAvatar.tsx';
+import { Avatar } from '../common/Avatar.tsx';
+import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
 
 /** Message text on screen: links, bold, code, lists and @mentions. Built from text pieces — never HTML. */
 export function useMentionRenderer(channelId: string | null): (content: string) => ReactNode {
@@ -49,20 +51,54 @@ export function useReactionExtra(): (m: Message) => ReactNode {
   );
 }
 
+const composerPlaceholder = (channel: Channel | null) => {
+  if (!channel) return 'Message';
+  return channel.type === 'dm' ? `Message ${channel.dmUserName || ''}`.trim() : `Message #${channel.displayName}`;
+};
+
+/** What an empty conversation shows instead of a blank page. */
+function EmptyConversation({ channel }: { channel: Channel | null }) {
+  if (!channel) return null;
+  if (channel.type === 'dm') {
+    const name = channel.dmUserName || 'this person';
+    return (
+      <div className="empty">
+        <UserAvatar userId={channel.dmUserId} name={name} size="lg" />
+        <h3>{name}</h3>
+        <p>
+          This is the very start of your conversation with {name.split(' ')[0]}. Say hello, send a file, or start a call
+          from the phone icon above.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="empty">
+      <Avatar name={channel.displayName} size="lg" glyph={channel.type === 'private' ? '🔒' : '#'} />
+      <h3>#{channel.displayName}</h3>
+      <p>Nothing has been posted here yet. Send the first message to get it going.</p>
+    </div>
+  );
+}
+
 export function MessagePanel({
   channelId,
   onOpenSidebar,
   onOpenThread,
   onOpenDetails,
+  onOpenPins,
+  openPanel = null,
 }: {
   channelId: string | null;
   onOpenSidebar: () => void;
   onOpenThread?: (m: Message) => void;
   onOpenDetails?: () => void;
+  onOpenPins?: () => void;
+  /** Which side panel is open beside the conversation, to light its header button. */
+  openPanel?: 'pins' | 'details' | null;
 }) {
   const { state, user, actions } = useChat();
   const calls = useCall();
-  const [showPins, setShowPins] = useState(false);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<MessageInputHandle>(null);
   const onDragOver = (e: DragEvent) => {
@@ -82,6 +118,12 @@ export function MessagePanel({
   const bucket = channelId ? state.messagesByChannel[channelId] : undefined;
   const canModerate = useCanModerate(channelId);
   const renderContent = useMentionRenderer(channelId);
+  const dmAvatar = useAvatarSrc(channel?.type === 'dm' ? channel.dmUserId : null);
+  // How many messages were unread when this channel was opened (it is marked read a moment later,
+  // so the highest count seen is kept). The NEW line in the list is placed from it.
+  const unread = useRef({ channelId, count: 0 });
+  if (unread.current.channelId !== channelId) unread.current = { channelId, count: 0 };
+  if ((channel?.unreadCount ?? 0) > unread.current.count) unread.current.count = channel!.unreadCount;
   const members = channelId ? state.membersByChannel[channelId] || [] : [];
   const typing = channelId
     ? Object.entries(state.typingByChannel[channelId] || {})
@@ -109,6 +151,12 @@ export function MessagePanel({
       void actions.jumpTo(channelId, id).catch(() => {});
     },
     [channelId, actions],
+  );
+  const loaded = !!bucket?.loaded;
+  const empty = useMemo(
+    () => (loaded ? <EmptyConversation channel={channel} /> : <p className="muted pad">Loading…</p>),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [loaded, channel?.id, channel?.displayName, channel?.dmUserName, channel?.type],
   );
   const openThread = useRef(onOpenThread);
   openThread.current = onOpenThread;
@@ -146,8 +194,10 @@ export function MessagePanel({
         onOpenSidebar={onOpenSidebar}
         connected={state.connected}
         pinCount={pins.length}
-        onOpenPins={() => setShowPins(true)}
+        openPanel={openPanel}
+        onOpenPins={onOpenPins}
         onOpenDetails={onOpenDetails}
+        dmAvatar={dmAvatar}
         dmPresence={channel?.type === 'dm' ? presenceOf(state.presence, channel.dmUserId) : undefined}
         dmStatus={channel?.dmUserId != null ? state.presence.statuses[channel.dmUserId] : undefined}
         onSetNotify={channel ? (pref) => actions.setChannelNotify(channel.id, pref) : undefined}
@@ -155,15 +205,6 @@ export function MessagePanel({
         callDisabled={calls.busy}
       />
       <CallBanner channelId={channelId} />
-      {showPins && channelId && (
-        <PinnedList
-          pins={pins}
-          canModerate={canModerate}
-          onJump={jump}
-          onUnpin={(id) => void actions.unpin(id).catch(() => {})}
-          onClose={() => setShowPins(false)}
-        />
-      )}
       {channelId ? (
         <>
           <MessageFeed
@@ -173,6 +214,8 @@ export function MessagePanel({
             onLoadOlder={loadOlder}
             onLoadNewer={loadNewer}
             onTrim={trim}
+            unreadAtOpen={unread.current.count}
+            empty={empty}
             selfId={user.id}
             canModerate={canModerate}
             windowed={!!bucket?.windowed}
@@ -194,6 +237,7 @@ export function MessagePanel({
             ref={inputRef}
             members={members}
             sendOnEnter={state.prefs.sendOnEnter}
+            placeholder={composerPlaceholder(channel)}
             onUpload={(files, c) =>
               actions.upload(
                 channelId,

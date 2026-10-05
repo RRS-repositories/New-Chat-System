@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import type { Socket } from 'socket.io-client';
 import { App } from './App.tsx';
+import { ThemeProvider } from './context/ThemeProvider.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { createApiClient } from './services/apiClient.ts';
 import { disablePush } from './services/push.ts';
@@ -10,6 +11,7 @@ import { clearSession, getSession, setSession } from './services/session.ts';
 import { createChatSocket } from './services/socket.ts';
 import type { Session } from './types/index.ts';
 import { withTimeout } from './utils/timeout.ts';
+import '@fontsource-variable/inter/wght.css';
 import './styles/index.css';
 
 const SIGN_OUT_WAIT_MS = 2000;
@@ -78,6 +80,8 @@ function Root() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Root />
+    <ThemeProvider>
+      <Root />
+    </ThemeProvider>
   </StrictMode>,
 );

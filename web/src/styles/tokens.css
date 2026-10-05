@@ -1,36 +1,67 @@
-/* Design tokens: every colour, size and font the app uses. See Design.md. */
+/* Design tokens: every colour, shadow, size and font the app uses.
+   These are the light, violet defaults. theme.css changes them for dark mode and the other accents.
+   Never write a colour straight into another stylesheet: use a token. See Design.md. */
 :root {
-  /* Accent (violet) */
-  --accent: #6c4de6;
-  --accent-strong: #5637cf;
-  --accent-soft: #f1eefe;
-  --accent-line: #d9d1fb;
+  /* Sidebar (always dark) */
+  --side: #171b38;
+  --side-2: #12152c;
+  --side-hi: rgba(255, 255, 255, 0.07);
 
-  /* Main area (light) */
-  --bg: #ffffff;
-  --bg-side: #f7f7fb;
-  --hover: #f4f3fa;
-  --border: #e7e6f0;
-  --text: #1b1f3a;
-  --text-2: #6b6f8a;
+  /* Surfaces and text */
+  --paper: #ffffff;
+  --paper-2: #f6f6fc;
+  --paper-3: #edeef8;
+  --ink: #171a2e;
+  --mut: #696f8e;
+  --dim: #9ca1be;
+  --line: #eaebf4;
+  --line-2: #dee0ef;
+  --hov: #f8f8fd;
+  --glass: rgba(255, 255, 255, 0.86);
+  --glass-2: rgba(255, 255, 255, 0.93);
 
-  /* Sidebar (dark indigo) */
-  --side-bg: #1b1f3a;
-  --side-text: #c5c9e6;
-  --side-text-2: #8d92b8;
-  --side-strong: #ffffff;
-  --side-hover: rgba(255, 255, 255, 0.07);
-  --side-active: rgba(124, 96, 255, 0.32);
-  --side-line: rgba(255, 255, 255, 0.09);
+  /* Accent (the names say violet; theme.css swaps the values for the other accents) */
+  --violet: #6c4de6;
+  --violet-2: #8f76f5;
+  --violet-3: #b9a6ff;
+  --violet-ink: #4a31b8;
+  --vrgb: 108, 77, 230;
+  --grad: linear-gradient(120deg, #8f76f5 0%, #6c4de6 55%, #5b3bdf 100%);
+  --violet-soft: #f2eeff;
+  --violet-soft-2: #e7e0ff;
 
   /* Meaning */
-  --call: #22c55e;
+  --green: #1fa75a;
+  --amber: #e8930c;
+  --red: #e5484d;
+  --red-soft: rgba(229, 72, 77, 0.12);
+  --green-soft: rgba(31, 167, 90, 0.14);
+  --mark: #ffe9a8;
+  --mark-ink: inherit;
+  --pin: #b8780a;
+  --on-accent: #ffffff;
+
+  /* The call screen (always dark) */
+  --dk: #0b0e20;
+  --dk-2: #141836;
+  --dk-glass: rgba(19, 23, 52, 0.76);
+  --dk-line: rgba(255, 255, 255, 0.1);
+  --dk-text: #f3f4fb;
+  --dk-mut: #9aa3c7;
+  --scrim: rgba(14, 16, 38, 0.5);
+
+  /* Shadows */
+  --sh: 0 12px 38px -14px rgba(23, 27, 56, 0.3);
+  --sh-sm: 0 5px 18px -7px rgba(23, 27, 56, 0.26);
+  --sh-lg: 0 32px 90px -24px rgba(12, 15, 34, 0.55);
+
+  --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.55'/></svg>");
 
   /* Shape and size */
-  --radius: 4px;
-  --sidebar-w: 240px;
-  --panel-w: 320px;
-  --call-w: 300px;
+  --sidebar-w: 274px;
+  --panel-w: 376px;
+  --head-h: 60px;
 
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }

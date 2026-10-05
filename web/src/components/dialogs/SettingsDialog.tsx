@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { LogOut, X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
+import { useSignOut } from '../../context/SignOutContext.ts';
 import type { NotifyLevel } from '../../types/index.ts';
 import {
   allowDesktop,
@@ -12,10 +13,12 @@ import {
   pushSupported,
   type PushState,
 } from '../../services/push.ts';
+import { AppearanceSettings } from './AppearanceSettings.tsx';
 
 /** Own notification preferences, status and this device's push subscription. Every change applies at once. */
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { state, api, actions } = useChat();
+  const signOut = useSignOut();
   const prefs = state.prefs;
   const [error, setError] = useState<string | null>(null);
   const [statusEmoji, setStatusEmoji] = useState(prefs.statusEmoji);
@@ -108,10 +111,12 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       <div className="modal" role="dialog" aria-modal="true" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>Settings</h2>
-          <button className="icon-btn" aria-label="Close" onClick={onClose}>
-            <X size={16} />
+          <button className="p-x" aria-label="Close" onClick={onClose}>
+            <X size={15} />
           </button>
         </div>
+        <AppearanceSettings onError={setError} />
+        <div className="ap-h">NOTIFICATIONS</div>
         <label className="field">
           <span>Notify me about</span>
           <select value={prefs.desktopNotif} onChange={(e) => change({ desktopNotif: e.target.value as NotifyLevel })}>
@@ -120,21 +125,29 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <option value="nothing">Nothing</option>
           </select>
         </label>
-        <label className="check-row">
+        <label className="togrow check-row">
+          <span className="tx">
+            <b>Play a sound</b>
+            <span>Message and call tones</span>
+          </span>
           <input
             type="checkbox"
+            role="switch"
             checked={prefs.soundEnabled}
             onChange={(e) => change({ soundEnabled: e.target.checked })}
           />
-          Play a sound
         </label>
-        <label className="check-row">
+        <label className="togrow check-row">
+          <span className="tx">
+            <b>Enter sends a message</b>
+            <span>Otherwise Ctrl+Enter sends</span>
+          </span>
           <input
             type="checkbox"
+            role="switch"
             checked={prefs.sendOnEnter}
             onChange={(e) => change({ sendOnEnter: e.target.checked })}
           />
-          Enter sends a message (otherwise Ctrl+Enter)
         </label>
         {showPush && (
           <div className="field">
@@ -177,8 +190,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             )}
           </div>
         )}
+        <div className="ap-h">STATUS</div>
         <div className="field">
-          <span>Status</span>
+          <span>Shown beside your name</span>
           <div className="row gap">
             <input
               className="status-emoji"
@@ -209,6 +223,17 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           {statusMsg && <span className={statusMsg === 'Saved' ? 'muted' : 'error'}>{statusMsg}</span>}
         </div>
         {error && <p className="error">{error}</p>}
+        <div className="modal-acts">
+          {signOut && (
+            <button className="btn-ghost danger" data-testid="sign-out" onClick={signOut}>
+              <LogOut size={15} /> Sign out
+            </button>
+          )}
+          <span className="push-right" />
+          <button className="btn-accent" onClick={onClose}>
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );

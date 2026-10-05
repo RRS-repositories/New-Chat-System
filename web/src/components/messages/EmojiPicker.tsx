@@ -1,36 +1,34 @@
-import { useEffect, useRef } from 'react';
+import type { RefObject } from 'react';
+import { Floating } from '../common/Floating.tsx';
+
 export const EMOJI_SET = ['👍', '❤️', '😂', '🎉', '👀', '✅', '🙏', '🔥', '😮', '😢', '👏', '🤔'];
-export function EmojiPicker({ onPick, onClose }: { onPick: (emoji: string) => void; onClose: () => void }) {
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) onClose();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
+
+type Props = {
+  /** The button that opened the picker. */
+  anchor: RefObject<HTMLElement | null>;
+  onPick: (emoji: string) => void;
+  onClose: () => void;
+  /** What picking does, for screen readers: "React" or "Insert". */
+  verb?: string;
+};
+
+/** A small pill of emoji beside the button that opened it. */
+export function EmojiPicker({ anchor, onPick, onClose, verb = 'React' }: Props) {
   return (
-    <div className="emoji-picker" ref={box} role="dialog" aria-label="Pick a reaction">
-      {EMOJI_SET.map((e) => (
+    <Floating anchor={anchor} onClose={onClose} className="epick" prefer="above" role="dialog" label="Pick an emoji">
+      {EMOJI_SET.map((emoji) => (
         <button
-          key={e}
+          key={emoji}
           className="emoji-btn"
           onClick={() => {
-            onPick(e);
+            onPick(emoji);
             onClose();
           }}
-          aria-label={`React ${e}`}
+          aria-label={`${verb} ${emoji}`}
         >
-          {e}
+          {emoji}
         </button>
       ))}
-    </div>
+    </Floating>
   );
 }

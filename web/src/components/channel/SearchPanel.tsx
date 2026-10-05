@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Hash, Lock, Search, User, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { Channel, ChatUser, SearchHit } from '../../types/index.ts';
 import { quickFind } from '../../utils/quickFind.ts';
+import { Avatar } from '../common/Avatar.tsx';
+import { UserAvatar } from '../common/UserAvatar.tsx';
 import { snippetParts } from '../../utils/snippet.ts';
 import { formatTime } from '../../utils/format.ts';
 import { generation, latestOnly } from '../../utils/latest.ts';
@@ -117,110 +119,123 @@ export function SearchPanel({
       if (gen.isCurrent(g)) setLoadingMore(false);
     }
   }
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose]);
+  const nothing = !hits.length && !people.length && !channels.length;
   return (
-    <div className="modal-scrim" onClick={onClose}>
+    <div className="sov" onClick={onClose}>
       <div
-        className="modal search-modal"
+        className="sbox search-modal"
         role="dialog"
         aria-label="Search messages"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-head">
-          <h2>
-            <Search size={14} /> Search
-          </h2>
-          <button className="icon-btn" aria-label="Close" onClick={onClose}>
-            <X size={16} />
-          </button>
-        </div>
-        <label className="field">
+        <div className="srow">
+          <Search size={18} />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search messages, people and channels"
+            placeholder="Search messages, channels and people"
             aria-label="Search"
             data-testid="search-input"
+            autoComplete="off"
             autoFocus
           />
-        </label>
+          <button className="skbd" aria-label="Close" onClick={onClose}>
+            Esc
+          </button>
+        </div>
         {currentChannelId && (
-          <label className="row gap muted">
+          <label className="s-scope">
             <input type="checkbox" checked={here} onChange={(e) => setHere(e.target.checked)} /> This channel only
           </label>
         )}
-        {error && <p className="error">{error}</p>}
-        <div className="pick-list search-results" data-testid="search-results">
-          {people.length > 0 && <div className="search-section">People</div>}
-          {people.map((person) => (
-            <button
-              key={`person-${person.id}`}
-              className="pick-row"
-              data-testid="search-person"
-              disabled={opening}
-              onClick={() => void openPerson(person)}
-            >
-              <User size={14} aria-hidden="true" />
-              {person.fullName}
-              <span className="muted"> · {person.role}</span>
-            </button>
-          ))}
-          {channels.length > 0 && <div className="search-section">Channels</div>}
+        <div className="sres" data-testid="search-results">
+          {error && <p className="error pad">{error}</p>}
+          {!q.trim() && (
+            <div className="s-none">
+              Search everything — messages, channels and people.
+              <br />
+              Part of a word is enough, and a name finds what that person wrote.
+            </div>
+          )}
+          {channels.length > 0 && <div className="grp">Channels</div>}
           {channels.map((channel) => (
             <button
               key={`channel-${channel.id}`}
-              className="pick-row"
+              className="shit"
               data-testid="search-channel"
               onClick={() => {
                 onOpenChannel(channel.id);
                 onClose();
               }}
             >
-              {channel.type === 'private' ? (
-                <Lock size={14} aria-hidden="true" />
-              ) : (
-                <Hash size={14} aria-hidden="true" />
-              )}
-              {channelLabel(channel)}
+              <Avatar name={channelLabel(channel)} size="md" glyph={channel.type === 'private' ? '🔒' : '#'} />
+              <span className="bd">
+                <b>#{channelLabel(channel)}</b>
+                <p>{channel.purpose || `${channel.memberCount} members`}</p>
+              </span>
             </button>
           ))}
-          {hits.length > 0 && (people.length > 0 || channels.length > 0) && (
-            <div className="search-section">Messages</div>
-          )}
+          {people.length > 0 && <div className="grp">People</div>}
+          {people.map((person) => (
+            <button
+              key={`person-${person.id}`}
+              className="shit"
+              data-testid="search-person"
+              disabled={opening}
+              onClick={() => void openPerson(person)}
+            >
+              <UserAvatar userId={person.id} name={person.fullName} size="md" />
+              <span className="bd">
+                <b>{person.fullName}</b>
+                <p>{person.role}</p>
+              </span>
+            </button>
+          ))}
+          {hits.length > 0 && <div className="grp">Messages</div>}
           {hits.map((h) => (
             <button
               key={h.messageId}
-              className="pick-row search-hit"
+              className="shit search-hit"
               data-testid="search-hit"
               onClick={() => {
                 onJump(h.channelId, h.messageId);
                 onClose();
               }}
             >
-              <div className="muted">
-                {h.channelName} · {h.userName} · {formatTime(h.createdAt)}
-              </div>
-              <div>
-                {snippetParts(h.snippet).map((p, i) =>
-                  p.hit ? (
-                    <mark key={i} className="hit">
-                      {p.text}
-                    </mark>
-                  ) : (
-                    <span key={i}>{p.text}</span>
-                  ),
-                )}
-              </div>
+              <Avatar name={h.userName} size="md" />
+              <span className="bd">
+                <b>
+                  {h.userName} · {h.channelName}
+                </b>
+                <time>{formatTime(h.createdAt)}</time>
+                <p>
+                  {snippetParts(h.snippet).map((p, i) =>
+                    p.hit ? (
+                      <mark key={i} className="hit">
+                        {p.text}
+                      </mark>
+                    ) : (
+                      <span key={i}>{p.text}</span>
+                    ),
+                  )}
+                </p>
+              </span>
             </button>
           ))}
-          {!hits.length && !people.length && !channels.length && q.trim() && !busy && !error && (
-            <p className="muted pad">No results</p>
+          {nothing && q.trim() && !busy && !error && <div className="s-none">No matches for “{q.trim()}”.</div>}
+          {more && !busy && (
+            <button className="btn-ghost btn-small more" disabled={loadingMore} onClick={() => void loadMore()}>
+              {loadingMore ? 'Loading…' : 'More'}
+            </button>
           )}
         </div>
-        {more && !busy && (
-          <button className="btn-ghost" disabled={loadingMore} onClick={() => void loadMore()}>
-            {loadingMore ? 'Loading…' : 'More'}
-          </button>
-        )}
       </div>
     </div>
   );

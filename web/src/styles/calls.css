@@ -17,8 +17,8 @@
   font-size: 13px;
 }
 .call-banner {
-  background: #f0fdf4;
-  color: #166534;
+  background: var(--green-soft);
+  color: var(--green);
 }
 .call-banner-text {
   flex: 1;
@@ -29,8 +29,8 @@
   color: var(--text-2);
 }
 .call-note.is-error {
-  color: #b91c1c;
-  background: #fef2f2;
+  color: var(--red);
+  background: var(--red-soft);
 }
 .call-scrim {
   z-index: 45;
@@ -46,7 +46,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #f0fdf4;
+  background: var(--green-soft);
   color: var(--call);
 }
 .incoming-title {
@@ -70,7 +70,7 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  color: #b91c1c;
+  color: var(--red);
 }
 body.in-call #root {
   padding-right: var(--call-w);
@@ -123,7 +123,7 @@ body.in-call #root {
   max-height: 60vh;
   aspect-ratio: 16 / 10;
   object-fit: contain;
-  background: #111827;
+  background: var(--dk);
   border-radius: var(--radius);
 }
 .call-self-share {
@@ -158,7 +158,7 @@ body.in-call #root {
   color: var(--text-2);
 }
 .call-lost {
-  color: #b91c1c;
+  color: var(--red);
 }
 .call-panel .error {
   padding: 0 12px;
@@ -187,16 +187,16 @@ body.in-call #root {
 .call-btn.on {
   color: var(--accent);
   border-color: var(--accent);
-  background: #eff6ff;
+  background: var(--violet-soft);
 }
 .call-btn:disabled {
   opacity: 0.5;
   cursor: default;
 }
 .call-btn.call-leave {
-  color: #fff;
-  background: #dc2626;
-  border-color: #dc2626;
+  color: var(--on-accent);
+  background: var(--red);
+  border-color: var(--red);
 }
 @media (max-width: 720px) {
   body.in-call #root {

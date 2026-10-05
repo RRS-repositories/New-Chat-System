@@ -33,6 +33,7 @@ const defaults = {
   sendOnEnter: true,
   statusText: '',
   statusEmoji: '',
+  theme: null,
 };
 
 test('defaults when the user has no preferences row (and none is created by reading)', async () => {
@@ -58,7 +59,7 @@ test('updatePreferences creates the row lazily, then updates only the given keys
 });
 
 test('updatePreferences with no known keys changes nothing and returns the current values', async () => {
-  assert.deepEqual(await updatePreferences(db, 2, { theme: 'dark' }), defaults);
+  assert.deepEqual(await updatePreferences(db, 2, { colour: 'dark' }), defaults);
 });
 
 test('updatePreferences refuses invalid values with bad_preference and writes nothing', async () => {
@@ -144,4 +145,35 @@ test('every channel object carries notifyPref (default "default")', async () => 
   assert.equal(ch.notifyPref, 'default');
   assert.equal((await getChannel(db, ch.id)).notifyPref, 'default');
   assert.equal((await openDm(db, 1, 2)).notifyPref, 'default');
+});
+
+test('the colour theme is saved with the preferences and comes back as { mode, accent }', async () => {
+  await db.query(`DELETE FROM chat.user_preferences WHERE user_id = 5`);
+  assert.equal((await getPreferences(db, 5)).theme, null, 'not chosen yet');
+  const saved = await updatePreferences(db, 5, { theme: { mode: 'dark', accent: 'ocean', extra: 'ignored' } });
+  assert.deepEqual(saved.theme, { mode: 'dark', accent: 'ocean' });
+  assert.deepEqual((await getPreferences(db, 5)).theme, { mode: 'dark', accent: 'ocean' });
+  const {
+    rows: [row],
+  } = await db.query(`SELECT theme FROM chat.user_preferences WHERE user_id = 5`);
+  assert.equal(row.theme, '{"mode":"dark","accent":"ocean"}', 'only the two known keys are stored');
+  // Changing something else keeps it.
+  assert.deepEqual((await updatePreferences(db, 5, { soundEnabled: false })).theme, { mode: 'dark', accent: 'ocean' });
+});
+
+test('a theme that is not one of the known modes and accents is refused', async () => {
+  for (const theme of [
+    'dark',
+    null,
+    {},
+    { mode: 'dark' },
+    { mode: 'neon', accent: 'ocean' },
+    { mode: 'dark', accent: 'teal' },
+  ])
+    await assert.rejects(updatePreferences(db, 5, { theme }), { code: 'bad_preference' }, JSON.stringify(theme));
+});
+
+test('a row written before themes existed reads as "not chosen"', async () => {
+  await db.query(`UPDATE chat.user_preferences SET theme = 'not json' WHERE user_id = 5`);
+  assert.equal((await getPreferences(db, 5)).theme, null);
 });

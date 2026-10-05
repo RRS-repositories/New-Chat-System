@@ -17,6 +17,7 @@ import type {
   UserOption,
   UserStatus,
 } from '../types/index.ts';
+import type { Theme } from '../utils/theme.ts';
 
 /** `hasNewer`: newer messages exist beyond this page (a page asked for with `after`, or a window around a message). */
 export type MessagePage = { messages: Message[]; nextCursor: string | null; hasNewer?: boolean };
@@ -31,7 +32,7 @@ export type NewChannel = {
 export type SendOpts = { replyToId?: string | null; threadId?: string | null };
 export type PreferencePatch = Partial<
   Pick<Preferences, 'desktopNotif' | 'mobileNotif' | 'soundEnabled' | 'sendOnEnter'>
->;
+> & { theme?: Theme };
 
 type Deps = { api: ApiClient; getToken: () => string | null; onAuthError?: () => void };
 

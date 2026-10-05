@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { ArrowLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { Message as M } from '../../types/index.ts';
 import { Message } from '../messages/Message.tsx';
@@ -29,6 +29,8 @@ export function ThreadPanel({
   const reactionExtra = useReactionExtra();
   renderExtra = renderExtra || reactionExtra;
   const members = state.membersByChannel[channelId] || [];
+  const channel = state.channels.find((c) => c.id === channelId);
+  const where = channel ? (channel.type === 'dm' ? channel.dmUserName || '' : `#${channel.displayName}`) : '';
   useEffect(() => {
     void actions.openThread(rootId).catch(() => onClose());
   }, [rootId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -54,54 +56,60 @@ export function ThreadPanel({
   });
   return (
     <aside className="thread-panel" aria-label="Thread">
-      <header className="chan-head">
-        <button className="icon-btn only-mobile" aria-label="Back" onClick={onClose}>
-          <ArrowLeft size={18} />
-        </button>
-        <h2 className="chan-title">Thread</h2>
-        <button className="icon-btn only-desktop push-right" aria-label="Close thread" onClick={onClose}>
-          <X size={16} />
+      <header className="p-h">
+        <h2>Thread</h2>
+        <span className="sub">{where}</span>
+        <button className="p-x" aria-label="Close thread" onClick={onClose}>
+          <X size={15} />
         </button>
       </header>
-      <div className="feed">
+      <div className="p-b feed">
         {!t ? (
           <p className="muted pad">Loading…</p>
         ) : (
           <>
-            <Message {...common(t.root)} grouped={false} />
-            <div className="thread-divider muted">
-              {t.replies.length} {t.replies.length === 1 ? 'reply' : 'replies'}
+            <div className="th-root">
+              <Message {...common(t.root)} grouped={false} />
             </div>
+            {t.replies.length > 0 && (
+              <div className="th-cnt">
+                {t.replies.length} {t.replies.length === 1 ? 'reply' : 'replies'}
+              </div>
+            )}
             {t.replies.map((m, i) => (
               <Message key={m.id} {...common(m)} grouped={i > 0 && t.replies[i - 1]!.userId === m.userId} />
             ))}
           </>
         )}
       </div>
-      <MessageInput
-        members={members}
-        sendOnEnter={state.prefs.sendOnEnter}
-        replyTo={replyTarget && replyTarget.id !== rootId ? replyTarget : null}
-        onCancelReply={() => actions.reply(null)}
-        onSend={(c) =>
-          actions.send(channelId, c, {
-            threadId: rootId,
-            replyToId: replyTarget && replyTarget.id !== rootId ? replyTarget.id : null,
-          })
-        }
-        onTyping={() => actions.typing(channelId)}
-        onUpload={
-          onUpload ||
-          ((files, c) =>
-            actions.upload(
-              channelId,
-              files,
-              c,
-              replyTarget && replyTarget.id !== rootId ? replyTarget.id : null,
-              rootId,
-            ))
-        }
-      />
+      <div className="p-comp">
+        <MessageInput
+          members={members}
+          placeholder="Reply in thread"
+          hint={false}
+          sendOnEnter={state.prefs.sendOnEnter}
+          replyTo={replyTarget && replyTarget.id !== rootId ? replyTarget : null}
+          onCancelReply={() => actions.reply(null)}
+          onSend={(c) =>
+            actions.send(channelId, c, {
+              threadId: rootId,
+              replyToId: replyTarget && replyTarget.id !== rootId ? replyTarget.id : null,
+            })
+          }
+          onTyping={() => actions.typing(channelId)}
+          onUpload={
+            onUpload ||
+            ((files, c) =>
+              actions.upload(
+                channelId,
+                files,
+                c,
+                replyTarget && replyTarget.id !== rootId ? replyTarget.id : null,
+                rootId,
+              ))
+          }
+        />
+      </div>
     </aside>
   );
 }

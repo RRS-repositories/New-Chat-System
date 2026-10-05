@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Socket } from 'socket.io-client';
 import { useAttention } from '../hooks/useAttention.ts';
 import { useChatActions } from '../hooks/useChatActions.ts';
@@ -9,9 +10,11 @@ import { useReadTracking } from '../hooks/useReadTracking.ts';
 import type { ApiClient } from '../services/apiClient.ts';
 import { createChatApi } from '../services/chatApi.ts';
 import { restorePush } from '../services/push.ts';
+import { paths } from '../config/routes.ts';
 import type { ChatUser } from '../types/index.ts';
 import { ChatContext, type ChatContextValue } from './chatContext.ts';
 import { chatReducer, initialState } from './chatReducer.ts';
+import { useToast } from './ToastProvider.tsx';
 
 type Props = {
   api: ApiClient;
@@ -69,6 +72,21 @@ export function ChatProvider({
     markRead,
     markReadIfLooking,
   });
+  // A message elsewhere while the chat is being looked at: a toast with "Open" (the desktop
+  // notification is for when it is not being looked at).
+  const toast = useToast();
+  const navigate = useNavigate();
+  const onNotice = useLatest(
+    ({ message, title, body }: { message: { channelId: string; userName: string }; title: string; body: string }) => {
+      toast({
+        avatar: { name: message.userName || '?' },
+        text: <b>{title}</b>,
+        detail: body,
+        ms: 5200,
+        actions: [{ label: 'Open', kind: 'ok', onClick: () => navigate(paths.channel(message.channelId)) }],
+      });
+    },
+  );
   useChatSocketEvents({
     socket,
     chatApi,
@@ -83,6 +101,7 @@ export function ChatProvider({
     channelsRef,
     prefsRef,
     pendingRead,
+    onNotice,
   });
 
   const value = useMemo<ChatContextValue>(

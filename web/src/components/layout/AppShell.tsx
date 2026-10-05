@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { APP_TITLE } from '../../config/constants.ts';
 import { paths } from '../../config/routes.ts';
 import { useChat } from '../../context/chatContext.ts';
-import { useSignOut } from '../../context/SignOutContext.ts';
 import { useGoToChannel } from '../../hooks/useGoToChannel.ts';
 import type { SidebarState } from '../../hooks/useSidebar.ts';
+import { presenceOf } from '../../utils/presence.ts';
 import { isManagement } from '../../utils/restrictions.ts';
 import { SearchPanel } from '../channel/SearchPanel.tsx';
 import { NotEnabled } from '../common/NotEnabled.tsx';
@@ -35,7 +35,6 @@ type Props = {
 export function AppShell({ sidebar, main, panel, currentChannelId = null, adminActive = false }: Props) {
   const { state, user, actions } = useChat();
   const navigate = useNavigate();
-  const signOut = useSignOut();
   const goToChannel = useGoToChannel(sidebar.closeSidebar);
   const [dialog, setDialog] = useState<Dialog>(null);
   const closeDialog = () => setDialog(null);
@@ -45,11 +44,23 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
     document.title = mentions ? `(${mentions}) ${APP_TITLE}` : APP_TITLE;
   }, [state.channels]);
 
+  // Ctrl+K (or Command+K) opens search from anywhere.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setDialog('search');
+      }
+    };
+    document.addEventListener('keydown', key);
+    return () => document.removeEventListener('keydown', key);
+  }, []);
+
   if (state.notEnabled) return <NotEnabled />;
 
   const openFromSidebar = (next: Exclude<Dialog, null>) => {
     setDialog(next);
-    if (next === 'settings') sidebar.closeSidebar();
+    if (next === 'settings' || next === 'search') sidebar.closeSidebar();
   };
   const openAdmin = () => {
     navigate(paths.admin);
@@ -74,6 +85,8 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
             currentId={currentChannelId}
             presence={state.presence}
             userName={user.fullName}
+            ownPresence={state.connected ? presenceOf(state.presence, user.id) : 'offline'}
+            ownStatus={state.presence.statuses[user.id]}
             adminActive={adminActive}
             onSelect={(channel) => goToChannel(channel.id)}
             onNewChannel={() => openFromSidebar('channel')}
@@ -82,7 +95,6 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
             onSearch={() => openFromSidebar('search')}
             onSettings={() => openFromSidebar('settings')}
             onAdmin={isManagement(user) ? openAdmin : undefined}
-            onSignOut={signOut}
           />
         }
       />

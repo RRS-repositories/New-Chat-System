@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Reply, MessageSquare, Pin, PinOff, SmilePlus, Pencil, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { MessageSquare, MoreHorizontal, Pencil, Pin, PinOff, Reply, Smile, Trash2 } from 'lucide-react';
 import type { Message } from '../../types/index.ts';
+import { Floating } from '../common/Floating.tsx';
 import { EmojiPicker } from './EmojiPicker.tsx';
+
 type Props = {
   m: Message;
   own: boolean;
@@ -14,6 +16,8 @@ type Props = {
   onEdit: () => void;
   onDelete: () => void;
 };
+
+/** The small bar that appears on a message: react, reply, thread, pin, and (for your own) edit and delete. */
 export function MessageActions({
   m,
   own,
@@ -26,42 +30,67 @@ export function MessageActions({
   onEdit,
   onDelete,
 }: Props) {
-  const [pick, setPick] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const reactButton = useRef<HTMLButtonElement>(null);
+  const moreButton = useRef<HTMLButtonElement>(null);
   return (
-    <div className="msg-actions" role="toolbar" aria-label="Message actions">
-      <button className="icon-btn" aria-label="Reply" title="Reply" onClick={onReply}>
-        <Reply size={14} />
+    <div className={`hact${picking || menuOpen ? ' open' : ''}`} role="toolbar" aria-label="Message actions">
+      <button ref={reactButton} aria-label="React" title="React" onClick={() => setPicking(!picking)}>
+        <Smile size={15} />
+      </button>
+      {picking && <EmojiPicker anchor={reactButton} onPick={onReact} onClose={() => setPicking(false)} />}
+      <button aria-label="Reply" title="Reply" onClick={onReply}>
+        <Reply size={15} />
       </button>
       {!inThread && !m.threadId && (
-        <button className="icon-btn" aria-label="Thread" title="Thread" onClick={onThread}>
-          <MessageSquare size={14} />
+        <button aria-label="Thread" title="Reply in thread" onClick={onThread}>
+          <MessageSquare size={15} />
         </button>
       )}
-      <span className="picker-anchor">
-        <button className="icon-btn" aria-label="React" title="React" onClick={() => setPick(true)}>
-          <SmilePlus size={14} />
-        </button>
-        {pick && <EmojiPicker onPick={onReact} onClose={() => setPick(false)} />}
-      </span>
       {canModerate && (
+        <button aria-label={m.pinned ? 'Unpin' : 'Pin'} title={m.pinned ? 'Unpin' : 'Pin'} onClick={onPin}>
+          {m.pinned ? <PinOff size={15} /> : <Pin size={15} />}
+        </button>
+      )}
+      {own && (
         <button
-          className="icon-btn"
-          aria-label={m.pinned ? 'Unpin' : 'Pin'}
-          title={m.pinned ? 'Unpin' : 'Pin'}
-          onClick={onPin}
+          ref={moreButton}
+          aria-label="More"
+          title="More"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(!menuOpen)}
         >
-          {m.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+          <MoreHorizontal size={15} />
         </button>
       )}
-      {own && (
-        <button className="icon-btn" aria-label="Edit" title="Edit" onClick={onEdit}>
-          <Pencil size={14} />
-        </button>
-      )}
-      {own && (
-        <button className="icon-btn" aria-label="Delete" title="Delete" onClick={onDelete}>
-          <Trash2 size={14} />
-        </button>
+      {menuOpen && (
+        <Floating anchor={moreButton} onClose={() => setMenuOpen(false)} className="cmenu" role="menu" label="More">
+          <button
+            role="menuitem"
+            aria-label="Edit"
+            onClick={() => {
+              setMenuOpen(false);
+              onEdit();
+            }}
+          >
+            <Pencil size={15} />
+            <span>Edit message</span>
+          </button>
+          <button
+            role="menuitem"
+            className="danger"
+            aria-label="Delete"
+            onClick={() => {
+              setMenuOpen(false);
+              onDelete();
+            }}
+          >
+            <Trash2 size={15} />
+            <span>Delete message</span>
+          </button>
+        </Floating>
       )}
     </div>
   );

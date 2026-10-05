@@ -4,6 +4,7 @@ export const paths = {
   channel: (channelId: string) => `/channels/${channelId}`,
   thread: (channelId: string, rootMessageId: string) => `/channels/${channelId}/thread/${rootMessageId}`,
   channelDetails: (channelId: string) => `/channels/${channelId}/details`,
+  channelPins: (channelId: string) => `/channels/${channelId}/pins`,
   admin: '/admin',
   adminUser: (userId: number) => `/admin/users/${userId}`,
   adminRestrictions: '/admin/restrictions',

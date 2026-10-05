@@ -4,11 +4,12 @@
   flex-direction: column;
   min-height: 0;
   height: 100%;
+  background: linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 220px);
 }
 .admin-body {
   flex: 1;
   overflow: auto;
-  padding: 16px;
+  padding: 18px;
   display: grid;
   gap: 16px;
   align-content: start;
@@ -17,22 +18,31 @@
   display: grid;
   gap: 12px;
   padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  max-width: 720px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--sh-sm);
+  max-width: 760px;
 }
 .admin-form h2 {
   margin: 0;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 .admin-form-grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
+.admin-form .field {
+  margin-bottom: 0;
+}
 .admin-table-wrap {
   overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
 }
 .admin-table {
   width: 100%;
@@ -41,39 +51,50 @@
 }
 .admin-table th {
   text-align: left;
-  font-weight: 500;
-  color: var(--text-2);
-  font-size: 12px;
-  padding: 8px;
-  border-bottom: 1px solid var(--border);
+  font-weight: 800;
+  color: var(--dim);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
 .admin-table td {
-  padding: 8px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.admin-table tr:last-child td {
+  border-bottom: 0;
 }
 .admin-foot {
   margin: 0;
-  max-width: 720px;
+  max-width: 760px;
 }
 .admin-tabs {
   display: flex;
   gap: 2px;
-  margin-left: 12px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--paper-3);
+  border: 1px solid var(--line);
 }
 .admin-tab {
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  color: var(--text-2);
+  padding: 6px 13px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--mut);
+  white-space: nowrap;
 }
 .admin-tab:hover {
-  background: var(--hover);
+  color: var(--ink);
 }
 .admin-tab.active {
-  color: var(--accent);
-  background: var(--hover);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--sh-sm);
 }
 .admin-filters {
   display: flex;
@@ -82,12 +103,18 @@
 }
 .admin-filters input,
 .admin-filters select {
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
+  padding: 9px 12px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
   font-size: 14px;
+  outline: none;
+}
+.admin-filters input:focus,
+.admin-filters select:focus {
+  border-color: var(--violet-2);
+  box-shadow: 0 0 0 4px rgba(var(--vrgb), 0.1);
 }
 .admin-search {
   min-width: 220px;
@@ -106,7 +133,7 @@
 }
 .admin-row:hover,
 .admin-row:focus {
-  background: var(--hover);
+  background: var(--hov);
   outline: none;
 }
 .admin-table th.center,
@@ -114,9 +141,23 @@
   text-align: center;
 }
 .admin-table td input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
+  accent-color: var(--violet);
 }
 .admin-table tr.restricted td:first-child {
-  box-shadow: inset 2px 0 0 #dc2626;
+  box-shadow: inset 3px 0 0 var(--red);
+}
+.admin-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+@media (max-width: 760px) {
+  .admin-body {
+    padding: 12px;
+  }
+  .admin-tab {
+    padding: 6px 9px;
+  }
 }

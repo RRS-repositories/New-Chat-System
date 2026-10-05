@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Hash, X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { BrowseChannel } from '../../types/index.ts';
 export function BrowseChannelsDialog({ onClose, onJoined }: { onClose: () => void; onJoined: (id: string) => void }) {
@@ -42,8 +42,8 @@ export function BrowseChannelsDialog({ onClose, onJoined }: { onClose: () => voi
       <div className="modal" role="dialog" aria-label="Browse channels" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>Browse channels</h2>
-          <button className="icon-btn" aria-label="Close" onClick={onClose}>
-            <X size={16} />
+          <button className="p-x" aria-label="Close" onClick={onClose}>
+            <X size={15} />
           </button>
         </div>
         {error && <p className="error">{error}</p>}
@@ -52,19 +52,22 @@ export function BrowseChannelsDialog({ onClose, onJoined }: { onClose: () => voi
           {list?.length === 0 && !error && <p className="muted pad">No public channels yet</p>}
           {list?.map((c) => (
             <div key={c.id} className="pick-row browse-row">
-              <div className="browse-info">
-                <div className="browse-name"># {c.displayName}</div>
-                {c.purpose && <div className="muted">{c.purpose}</div>}
-                <div className="muted">
+              <span className="hashic">
+                <Hash size={15} />
+              </span>
+              <span className="pi browse-info">
+                <b className="browse-name">{c.displayName}</b>
+                <span>
                   {c.memberCount} {c.memberCount === 1 ? 'member' : 'members'}
-                </div>
-              </div>
+                  {c.purpose ? ` · ${c.purpose}` : ''}
+                </span>
+              </span>
               {c.joined ? (
-                <button className="btn-ghost" disabled>
+                <button className="joinb leave" disabled>
                   Joined
                 </button>
               ) : (
-                <button className="btn-accent" disabled={busyId !== null} onClick={() => void join(c.id)}>
+                <button className="joinb" disabled={busyId !== null} onClick={() => void join(c.id)}>
                   Join
                 </button>
               )}

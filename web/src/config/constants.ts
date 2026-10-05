@@ -9,3 +9,5 @@ export const NOT_ENABLED_MESSAGE =
   'Team chat is not enabled for your account. Ask a manager to switch it on under Settings → Permissions.';
 
 export const APP_TITLE = 'Chat';
+/** Shown under the app name in the sidebar and on the sign-in page. */
+export const ORG_NAME = 'Rowan Rose';

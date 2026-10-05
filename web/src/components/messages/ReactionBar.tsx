@@ -1,37 +1,36 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { SmilePlus } from 'lucide-react';
 import type { Reaction } from '../../types/index.ts';
 import { EmojiPicker } from './EmojiPicker.tsx';
-export function ReactionBar({
-  reactions,
-  selfId,
-  onToggle,
-}: {
+
+type Props = {
   reactions: Reaction[];
   selfId: number;
   onToggle: (emoji: string) => void;
-}) {
+};
+
+/** The row of reaction pills under a message. Yours are tinted; pressing one adds or removes yours. */
+export function ReactionBar({ reactions, selfId, onToggle }: Props) {
   const [open, setOpen] = useState(false);
-  if (!reactions.length && !open) return null;
+  const addButton = useRef<HTMLButtonElement>(null);
+  if (!reactions.length) return null;
   return (
-    <div className="reaction-bar">
+    <div className="rxrow reaction-bar">
       {reactions.map((r) => (
         <button
           key={r.emoji}
-          className={`reaction-pill${r.userIds.includes(selfId) ? ' mine' : ''}`}
+          className={`rx reaction-pill${r.userIds.includes(selfId) ? ' me mine' : ''}`}
           onClick={() => onToggle(r.emoji)}
           title={`${r.count} ${r.count === 1 ? 'person' : 'people'}`}
         >
-          <span>{r.emoji}</span>
+          <span className="e">{r.emoji}</span>
           <span className="reaction-count">{r.count}</span>
         </button>
       ))}
-      <span className="picker-anchor">
-        <button className="reaction-pill add" aria-label="Add reaction" onClick={() => setOpen(true)}>
-          <SmilePlus size={12} />
-        </button>
-        {open && <EmojiPicker onPick={onToggle} onClose={() => setOpen(false)} />}
-      </span>
+      <button ref={addButton} className="rx add" aria-label="Add reaction" onClick={() => setOpen(!open)}>
+        <SmilePlus size={13} />
+      </button>
+      {open && <EmojiPicker anchor={addButton} onPick={onToggle} onClose={() => setOpen(false)} />}
     </div>
   );
 }

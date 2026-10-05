@@ -1,12 +1,14 @@
 import { memo, useState, type ReactNode } from 'react';
-import { Phone, Pin, X } from 'lucide-react';
+import { Phone, Pin } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
-import { avatarTone, formatTime, initials } from '../../utils/format.ts';
+import { formatClock, formatTime } from '../../utils/format.ts';
+import { UserAvatar } from '../common/UserAvatar.tsx';
 import { MessageActions } from './MessageActions.tsx';
 import { ReplyPreview } from './ReplyPreview.tsx';
 
 export type MessageProps = {
   m: M;
+  /** Follows the same person's previous message closely: no avatar or name, just the text. */
   grouped: boolean;
   own: boolean;
   canModerate: boolean;
@@ -49,6 +51,7 @@ export const Message = memo(function Message({
   const [draft, setDraft] = useState(m.content);
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   async function save() {
     const c = draft.trim();
     if (c && c !== m.content) {
@@ -69,83 +72,24 @@ export const Message = memo(function Message({
       setConfirm(false);
     }
   }
+
   if (m.type === 'system') return <div className="msg-system muted">{m.content}</div>;
   if (m.type === 'call')
     return (
-      <div id={`msg-${m.id}`} className="msg-call muted">
-        <Phone size={12} aria-hidden="true" />
-        <span>{m.content}</span>
-        <span>· {formatTime(m.createdAt)}</span>
+      <div id={`msg-${m.id}`} className="msg sysm msg-call">
+        <div className="gav" />
+        <div className="bd">
+          <Phone size={14} aria-hidden="true" />
+          <span>{m.content}</span>
+          <span>· {formatTime(m.createdAt)}</span>
+        </div>
       </div>
     );
-  const showMeta = !grouped || !!m.replyTo;
+
+  // A pinned message and a quoted reply always show who wrote them.
+  const first = !grouped || m.pinned || !!m.replyTo;
   return (
-    <div id={`msg-${m.id}`} className={`msg${grouped ? ' grouped' : ''}${highlighted ? ' highlight' : ''}`}>
-      <div className="msg-avatar">
-        {!grouped && <span className={`avatar av-${avatarTone(m.userName)}`}>{initials(m.userName)}</span>}
-      </div>
-      <div className="msg-body">
-        {m.replyTo && <ReplyPreview replyTo={m.replyTo} onJump={onJump} />}
-        {showMeta && !grouped && (
-          <div className="msg-meta">
-            <span className="msg-author">{m.userName}</span>
-            <span className="muted">{formatTime(m.createdAt)}</span>
-            {m.pinned && (
-              <span className="muted pinned-flag" title="Pinned">
-                <Pin size={11} /> pinned
-              </span>
-            )}
-          </div>
-        )}
-        {editing ? (
-          <div className="msg-edit">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={2}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  void save();
-                }
-                if (e.key === 'Escape') setEditing(false);
-              }}
-            />
-            <div className="row gap">
-              <button className="btn-accent" onClick={() => void save()}>
-                Save
-              </button>
-              <button className="btn-ghost" onClick={() => setEditing(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : m.content ? (
-          <div className="msg-text">
-            {renderContent ? renderContent(m.content) : m.content}
-            {m.editedAt && <span className="muted"> (edited)</span>}
-          </div>
-        ) : null}
-        {renderExtra?.(m)}
-        {!inThread && m.replyCount > 0 && (
-          <button className="link thread-link" onClick={() => onThread(m)}>
-            {m.replyCount} {m.replyCount === 1 ? 'reply' : 'replies'}
-          </button>
-        )}
-        {confirm && (
-          <div className="row gap">
-            <span className="muted">Delete this message?</span>
-            <button className="link danger" onClick={() => void del()}>
-              Delete
-            </button>
-            <button className="link" onClick={() => setConfirm(false)}>
-              Keep
-            </button>
-          </div>
-        )}
-        {error && <p className="error">{error}</p>}
-      </div>
+    <div id={`msg-${m.id}`} className={`msg${first ? ' first' : ' grouped'}${highlighted ? ' highlight' : ''}`}>
       {!editing && (
         <MessageActions
           m={m}
@@ -163,11 +107,78 @@ export const Message = memo(function Message({
           onDelete={() => setConfirm(true)}
         />
       )}
-      {editing && (
-        <button className="icon-btn" aria-label="Cancel edit" onClick={() => setEditing(false)}>
-          <X size={14} />
-        </button>
-      )}
+      <div className="gav">
+        {first ? (
+          <UserAvatar userId={m.userId} name={m.userName} />
+        ) : (
+          <span className="ts-h">{formatClock(m.createdAt)}</span>
+        )}
+      </div>
+      <div className="bd msg-body">
+        {m.pinned && !inThread && (
+          <div className="pinflag pinned-flag">
+            <Pin size={11} /> Pinned
+          </div>
+        )}
+        {m.replyTo && <ReplyPreview replyTo={m.replyTo} onJump={onJump} />}
+        {first && (
+          <div className="hd msg-meta">
+            <b className="msg-author">{m.userName}</b>
+            <time dateTime={m.createdAt} title={new Date(m.createdAt).toLocaleString()}>
+              {formatClock(m.createdAt)}
+            </time>
+          </div>
+        )}
+        {editing ? (
+          <div className="msg-edit">
+            <div className="comp-in">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={1}
+                autoFocus
+                aria-label="Edit message"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void save();
+                  }
+                  if (e.key === 'Escape') setEditing(false);
+                }}
+              />
+              <button className="btn-ghost btn-small" aria-label="Cancel edit" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+              <button className="btn-accent btn-small" onClick={() => void save()}>
+                Save
+              </button>
+            </div>
+          </div>
+        ) : m.content ? (
+          <div className="msg-text tx">
+            {renderContent ? renderContent(m.content) : m.content}
+            {m.editedAt && <span className="ed"> (edited)</span>}
+          </div>
+        ) : null}
+        {renderExtra?.(m)}
+        {!inThread && m.replyCount > 0 && (
+          <button className="thlink thread-link" onClick={() => onThread(m)}>
+            {m.replyCount} {m.replyCount === 1 ? 'reply' : 'replies'}
+          </button>
+        )}
+        {confirm && (
+          <div className="msg-confirm">
+            <span className="muted">Delete this message?</span>
+            <button className="link danger" onClick={() => void del()}>
+              Delete
+            </button>
+            <button className="link" onClick={() => setConfirm(false)}>
+              Keep
+            </button>
+          </div>
+        )}
+        {error && <p className="error">{error}</p>}
+      </div>
     </div>
   );
 });

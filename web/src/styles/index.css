@@ -1,5 +1,6 @@
 /* Styles, one file per area. The order matters: later files win when two rules are equal. */
 @import './tokens.css';
+@import './theme.css';
 @import './base.css';
 @import './layout.css';
 @import './sidebar.css';
@@ -9,4 +10,4 @@
 @import './auth.css';
 @import './calls.css';
 @import './admin.css';
-@import './theme.css';
+@import './legacy.css';

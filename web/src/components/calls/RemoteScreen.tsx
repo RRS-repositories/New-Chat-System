@@ -10,7 +10,7 @@ const WINDOW_FEATURES = 'popup,width=1280,height=760';
 function showInWindow(target: Window, track: TrackLike, title: string) {
   const doc = target.document;
   doc.title = title;
-  doc.body.style.cssText = 'margin:0;background:#111827;overflow:hidden';
+  doc.body.style.cssText = 'margin:0;background:#05070F;overflow:hidden';
   doc.body.replaceChildren();
   const video = doc.createElement('video');
   video.autoplay = true;

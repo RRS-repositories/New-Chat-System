@@ -107,6 +107,7 @@ test('GET /users/me/preferences returns the defaults when there is no row', asyn
       sendOnEnter: true,
       statusText: '',
       statusEmoji: '',
+      theme: null,
     },
   });
 });
@@ -115,7 +116,7 @@ test('PATCH /users/me/preferences saves a subset, ignores unknown keys, and is p
   const r = await request(app)
     .patch('/api/chat/users/me/preferences')
     .set(as(2))
-    .send({ desktopNotif: 'all', sendOnEnter: false, theme: 'dark', userId: 3 });
+    .send({ desktopNotif: 'all', sendOnEnter: false, colour: 'dark', userId: 3 });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body, {
     success: true,
@@ -126,6 +127,7 @@ test('PATCH /users/me/preferences saves a subset, ignores unknown keys, and is p
       sendOnEnter: false,
       statusText: '',
       statusEmoji: '',
+      theme: null,
     },
   });
   const again = await request(app).get('/api/chat/users/me/preferences').set(as(2));
@@ -178,7 +180,7 @@ test('PATCH /users/me/status with neither key returns the current status, writes
   const {
     rows: [before],
   } = await db.query(`SELECT updated_at FROM chat.user_preferences WHERE user_id = 2`);
-  for (const body of [{}, { theme: 'dark' }]) {
+  for (const body of [{}, { colour: 'dark' }]) {
     const r = await request(app).patch('/api/chat/users/me/status').set(as(2)).send(body);
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.deepEqual(r.body, { success: true, status: { text: 'Lunch', emoji: '🍔' } });

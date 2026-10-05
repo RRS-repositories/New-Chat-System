@@ -25,6 +25,8 @@ type Deps = {
   channelsRef: MutableRefObject<Channel[]>;
   prefsRef: MutableRefObject<Preferences>;
   pendingRead: MutableRefObject<string | null>;
+  /** A message the person should be told about arrived while they are using the chat: show it in the app. */
+  onNotice?: MutableRefObject<((notice: { message: Message; title: string; body: string }) => void) | undefined>;
 };
 
 /** Listens to the live connection and turns each event into a state change (and, for new messages, a notification). */
@@ -105,6 +107,7 @@ export function useChatSocketEvents(deps: Deps): void {
       if (prefsRef.current.soundEnabled) playNotify();
       const { title, body } = notificationContent(message, channel);
       void showDesktopNotification(title, body, message.channelId);
+      if (looking) deps.onNotice?.current?.({ message, title, body });
     };
 
     const handlers: Array<[string, (...args: any[]) => void]> = [
