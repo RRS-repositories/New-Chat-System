@@ -4,6 +4,7 @@ import type { ActiveCall } from '../context/callContext.ts';
 import type { CallAction, CallUiState, EndStatus, IncomingCall } from '../context/callState.ts';
 import type { CallApi } from '../services/callApi.ts';
 import type { CallManager } from '../services/callManager.ts';
+import type { BoardOp, Whiteboard } from '../services/whiteboard.ts';
 import type { CallInvite, JoinRequest } from '../types/index.ts';
 import { addJoinRequest, dropJoinRequest } from '../utils/joinRequests.ts';
 
@@ -43,6 +44,7 @@ type Deps = {
   setHands: Dispatch<SetStateAction<number[]>>;
   /** Who is being rung into this tab's call. */
   setInvites: Dispatch<SetStateAction<CallInvite[]>>;
+  whiteboard: Whiteboard;
   /** A reaction arrived: float it up the call screen. */
   showReaction: (userId: number, emoji: string) => void;
   /** Joins a call without asking the host (used once the host has let this person back in). */
@@ -62,6 +64,7 @@ export function useCallSocketEvents({
   setPanelNote,
   setHands,
   setInvites,
+  whiteboard,
   showReaction,
   joinDirect,
 }: Deps): void {
@@ -189,6 +192,11 @@ export function useCallSocketEvents({
       void joinDirect(p.join_call_id, p.channel_id, { switching: true });
     };
 
+    // Someone drew on the whiteboard, took a stroke back, or the host wiped it.
+    const onBoard = (p: { call_id: string; from_user_id: number | null; op: BoardOp }) => {
+      if (isMyCall(p.call_id)) whiteboard.applyRemote(p.op, p.from_user_id == null ? null : Number(p.from_user_id));
+    };
+
     const onReaction = (p: { call_id: string; from_user_id: number; emoji: string }) => {
       if (isMyCall(p.call_id) && typeof p.emoji === 'string') showReaction(Number(p.from_user_id), p.emoji);
     };
@@ -284,6 +292,7 @@ export function useCallSocketEvents({
       ['call_invite_pending', onInvitePending],
       ['call_invite_ended', onInviteEnded],
       ['call_merge', onMerge],
+      ['call_wb', onBoard],
       ['call_reaction', onReaction],
       ['call_hand_changed', onHand],
       ['call_host_changed', onHostChanged],
@@ -313,6 +322,7 @@ export function useCallSocketEvents({
     setPanelNote,
     setHands,
     setInvites,
+    whiteboard,
     showReaction,
     joinDirect,
   ]);

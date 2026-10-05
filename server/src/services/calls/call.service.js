@@ -9,6 +9,7 @@
  */
 import { httpError } from '../../middleware/errors.js';
 import { buildIceServers } from './ice.js';
+import { createCallBoard } from './call.board.js';
 import { createCallExtras } from './call.extras.js';
 import { createCallInvites } from './call.invites.js';
 import { createHostControls, REMOVED_MESSAGE } from './host.controls.js';
@@ -172,6 +173,7 @@ export function createCallService({
     host.forget(callId);
     extras.forget(callId);
     invites.forget(callId);
+    board.forget(callId);
   }
 
   async function postCallMessage(call, content) {
@@ -270,6 +272,8 @@ export function createCallService({
   });
   // Reactions and raised hands (see call.extras.js).
   const extras = createCallExtras({ devices, toCall, now });
+  // The shared whiteboard (see call.board.js).
+  const board = createCallBoard({ devices, toSocket });
   // Ringing more people into a live call, and joining a ringing call to one already going on (see call.invites.js).
   const invites = createCallInvites({
     db,
@@ -296,6 +300,7 @@ export function createCallService({
     joinRequests: host.joinRequestsFor(call, userId),
     ...extras.snapshot(call.id),
     ...invites.snapshot(call.id),
+    ...board.snapshot(call.id),
   });
 
   // A live row this process cannot be carrying: unknown in memory (boot sweep failed or raced; a start
@@ -476,6 +481,17 @@ export function createCallService({
     /** Reactions and raised hands, from the sender's call device only. */
     react: (args) => extras.react(args),
     setHand: (args) => extras.setHand(args),
+
+    /** One change to the call's whiteboard, from the sender's call device. Wiping the board is the host's alone. */
+    async whiteboard({ callId, userId, socketId, op }) {
+      if (!isUuid(callId) || devices.get(callId)?.get(userId) !== socketId) return false;
+      let isHost = false;
+      if (op?.type === 'clear') {
+        const call = await getCall(db, callId);
+        isHost = !!call && host.hostIdOf(call) === userId;
+      }
+      return board.apply({ callId, userId, socketId, op, isHost });
+    },
 
     /** Host controls: the person who started the call, while they are in it (see host.controls.js for who stands in). */
     hostMute: (args) => host.mute(args),

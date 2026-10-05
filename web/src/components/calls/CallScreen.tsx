@@ -15,6 +15,7 @@ import { JoinRequests } from './JoinRequests.tsx';
 import { OwnScreen } from './OwnScreen.tsx';
 import { RemoteAudio } from './RemoteAudio.tsx';
 import { RemoteScreen } from './RemoteScreen.tsx';
+import { WhiteboardView } from './WhiteboardView.tsx';
 
 const canShare = () =>
   typeof navigator !== 'undefined' &&
@@ -60,6 +61,7 @@ export function CallScreen() {
     joinRequests,
     hands,
     reactions,
+    whiteboard,
     invites,
     inviteToCall,
     cancelInvite,
@@ -75,6 +77,12 @@ export function CallScreen() {
   } = useCall();
   const [minimised, setMinimised] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
+  /** Who is drawing while this person's board is closed. */
+  const [drawingBy, setDrawingBy] = useState<number | null>(null);
+  const [screenNote, setScreenNote] = useState<string | null>(null);
+  const boardOpenRef = useRef(boardOpen);
+  boardOpenRef.current = boardOpen;
   const addButton = useRef<HTMLButtonElement | null>(null);
   const [narrow, setNarrow] = useState(() => window.innerWidth < 760);
   const clock = useCallClock(call.phase === 'in-call' ? call.since : null);
@@ -83,6 +91,8 @@ export function CallScreen() {
   useEffect(() => {
     if (!busy) setMinimised(false);
     if (!busy) setAdding(false);
+    if (!busy) setBoardOpen(false);
+    if (!busy) setDrawingBy(null);
   }, [busy]);
   useEffect(() => {
     const onResize = () => setNarrow(window.innerWidth < 760);
@@ -91,6 +101,22 @@ export function CallScreen() {
   }, []);
 
   const others = snapshot.participants;
+  const remoteSharing = others.some((p) => p.screenTrack && p.state !== 'lost');
+
+  // Someone else draws while this person's board is closed: offer to open it.
+  useEffect(() => whiteboard.onRemote((userId) => !boardOpenRef.current && setDrawingBy(userId)), [whiteboard]);
+  // A shared screen takes the stage: the board closes here (the drawing is kept).
+  useEffect(() => {
+    if (remoteSharing && boardOpenRef.current) {
+      setBoardOpen(false);
+      setScreenNote('Someone is sharing their screen. The whiteboard is kept: open it again when they stop.');
+    }
+  }, [remoteSharing]);
+  useEffect(() => {
+    if (!screenNote) return;
+    const timer = setTimeout(() => setScreenNote(null), 6000);
+    return () => clearTimeout(timer);
+  }, [screenNote]);
   const voices = useMemo<VoiceSource[]>(
     () => [
       { userId: user.id, track: snapshot.ownAudioTrack, muted: snapshot.muted },
@@ -104,6 +130,7 @@ export function CallScreen() {
   const hostRemove = useCallback((id: number) => void removeParticipant(id), [removeParticipant]);
   const stopRinging = useCallback((id: number) => void cancelInvite(id), [cancelInvite]);
   const closeAdd = useCallback(() => setAdding(false), []);
+  const closeBoard = useCallback(() => setBoardOpen(false), []);
 
   if (!busy) return null;
 
@@ -166,6 +193,14 @@ export function CallScreen() {
     />
   ));
   const sharer = others.find((p) => p.screenTrack && p.state !== 'lost');
+  function toggleBoard() {
+    if (boardOpen) return setBoardOpen(false);
+    if (sharer)
+      return setScreenNote(`${first(sharer.userName)} is sharing their screen. The whiteboard opens when they stop.`);
+    if (snapshot.sharing) void toggleShare(); // my own share stops: the board takes the stage
+    setDrawingBy(null);
+    setBoardOpen(true);
+  }
   const calling = call.phase === 'in-call' && oneToOne && others.length === 0 && invites.length === 0;
   const status =
     call.phase === 'joining' ? 'Connecting…' : others.length ? `${clock} · ${others.length + 1} people` : clock;
@@ -232,6 +267,19 @@ export function CallScreen() {
           {isHost && (
             <JoinRequests requests={joinRequests} onAnswer={(id, accept) => void answerJoinRequest(id, accept)} />
           )}
+          {drawingBy !== null && !boardOpen && (
+            <p className="c-note" role="status" data-testid="call-board-nudge">
+              {first(others.find((p) => p.userId === drawingBy)?.userName || 'Someone')} is drawing on the whiteboard.{' '}
+              <button className="c-note-act" onClick={toggleBoard}>
+                Open it
+              </button>
+            </p>
+          )}
+          {screenNote && (
+            <p className="c-note" role="status">
+              {screenNote}
+            </p>
+          )}
           {panelNote && (
             <p className="c-note" role="status" data-testid="call-panel-note">
               {panelNote}
@@ -244,7 +292,12 @@ export function CallScreen() {
           )}
         </div>
         <div className="cstage">
-          {sharer || snapshot.ownScreenTrack ? (
+          {boardOpen && !sharer ? (
+            <div className="c-present">
+              <WhiteboardView board={whiteboard} isHost={isHost} onClose={closeBoard} />
+              <div className="c-strip">{tiles}</div>
+            </div>
+          ) : sharer || snapshot.ownScreenTrack ? (
             <div className="c-present">
               {sharer ? (
                 <RemoteScreen track={sharer.screenTrack!} name={first(sharer.userName)} />
@@ -260,7 +313,9 @@ export function CallScreen() {
               </div>
             </div>
           )}
-          {snapshot.ownScreenTrack && <OwnScreen track={snapshot.ownScreenTrack} onStop={() => void toggleShare()} />}
+          {snapshot.ownScreenTrack && !boardOpen && (
+            <OwnScreen track={snapshot.ownScreenTrack} onStop={() => void toggleShare()} />
+          )}
         </div>
         <div className="crlayer" aria-hidden="true">
           {reactions.map((reaction) => (
@@ -297,6 +352,7 @@ export function CallScreen() {
           onLeave={leaveCall}
           onAdd={FEATURES.addToCall ? () => setAdding((open) => !open) : undefined}
           addRef={addButton}
+          whiteboard={FEATURES.whiteboard ? { open: boardOpen, onToggle: toggleBoard } : undefined}
         />
         {adding && (
           <AddPeople

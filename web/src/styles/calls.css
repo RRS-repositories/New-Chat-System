@@ -1236,3 +1236,136 @@
 .call-card-over {
   font-weight: 600;
 }
+
+/* Whiteboard */
+.wb {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fbfbff;
+  border: 1px solid var(--dk-line);
+  box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.8);
+}
+.wb-top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e8eaf3;
+  flex-wrap: wrap;
+}
+.wb-top .sp {
+  flex: 1;
+}
+.wb-grp {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid #e8eaf3;
+  border-radius: 11px;
+  background: #fbfbfe;
+}
+.wb-sw {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  position: relative;
+}
+.wb-sw::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--c);
+}
+.wb-sw.sel {
+  box-shadow: inset 0 0 0 2px var(--violet-2);
+}
+.wb-sz {
+  width: 28px;
+  height: 26px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+}
+.wb-sz i {
+  border-radius: 50%;
+  background: #1b1f3a;
+  display: block;
+}
+.wb-sz.sel {
+  background: #efeafe;
+  box-shadow: inset 0 0 0 1.5px var(--violet-2);
+}
+.wb-tl {
+  width: 30px;
+  height: 26px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #696f8e;
+}
+.wb-tl:hover:not(:disabled) {
+  background: #f1f2f9;
+  color: #171a2e;
+}
+.wb-tl:disabled {
+  opacity: 0.4;
+}
+.wb-tl.sel {
+  background: #efeafe;
+  color: #4a2fc0;
+  box-shadow: inset 0 0 0 1.5px var(--violet-2);
+}
+.wb-full {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b4530a;
+}
+.wb-close {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #696f8e;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid #e0e2ef;
+}
+.wb-close:hover {
+  color: #171a2e;
+  border-color: var(--violet-3);
+  background: #efeafe;
+}
+.wb-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  cursor: crosshair;
+  touch-action: none;
+  background-image: radial-gradient(#d9dcec 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-color: #fbfbff;
+}
+.wb-wrap canvas {
+  position: absolute;
+  inset: 0;
+}
+.c-note-act {
+  font-weight: 800;
+  text-decoration: underline;
+  color: inherit;
+}
+@media (max-width: 760px) {
+  .wb-top {
+    gap: 5px;
+  }
+}

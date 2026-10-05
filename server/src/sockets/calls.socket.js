@@ -33,6 +33,11 @@ export function attachCallSignalling({ socket, user, calls }) {
     });
   relay('call_reaction', (who, p) => calls.react?.({ ...who, emoji: p.emoji }));
   relay('call_hand', (who, p) => calls.setHand?.({ ...who, up: p.up === true }));
+  relay('call_wb', (who, p) => {
+    Promise.resolve(calls.whiteboard?.({ ...who, op: p.op })).catch((e) =>
+      console.error('[chat] call_wb failed', e?.message || e),
+    );
+  });
 
   socket.on('disconnect', () => {
     try {

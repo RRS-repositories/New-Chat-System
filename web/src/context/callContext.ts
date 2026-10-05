@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { CallSnapshot } from '../services/callManager.ts';
+import type { Whiteboard } from '../services/whiteboard.ts';
 import type { CallInvite, JoinRequest } from '../types/index.ts';
 import type { CallUiState, IncomingCall } from './callState.ts';
 
@@ -28,6 +29,8 @@ export type CallContextValue = {
   hands: number[];
   /** Reactions on their way up the screen. Each is removed when its animation ends. */
   reactions: CallReaction[];
+  /** The whiteboard of this tab's call. The same object for the life of the page; empty outside a call. */
+  whiteboard: Whiteboard;
   /** People being rung into this tab's call: each is shown as a "Ringing…" tile. */
   invites: CallInvite[];
   startCall: (channelId: string) => Promise<void>;

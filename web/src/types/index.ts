@@ -160,6 +160,15 @@ export type CallJoinResponse = {
   hands?: number[];
   /** People being rung into the call right now. */
   invites?: CallInvite[];
+  /** The call's whiteboard as it is now. */
+  whiteboard?: Array<{
+    id: string;
+    userId: number;
+    points: [number, number][];
+    color: string;
+    size: number;
+    eraser: boolean;
+  }>;
 };
 /** Someone being rung into a live call: shown as a "Ringing…" tile. */
 export type CallInvite = { userId: number; userName: string };

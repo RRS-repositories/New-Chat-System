@@ -9,6 +9,7 @@ import { ApiError } from '../services/apiClient.ts';
 import { createCallApi } from '../services/callApi.ts';
 import { CallError, CallManager, type CallSnapshot, type PeerLike } from '../services/callManager.ts';
 import { getMicrophone, getScreen } from '../services/media.ts';
+import { Whiteboard, type Stroke } from '../services/whiteboard.ts';
 import type { CallInvite, CallJoinResponse, JoinRequest } from '../types/index.ts';
 import { callErrorText } from '../utils/callErrors.ts';
 import { stopRingtone } from '../utils/ringtone.ts';
@@ -52,6 +53,16 @@ export function CallProvider({ socket, getToken, children }: Props) {
   const manager = useRef<CallManager | null>(null);
   const callId = useRef<string | null>(null);
   const joinedSocket = useRef<string | null>(null);
+  const whiteboard = useMemo(
+    () =>
+      new Whiteboard({
+        myUserId: user.id,
+        send: (op) => {
+          if (callId.current) socket.emit('call_wb', { call_id: callId.current, op });
+        },
+      }),
+    [socket, user.id],
+  );
   const expectOwnJoin = useRef(0);
   const rejoining = useRef(false);
   const startBuffer = useRef<Array<{ callId: string; apply: () => void }>>([]);
@@ -97,7 +108,8 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setHands([]);
     setReactions([]);
     setInvites([]);
-  }, []);
+    whiteboard.reset();
+  }, [whiteboard]);
 
   const tellServerILeft = useCallback(
     (id: string) => {
@@ -182,6 +194,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
       let waiting: JoinRequest[] = [];
       let raised: number[] = [];
       let ringingNow: CallInvite[] = [];
+      let drawn: Stroke[] = [];
       let since = Date.now();
       try {
         const joined = await current.connect(async () => {
@@ -191,6 +204,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
           waiting = answer.joinRequests ?? [];
           raised = answer.hands ?? [];
           ringingNow = answer.invites ?? [];
+          drawn = answer.whiteboard ?? [];
           since = answer.call.startedAt ? Date.parse(answer.call.startedAt) : Date.now();
           if (stillCurrent()) callId.current = answer.call.id;
           // Anyone who joined (and offered) before this answer arrived: the manager holds them until the connections are built.
@@ -206,6 +220,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         setJoinRequests(waiting);
         setHands(raised);
         setInvites(ringingNow);
+        whiteboard.load(drawn);
         setSnapshot(current.snapshot());
         setChannelCall(channelId, () => ({ callId: id, participantIds: joined.participants.map((p) => p.userId) }));
       } catch (e) {
@@ -234,7 +249,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
         dispatch({ type: 'failed', error: callErrorText(e) });
       }
     },
-    [socket, createManager, tellServerILeft, setChannelCall, askToJoin, teardown, ui],
+    [socket, createManager, tellServerILeft, setChannelCall, askToJoin, teardown, whiteboard, ui],
   );
 
   const startCall = useCallback(
@@ -408,6 +423,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
     setPanelNote,
     setHands,
     setInvites,
+    whiteboard,
     showReaction,
     joinDirect,
   });
@@ -488,6 +504,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      whiteboard,
       invites,
       startCall,
       joinCall,
@@ -519,6 +536,7 @@ export function CallProvider({ socket, getToken, children }: Props) {
       joinRequests,
       hands,
       reactions,
+      whiteboard,
       invites,
       startCall,
       joinCall,
