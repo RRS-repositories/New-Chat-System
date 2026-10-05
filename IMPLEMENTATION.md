@@ -18,7 +18,7 @@ A technical reference for the Rowan Rose team chat: every feature that exists, h
 | Security items: IP restriction, upload content checks, security headers, request ceiling, mail library upgrade | **Live** since 1 Oct 2026, 16:22 |
 | Search that finds part of a word, people and channels; own-screen preview for the sharer; call host controls (mute, remove, ask to rejoin) | **Live** since 1 Oct 2026, 16:22. Waiting for the owner to try them (Phase 5) |
 | Lightweight with very long channels (a window of messages on the page, indexed search); clickable links; simple formatting; channel rename, leave and archive | **Live** since 1 Oct 2026, 17:34. Waiting for the owner to try them (Phase 7) |
-| The new design (light and dark, five accents), profile photos, the new call screen, incoming-call card, add to call, whiteboard, recording, breakout groups | **Built 5 Oct 2026, not deployed** (Phase 9, section 9.12). Needs database file `chat_005` |
+| The new design (light and dark, five accents), profile photos, the new call screen, incoming-call card, add to call, whiteboard, recording, breakout groups | **Live** since 5 Oct 2026, 16:56 (Phase 9, section 9.12). Waiting for the owner to try it |
 | The CRM's automatic messages posted into the chat | **Approved, not started** (Phase 8). About 150 places in the CRM, not forty |
 | Calls from outside the office | **Blocked** on the router port forwarding (Phase 6) |
 | Chat inside the CRM, Mattermost history import, phone install, camera video | **Not built**, by decision |
@@ -431,7 +431,7 @@ A restriction applies when opening a direct message, calling, and creating or ad
 
 Per person: notification level, sound on or off, Enter-to-send, status message. Stored in `chat.user_preferences`.
 
-### 9.12 The new design and call features (Phase 9, built 5 Oct 2026, not deployed)
+### 9.12 The new design and call features (Phase 9, live since 5 Oct 2026)
 
 Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redesign-v2.html` is the design reference.
 
@@ -668,7 +668,7 @@ Measured on the developer PC against the in-memory test database, which is slowe
 
 **Only on the owner's word:** the chat inside the CRM, moving the CRM's automatic messages off Mattermost, importing Mattermost history, phone install.
 
-**Built, not deployed (Phase 9, 5 October 2026):** everything in the owner's `Updates/` file. See section 9.12. It needs database file `chat_005_theme_avatars.sql` applied before the new code starts.
+**Live since 5 Oct 2026, 16:56, waiting for the owner to try (Phase 9):** everything in the owner's `Updates/` file. See section 9.12.
 
 **Decided against (owner, 1 October 2026):** camera video; any paid service; "seen" marks on direct messages; a "mute everyone" button; an audit screen; importing old Mattermost conversations; installing the chat as an app. (Dark mode and a stand-in host were on this list; the owner's file of 5 October asks for both, and they are built.) Link previews are also out: the server would have to fetch outside web pages.
 
@@ -683,4 +683,4 @@ Measured on the developer PC against the in-memory test database, which is slowe
 | 1 Oct 2026 | Three call fixes and the colour theme. Chat moved to this repository (pull requests #1–#3). Code reshaped to the folder structure (#4). Own deploy script, settings file and server folder; chat2 switched to `/opt/chat` (#5–#8). Security items built and merged (#9), not deployed yet. |
 | 1 Oct 2026 (later) | Phase 5 built (#11): search finds part of a word, people and channels; the sharer sees their own screen; call host controls. Deployed with the security items at 16:22. |
 | 1 Oct 2026 (evening) | Phase 7: kept light with very long channels (measured with 100,000 messages), clickable links, simple formatting, channel rename, leave and archive. Deployed at 17:34 with one new database file (indexes). |
-| 5 Oct 2026 | Phase 9: the new design (light and dark, five accents), profile photos, the new call screen, incoming-call card, add to call and merge, whiteboard, recording, breakout groups. Built and tested; not deployed. |
+| 5 Oct 2026 | Phase 9: the new design (light and dark, five accents), profile photos, the new call screen, incoming-call card, add to call and merge, whiteboard, recording, breakout groups. Deployed to chat2 the same day at 16:56. |

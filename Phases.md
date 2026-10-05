@@ -157,12 +157,11 @@ The owner chose these on 1 October 2026 and asked that the chat stay light howev
 
 ---
 
-## Phase 9 — New design and call features (the owner's `Updates/` file) ▶ (built 5 October 2026; **not deployed**)
+## Phase 9 — New design and call features (the owner's `Updates/` file) ▶ (built and deployed 5 October 2026, 16:56; waiting for the owner to try it)
 
 The owner supplied a complete design and build specification on 5 October 2026 (`Updates/`: a build
 document in ten sections, a code specification, and a working prototype of the design). All ten
-sections are built and tested on the developer's PC. Nothing is on the server yet: a deploy
-restarts the chat and ends live calls, so it happens off-hours, on the owner's word.
+sections are built and tested on the developer's PC. Deployed to chat2 on 5 October 2026 at 16:56 on the owner's word, with no call live.
 
 | Section | What it is | State |
 |---|---|---|

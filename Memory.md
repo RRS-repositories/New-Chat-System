@@ -9,8 +9,8 @@ Update it after every piece of finished work. Newest entries go at the top of th
 
 | Item | State |
 |---|---|
-| **Current phase** | **Phase 9 — the new design and call features from the owner's `Updates/` file**: all ten sections built and tested on the developer's PC on 5 Oct 2026. **Not deployed.** Before it: Phase 7 and Phase 5 are live and waiting for the owner to try; Phase 8 (the CRM's automatic messages) needs his decisions; Phase 4 has one step left; Phase 6 waits for the router rules. |
-| **Waiting to be deployed** | **Phase 9 (everything in `Updates/`).** chat2 still runs commit `ce13f3c` (Phase 7). To deploy, off-hours and only on the owner's word (it restarts the chat and ends live calls): first apply `chat_005_theme_avatars.sql` (`node server/migrations/apply.mjs --commit --only=chat_005_theme_avatars.sql`), then `/opt/chat/deploy/deploy.sh`. The new code needs that database file: without it the people list fails. |
+| **Current phase** | **Phase 9 — the new design and call features from the owner's `Updates/` file**: all ten sections built, then **deployed to chat2 on 5 Oct 2026, 16:56** on the owner's word ("push on prod"). Waiting for the owner to try it on chat2 and on real phones. Before it: Phase 8 (the CRM's automatic messages) needs his decisions; Phase 4 has one step left; Phase 6 waits for the router rules. |
+| **Waiting to be deployed** | Nothing. chat2 runs commit `df7475f`. All five database files are applied (`chat_005_theme_avatars.sql` on 5 Oct 2026, before the code). |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -165,6 +165,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 5 Oct 2026, 16:56 — Phase 9 deployed to chat2 ✅
+The owner compared the build with the prototype and found differences; Settings order and Compact messages, "joined the call" toasts, the hang-up icon, thread reply avatars and click-through toasts were fixed (commit `df7475f`). He then said "push on prod". No call was live and nobody had posted for ten minutes. `chat_005_theme_avatars.sql` was applied first, then `deploy/deploy.sh`; the health check passed and the public site answers. Not yet compared side by side with the prototype: search box, right-hand panels, whiteboard, breakout panel, incoming-call card, phone layout.
 
 ### 5 Oct 2026 — Phase 9 built: the new design and call features from `Updates/` ✅ (not deployed)
 The owner supplied a full specification (`Updates/CHAT-UI-BUILD.md`, `CHAT-CODE-SPEC.md`, a working prototype, a theme file) and asked for all of it. Built in ten sections, each with its own tests and a real-browser check, on branch `redesign-v2`, then merged.
