@@ -123,7 +123,7 @@ The browser checks use the Microsoft Edge already installed on the PC.
 
 ## Blockers
 
-- **Router port forwarding** for calls from outside the office is with the server team (ports 3478 UDP+TCP and 49160–49200 UDP to 192.168.1.58).
+- (Cleared 6 Oct 2026) Router port forwarding for calls from outside the office: 3478 UDP+TCP and 49160–51200 UDP to 192.168.1.58 are in place and proven.
 
 ## Things to know before changing code
 
@@ -165,6 +165,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 6 Oct 2026, 15:30 — router forwards the wider relay range: proven from outside
+The router team forwarded UDP 49160–51200 to 192.168.1.58. Checked from a PC outside the office with a real TURN allocation and a packet sent through the relay: relay ports 50829, 50985 and 50148 (all above the old 49200) answered. Remote group calls now have about 2,000 relay ports instead of 41. Phase 6 (calls from outside the office) is therefore complete.
 
 ### 6 Oct 2026, 15:20 — notifications are not optional
 Owner's rule: everyone in the app must have notifications on. The browser alone grants the permission (Allow in its prompt), so the chat cannot do it for them; the line above the messages now cannot be dismissed and stays until the device has them on, a blocked browser gets unblock instructions, and Admin > People shows who has them on (push subscription). Deployed.

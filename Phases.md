@@ -110,7 +110,7 @@ per-person IP restriction, upload content checks, security headers, a general re
 
 ---
 
-## Phase 6 — Calls from outside the office ⏳
+## Phase 6 — Calls from outside the office ✅ (router rules in place and proven 6 October 2026)
 
 - The server team adds three port-forwarding rules on the office router (message already written for them).
 - Test a call between someone in the office and someone on mobile data.
