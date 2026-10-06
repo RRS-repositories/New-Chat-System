@@ -7,7 +7,7 @@ import { useChat } from '../context/chatContext.ts';
 import { useAdminUsers } from '../hooks/useAdminUsers.ts';
 import type { AdminUser } from '../types/index.ts';
 import { filterPeople } from '../utils/access.ts';
-import { isManagement, isManagementOrIT } from '../utils/restrictions.ts';
+import { isManagementOrIT } from '../utils/restrictions.ts';
 import { dayLabel } from '../utils/format.ts';
 
 const peopleCount = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
@@ -16,7 +16,7 @@ const DASH = <span className="muted">—</span>;
 type RowProps = {
   person: AdminUser;
   onOpen: () => void;
-  /** Management only: switch this person off, or on again. */
+  /** Management or IT: switch this person off, or on again. */
   onToggle?: (person: AdminUser) => void;
   deactivated?: boolean;
 };
@@ -176,7 +176,7 @@ export function AdminPeoplePage({ deactivated = false }: { deactivated?: boolean
                   key={person.id}
                   person={person}
                   deactivated={deactivated}
-                  onToggle={isManagement(user) && person.id !== user.id ? toggle : undefined}
+                  onToggle={isManagementOrIT(user) && person.id !== user.id ? toggle : undefined}
                   onOpen={() => navigate(paths.adminUser(person.id))}
                 />
               ))}

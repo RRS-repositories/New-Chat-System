@@ -106,7 +106,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
   });
 
   await step(
-    'Management deactivate a person: gone from People, listed under Deactivated, back again on Reactivate',
+    'Management (or IT) deactivate a person: gone from People, listed under Deactivated, back again on Reactivate',
     async () => {
       await meg.page.click(tid('sidebar-admin'));
       await meg.page.waitForSelector(tid('admin-people'));
@@ -134,6 +134,8 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
     await eli.page.waitForSelector(tid('admin-people'));
     if (await eli.page.locator('.admin-tabs button', { hasText: 'All restrictions' }).count())
       throw new Error('IT sees the restrictions tab');
+    if (!(await eli.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).locator(tid('deactivate')).count()))
+      throw new Error('IT has no Deactivate button');
     await eli.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).click();
     await eli.page.waitForSelector(tid('set-password'));
     if (await eli.page.locator(tid('access-row')).count()) throw new Error('IT sees who Bob may contact');

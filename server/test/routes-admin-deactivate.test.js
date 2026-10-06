@@ -79,8 +79,9 @@ test('reactivating brings them back; an unapproved account counts as deactivated
   assert.equal((await db.query(`SELECT is_approved FROM users WHERE id = 2`)).rows[0].is_approved, true);
 });
 
-test('only Management may; nobody deactivates themselves', async () => {
-  assert.equal((await as(6).post('/admin/users/3/deactivate')).status, 403, 'IT may not');
+test('Management and IT may; nobody else; nobody deactivates themselves', async () => {
+  assert.equal((await as(6).post('/admin/users/3/deactivate')).status, 200, 'IT may');
+  assert.equal((await as(6).post('/admin/users/3/reactivate')).status, 200, 'IT may switch back on');
   assert.equal((await as(2).post('/admin/users/3/deactivate')).status, 403);
   const self = await as(1).post('/admin/users/1/deactivate');
   assert.equal(self.status, 400);
