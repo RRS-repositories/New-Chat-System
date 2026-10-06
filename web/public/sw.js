@@ -26,7 +26,12 @@ self.addEventListener('push', (event) => {
   const str = (v) => (typeof v === 'string' && v ? v : '');
   const title = str(p.title) || 'Chat';
   const tag = str(p.tag) || str(p.channelId);
-  const opts = { body: str(p.body), data: { channelId: str(p.channelId) || null, kind: str(p.kind) || 'message' } };
+  const opts = {
+    body: str(p.body),
+    icon: '/icon-192.png',
+    badge: '/icon-96.png',
+    data: { channelId: str(p.channelId) || null, kind: str(p.kind) || 'message' },
+  };
   if (tag) {
     opts.tag = tag;
     opts.renotify = true;

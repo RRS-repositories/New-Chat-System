@@ -48,19 +48,37 @@ export function parseSwOpen(data: any): string | null {
   return data.channelId;
 }
 
-/** A desktop notification through the service worker registration, so clicks are handled in one place (sw.js). Silent on any failure. */
+export const NOTIFICATION_ICON = '/icon-192.png';
+/** The page's own event for "open this channel", raised when a notification shown by the page itself is clicked. */
+export const OPEN_CHANNEL_EVENT = 'chat:open-channel';
+
+/**
+ * A desktop notification: through the service worker when there is one (clicks are then handled in
+ * sw.js, and it works with the tab closed), otherwise straight from the page, so a person who has
+ * allowed notifications is told even before push is set up on their device. Silent on any failure.
+ */
 export async function showDesktopNotification(title: string, body: string, channelId: string): Promise<void> {
   try {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !('serviceWorker' in navigator))
-      return;
-    const reg = await navigator.serviceWorker.getRegistration();
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     // renotify: a second message in the same channel (same tag) alerts again. Not in TS's DOM types.
-    await reg?.showNotification(title, {
+    const options = {
       body,
       tag: channelId,
       data: { channelId },
       renotify: true,
-    } as NotificationOptions);
+      icon: NOTIFICATION_ICON,
+    } as NotificationOptions;
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+    if (reg) {
+      await reg.showNotification(title, options);
+      return;
+    }
+    const shown = new Notification(title, options);
+    shown.onclick = () => {
+      window.focus();
+      window.dispatchEvent(new CustomEvent(OPEN_CHANNEL_EVENT, { detail: channelId }));
+      shown.close();
+    };
   } catch {
     /* notifications are best effort */
   }
