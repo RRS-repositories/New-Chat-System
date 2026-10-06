@@ -1,3 +1,5 @@
+import { setFaviconBadge } from '../../utils/favicon.ts';
+import { tabBadge, tabTitle } from '../../utils/tabTitle.ts';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { APP_TITLE } from '../../config/constants.ts';
@@ -39,9 +41,12 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
   const [dialog, setDialog] = useState<Dialog>(null);
   const closeDialog = () => setDialog(null);
 
+  // The tab says what is waiting, the way Mattermost did: "(3) Chat" for mentions and direct messages,
+  // "• Chat" for unread channels, and the icon carries the same badge.
   useEffect(() => {
-    const mentions = state.channels.reduce((total, channel) => total + (channel.mentionCount || 0), 0);
-    document.title = mentions ? `(${mentions}) ${APP_TITLE}` : APP_TITLE;
+    const badge = tabBadge(state.channels);
+    document.title = tabTitle(badge, APP_TITLE);
+    setFaviconBadge(badge);
   }, [state.channels]);
 
   // Ctrl+K (or Command+K) opens search from anywhere.
