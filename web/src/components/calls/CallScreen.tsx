@@ -1,6 +1,6 @@
 import { HangUp } from '../common/HangUp.tsx';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { LayoutGrid, Maximize2, Mic, MicOff, Minimize2 } from 'lucide-react';
+import { LayoutGrid, Maximize2, Mic, MicOff, Minimize2, MonitorUp } from 'lucide-react';
 import { FEATURES } from '../../config/features.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
@@ -364,17 +364,26 @@ export function CallScreen() {
               <WhiteboardView board={whiteboard} isHost={isHost} hostName={hostName} onClose={closeBoard} />
               <div className="c-strip">{tiles}</div>
             </div>
-          ) : sharer || snapshot.ownScreenTrack ? (
+          ) : sharer ? (
             <div className="c-present">
-              {sharer ? (
-                <RemoteScreen track={sharer.screenTrack!} name={first(sharer.userName)} />
-              ) : (
-                <RemoteScreen track={snapshot.ownScreenTrack!} name="You" own />
-              )}
+              <RemoteScreen track={sharer.screenTrack!} name={first(sharer.userName)} />
               <div className="c-strip">{tiles}</div>
             </div>
           ) : (
             <div className="c-present">
+              {snapshot.ownScreenTrack && (
+                // The presenter keeps seeing the people: their own screen is only the small picture in the corner
+                // (a full-size copy would mirror itself when the chat is what is being shared).
+                <div className="bo-banner presenting" role="status" data-testid="call-presenting">
+                  <MonitorUp size={15} />
+                  <span>
+                    <b>You are presenting.</b> The others see your screen; the small picture shows what they see.
+                  </span>
+                  <button data-testid="call-presenting-stop" onClick={() => void toggleShare()}>
+                    Stop sharing
+                  </button>
+                </div>
+              )}
               {breakout.active && (
                 <div className="bo-banner" role="status" data-testid="bo-banner">
                   <LayoutGrid size={15} />

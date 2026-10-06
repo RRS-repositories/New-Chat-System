@@ -1675,3 +1675,12 @@
     display: none;
   }
 }
+
+/* "You are presenting" above the people while this person shares their screen */
+.bo-banner.presenting {
+  background: rgba(224, 80, 122, 0.16);
+  border-color: rgba(224, 80, 122, 0.45);
+}
+.bo-banner.presenting svg {
+  color: #ff8fb0;
+}
