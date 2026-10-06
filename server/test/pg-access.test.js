@@ -106,6 +106,19 @@ test('the people list: only active people, chat on for Management, block counts 
   assert.equal(ann.blockedFrom, 2);
   assert.equal(bob.blockedBy, 1);
   assert.equal(bob.blockedFrom, 0);
+  // With the permission gate off, everyone who can sign in has chat; a switched-off person never does.
+  const open = await listAdminUsers(db, { requireBeta: false });
+  assert.ok(
+    open.every((u) => u.chatEnabled === true),
+    'gate off: chat on for every active person',
+  );
+  const off = await listAdminUsers(db, { deactivated: true, requireBeta: false });
+  assert.ok(off.length > 0 && off.every((u) => u.chatEnabled === false), 'gate off: a switched-off person has no chat');
+  const offGated = await listAdminUsers(db, { deactivated: true });
+  assert.ok(
+    offGated.every((u) => u.chatEnabled === false),
+    'gate on: a switched-off Management/IT person still shows Off',
+  );
 });
 
 test("routes: Management only; people list carries online; bulk access returns the person's restrictions", async () => {

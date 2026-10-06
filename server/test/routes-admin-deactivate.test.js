@@ -11,7 +11,9 @@ import { secret, aud } from './route-helper.js';
 const { db, close } = await createTestDb();
 // Users from the helper: 1 Meg Manager (Management), 2 Ann Agent, 3 Bob Sales. Added: 6 Ivy IT.
 await db.query(`INSERT INTO users (email, full_name, role) VALUES ('ivy@x', 'Ivy IT', 'IT')`);
-await db.query(`INSERT INTO chat.user_presence (user_id, last_seen_at) VALUES (2, now()), (3, now()) ON CONFLICT DO NOTHING`);
+await db.query(
+  `INSERT INTO chat.user_presence (user_id, last_seen_at) VALUES (2, now()), (3, now()) ON CONFLICT DO NOTHING`,
+);
 const events = [];
 const emit = {
   toChannel() {},
@@ -33,7 +35,10 @@ const as = (id) => ({
 const dm = await openDm(db, 1, 3);
 
 test('deactivating: signed out everywhere now, cannot use the chat, gone from pickers and conversations, listed under Deactivated', async () => {
-  assert.ok((await listChannelsForUser(db, 1)).some((c) => c.id === dm.id), 'the conversation with Bob is listed first');
+  assert.ok(
+    (await listChannelsForUser(db, 1)).some((c) => c.id === dm.id),
+    'the conversation with Bob is listed first',
+  );
   events.length = 0;
   const r = await as(1).post('/admin/users/3/deactivate');
   assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -44,10 +49,19 @@ test('deactivating: signed out everywhere now, cannot use the chat, gone from pi
   // He is out of the pick list and the conversation with him is out of sight.
   assert.ok(!(await as(1).get('/users')).body.users.some((u) => u.id === 3));
   assert.ok(!(await listChannelsForUser(db, 1)).some((c) => c.id === dm.id));
-  const active = (await as(1).get('/admin/users')).body.users;
+  const list = (await as(1).get('/admin/users')).body;
+  assert.equal(list.gate, false, 'the list says the permission gate is off');
+  const active = list.users;
   const gone = (await as(1).get('/admin/users?deactivated=1')).body.users;
   assert.ok(!active.some((u) => u.id === 3) && gone.some((u) => u.id === 3 && u.isActive === false));
-  const audit = await db.query(`SELECT action, actor_id, target_id FROM chat.audit_log WHERE action = 'user.deactivate'`);
+  assert.equal(gone.find((u) => u.id === 3).chatEnabled, false, 'a switched-off person shows chat access Off');
+  assert.ok(
+    active.every((u) => u.chatEnabled),
+    'gate off: everyone who can sign in shows On',
+  );
+  const audit = await db.query(
+    `SELECT action, actor_id, target_id FROM chat.audit_log WHERE action = 'user.deactivate'`,
+  );
   assert.deepEqual(audit.rows, [{ action: 'user.deactivate', actor_id: 1, target_id: '3' }]);
 });
 
@@ -58,7 +72,9 @@ test('reactivating brings them back; an unapproved account counts as deactivated
   assert.ok((await as(1).get('/users')).body.users.some((u) => u.id === 3));
   assert.ok((await listChannelsForUser(db, 1)).some((c) => c.id === dm.id));
   await db.query(`UPDATE users SET is_approved = FALSE WHERE id = 2`);
-  assert.ok((await as(1).get('/admin/users?deactivated=1')).body.users.some((u) => u.id === 2 && u.isApproved === false));
+  assert.ok(
+    (await as(1).get('/admin/users?deactivated=1')).body.users.some((u) => u.id === 2 && u.isApproved === false),
+  );
   await as(1).post('/admin/users/2/reactivate');
   assert.equal((await db.query(`SELECT is_approved FROM users WHERE id = 2`)).rows[0].is_approved, true);
 });

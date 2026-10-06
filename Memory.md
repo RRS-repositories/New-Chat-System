@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 6 Oct 2026, 17:00 — "Chat access" tells the truth
+The owner saw Yash (switched off) with chat access On: the column showed only the CRM permission (IT always has it). Now it means "can actually use the chat": an approved, active account and, only when `CHAT_REQUIRE_BETA` is on, the permission. On chat2 the gate is off, so everyone who can sign in shows On and every switched-off person shows Off; the footer says which rule applies (the list carries `gate`). Deployed with no call live.
+
 ### 6 Oct 2026, 16:45 — simpler tab count
 The owner found "• Chat" odd. The tab now says "(n) Chat" only: every channel with unread messages counts as one, however many it holds, and every unread direct message counts as one; the icon carries the same number. Web-only change, deployed without a restart.
 

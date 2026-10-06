@@ -63,13 +63,14 @@ export async function listActiveUsers(db, { exceptUserId }) {
 
 /**
  * The admin screen's people: everyone who can sign in (or, with `deactivated`, everyone who cannot: switched
- * off or never approved), with whether chat is on for them, when they last used the chat (null: never
- * signed in), whether they have notifications on, and their block counts.
+ * off or never approved), with whether they can actually use the chat (an approved, active account, and the
+ * `chat.beta` permission when `requireBeta`), when they last used the chat (null: never signed in), whether
+ * they have notifications on, and their block counts.
  */
-export async function listAdminUsers(db, { deactivated = false } = {}) {
+export async function listAdminUsers(db, { deactivated = false, requireBeta = true } = {}) {
   const { rows } = await db.query(`
     SELECT u.id, u.full_name, u.email, u.role::text AS role, u.is_active, u.is_approved,
-           ${CHAT_ENABLED_SQL} AS chat_enabled,
+           (u.is_approved = TRUE AND u.is_active IS NOT FALSE AND ${requireBeta ? CHAT_ENABLED_SQL : 'TRUE'}) AS chat_enabled,
            (SELECT p.last_seen_at FROM chat.user_presence p WHERE p.user_id = u.id) AS last_seen_at,
            EXISTS (SELECT 1 FROM chat.push_subscriptions ps WHERE ps.user_id = u.id) AS push_on,
            (SELECT count(DISTINCT x.target_user_id) FROM chat.communication_restrictions x WHERE x.user_id = u.id) AS blocked_from,

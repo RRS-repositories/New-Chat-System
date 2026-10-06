@@ -46,7 +46,11 @@ function PersonRow({ person, onOpen, onToggle, deactivated }: RowProps) {
         ) : (
           <span
             className="pill"
-            title="Tick “Team chat (beta)” for this person in the CRM: Settings → user → Permissions"
+            title={
+              deactivated
+                ? 'Switched off: cannot sign in until switched on again'
+                : 'Tick “Team chat (beta)” for this person in the CRM: Settings → user → Permissions'
+            }
           >
             Off
           </span>
@@ -101,7 +105,7 @@ function PersonRow({ person, onOpen, onToggle, deactivated }: RowProps) {
 export function AdminPeoplePage({ deactivated = false }: { deactivated?: boolean }) {
   const { user, actions } = useChat();
   const navigate = useNavigate();
-  const { users, error, reload } = useAdminUsers(isManagementOrIT(user), deactivated);
+  const { users, gate, error, reload } = useAdminUsers(isManagementOrIT(user), deactivated);
   const [actError, setActError] = useState<string | null>(null);
   // Deactivating signs the person out everywhere at once and bars them from the chat and the CRM until switched on again.
   async function toggle(person: AdminUser) {
@@ -180,10 +184,11 @@ export function AdminPeoplePage({ deactivated = false }: { deactivated?: boolean
           </table>
         </div>
         <p className="muted admin-foot">
-          Chat access is switched on per person in the CRM (Settings → user → Permissions → “Team chat (beta)”);
-          Management and IT always have it. Click a person to choose who they can message, call and share private
-          channels with. Someone who has never signed in to the chat is not offered when people pick who to message,
-          call or add.
+          {gate
+            ? 'Chat access is switched on per person in the CRM (Settings → user → Permissions → “Team chat (beta)”); Management and IT always have it.'
+            : 'Chat access: everyone with an approved, active CRM account can use the chat; a switched-off person cannot.'}{' '}
+          Click a person to choose who they can message, call and share private channels with. Someone who has never
+          signed in to the chat is not offered when people pick who to message, call or add.
         </p>
       </div>
     </AdminFrame>

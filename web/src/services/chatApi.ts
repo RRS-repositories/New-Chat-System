@@ -165,8 +165,13 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
     setUserPassword: async (userId: number, password: string, confirmPassword: string) =>
       (await api.put<{ message: string }>(`/api/chat/admin/users/${userId}/password`, { password, confirmPassword }))
         .message,
-    adminUsers: async (deactivated = false) =>
-      (await api.get<{ users: AdminUser[] }>(`/api/chat/admin/users${deactivated ? '?deactivated=1' : ''}`)).users,
+    /** The admin people list; `gate` says whether the chat.beta permission is being enforced. */
+    adminUsers: async (deactivated = false) => {
+      const r = await api.get<{ users: AdminUser[]; gate?: boolean }>(
+        `/api/chat/admin/users${deactivated ? '?deactivated=1' : ''}`,
+      );
+      return { users: r.users, gate: r.gate !== false };
+    },
     /** Management: switch a person off (signed out everywhere, no sign-in until switched on) or on again. */
     deactivateUser: (userId: number) => api.post(`/api/chat/admin/users/${userId}/deactivate`),
     reactivateUser: (userId: number) => api.post(`/api/chat/admin/users/${userId}/reactivate`),

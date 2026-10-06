@@ -66,7 +66,17 @@ export function createApp({
     // sending messages and uploading files have their own tighter limits further down.
     perUserLimiter({ windowMs: 60_000, max: GENERAL_REQUESTS_PER_MINUTE }),
   );
-  app.use('/api/chat/admin', createAdminRoutes({ db, emit, presence, crmInternalUrl: config.crmInternalUrl, fetchImpl }));
+  app.use(
+    '/api/chat/admin',
+    createAdminRoutes({
+      db,
+      emit,
+      presence,
+      crmInternalUrl: config.crmInternalUrl,
+      fetchImpl,
+      requireBeta: config.requireBeta,
+    }),
+  );
   app.use('/api/chat/search', createSearchRoutes({ db }));
   app.use('/api/chat/push', createPushRoutes({ db, config }));
   app.use('/api/chat/channels', createBrowseRoutes({ db, emit })); // /browse and /:id/join — before the channels router so /browse is not read as an id

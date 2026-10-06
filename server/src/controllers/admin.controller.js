@@ -5,7 +5,14 @@ import { setAccess } from '../services/access.service.js';
 import { forwardSetPassword } from '../services/crmPassword.service.js';
 import { UUID } from '../utils/ids.js';
 
-export function createAdminController({ db, emit = { toUser() {} }, presence = null, crmInternalUrl = '', fetchImpl = fetch }) {
+export function createAdminController({
+  db,
+  emit = { toUser() {} },
+  presence = null,
+  crmInternalUrl = '',
+  fetchImpl = fetch,
+  requireBeta = true,
+}) {
   return {
     listRestrictions: wrap(async (req, res) => {
       const userId = req.query.userId ? req.query.userId : null;
@@ -38,8 +45,13 @@ export function createAdminController({ db, emit = { toUser() {} }, presence = n
 
     /** Everyone, whether chat is on for them, who is online, and their block counts. */
     listUsers: wrap(async (req, res) => {
-      const users = await listAdminUsers(db, { deactivated: req.query.deactivated === '1' });
-      res.json({ success: true, users: users.map((u) => ({ ...u, online: !!presence?.isConnected?.(u.id) })) });
+      const users = await listAdminUsers(db, { deactivated: req.query.deactivated === '1', requireBeta });
+      // `gate`: whether the chat.beta permission is being enforced, so the screen can say what "On" means.
+      res.json({
+        success: true,
+        gate: requireBeta,
+        users: users.map((u) => ({ ...u, online: !!presence?.isConnected?.(u.id) })),
+      });
     }),
 
     /** Management switch a person off: signed out everywhere now, and no sign-in (chat or CRM) until switched on again. */
