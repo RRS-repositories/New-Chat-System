@@ -124,6 +124,8 @@ export type AdminUser = {
   online: boolean;
   /** When they last used the chat; null when they have never signed in. */
   lastSeenAt: string | null;
+  /** Has notifications on (a push subscription) on at least one device. */
+  pushOn?: boolean;
   blockedFrom: number;
   blockedBy: number;
 };

@@ -67,6 +67,7 @@ export async function listAdminUsers(db) {
     SELECT u.id, u.full_name, u.email, u.role::text AS role,
            ${CHAT_ENABLED_SQL} AS chat_enabled,
            (SELECT p.last_seen_at FROM chat.user_presence p WHERE p.user_id = u.id) AS last_seen_at,
+           EXISTS (SELECT 1 FROM chat.push_subscriptions ps WHERE ps.user_id = u.id) AS push_on,
            (SELECT count(DISTINCT x.target_user_id) FROM chat.communication_restrictions x WHERE x.user_id = u.id) AS blocked_from,
            (SELECT count(DISTINCT x.user_id) FROM chat.communication_restrictions x WHERE x.target_user_id = u.id) AS blocked_by
       FROM public.users u
@@ -79,6 +80,7 @@ export async function listAdminUsers(db) {
     role: r.role,
     chatEnabled: !!r.chat_enabled,
     lastSeenAt: r.last_seen_at ? new Date(r.last_seen_at).toISOString() : null,
+    pushOn: !!r.push_on,
     blockedFrom: Number(r.blocked_from || 0),
     blockedBy: Number(r.blocked_by || 0),
   }));

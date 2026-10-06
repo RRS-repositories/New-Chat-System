@@ -56,13 +56,11 @@ async function person(browser, email, label, permissions = []) {
       throw new Error('Ann already has permission and still sees the line');
   });
 
-  await step('"Not now" hides the line and it stays hidden after a reload', async () => {
-    await meg.page.click(tid('notify-nudge-later'));
-    await meg.page.waitForSelector(tid('notify-nudge'), { state: 'detached' });
+  await step('the line cannot be dismissed: no Not now button, and it is still there after a reload', async () => {
+    if (await meg.page.locator(tid('notify-nudge-later')).count()) throw new Error('a Not now button exists');
     await meg.page.reload();
     await meg.page.waitForSelector('.panel > .input-bar textarea');
-    await meg.page.waitForTimeout(500);
-    if (await meg.page.locator(tid('notify-nudge')).count()) throw new Error('the line came back after Not now');
+    await meg.page.waitForSelector(tid('notify-nudge'), { timeout: 8000 });
   });
 
   await step('clicking a name on a message opens the person’s card with their presence', async () => {

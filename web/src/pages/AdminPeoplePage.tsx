@@ -58,6 +58,17 @@ function PersonRow({ person, onOpen }: { person: AdminUser; onOpen: () => void }
           </span>
         )}
       </td>
+      <td>
+        {person.pushOn ? (
+          <span className="pill on">On</span>
+        ) : person.lastSeenAt ? (
+          <span className="pill off" title="Has not pressed Turn on in the chat yet">
+            Off
+          </span>
+        ) : (
+          DASH
+        )}
+      </td>
       <td>{person.blockedFrom ? peopleCount(person.blockedFrom) : DASH}</td>
       <td>{person.blockedBy ? peopleCount(person.blockedBy) : DASH}</td>
     </tr>
@@ -91,6 +102,7 @@ export function AdminPeoplePage() {
                 <th>Role</th>
                 <th>Chat access</th>
                 <th>Signed in</th>
+                <th>Notifications</th>
                 <th>Blocked from</th>
                 <th>Blocked by</th>
               </tr>
@@ -98,14 +110,14 @@ export function AdminPeoplePage() {
             <tbody>
               {users === null && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={7} className="muted">
                     Loading…
                   </td>
                 </tr>
               )}
               {users !== null && shown.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted">
+                  <td colSpan={7} className="muted">
                     No one matches
                   </td>
                 </tr>
