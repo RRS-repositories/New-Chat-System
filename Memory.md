@@ -166,6 +166,11 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 6 Oct 2026, afternoon — CRM accounts for the Mattermost people; chat open to all CRM staff
+The owner could not sign in as bradforbes24@gmail.com: that address had a Mattermost account only, and the chat signs in through the CRM. On his word ("yes go"; chat only, no CRM for these people): **41 CRM accounts** were created for the Mattermost people who had none (role Admin, approved, active, `chat.beta` as their only permission, `mattermost_user_id` set), each carrying their Mattermost PBKDF2 password hash; the owner's own account got the password he chose. The Nova automation was left out. `CHAT_REQUIRE_BETA=false` was set on chat2 (every approved, active CRM person may use the chat). The copy was run again for the new people.
+- **Still needed in the CRM (not done — the developer's tooling refused the change as a sign-in weakening; the owner must allow it or do it):** accept Mattermost's `$pbkdf2$` hashes at sign-in and replace them with bcrypt on first success (until then the 40 carried-over passwords do not work; a reset link from the CRM is the workaround), and refuse accounts whose only permission is `chat.beta` at the CRM's own sign-in page unless the request carries `X-Login-For: chat` (the chat's forwarder now sends it). Both belong on CRM pull request #734.
+- A locked sign-in is cleared in the CRM: Admin Panel (/management) → Locked Sign-ins → Unlock.
+
 ### 6 Oct 2026, 11:31 — faster start deployed
 The owner found a refresh slow to show the conversations. Measured: the server answers the list in under 25 ms; the browser was fetching it only once the live connection was up (slow through the proxy). Now the list and the open conversation load at once over HTTP, the admin screens / whiteboard / breakout groups / add-to-call load when first used, and built files are cached for good. Create a channel got a people search. Deployed at 11:31 with no call live.
 
