@@ -7,6 +7,7 @@ import { formatTime } from '../../utils/format.ts';
 import { presenceOf, type PresenceState } from '../../utils/presence.ts';
 import { StatusBadge } from '../common/PresenceDot.tsx';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { PersonButton } from '../common/ProfileCard.tsx';
 import { AddMembersDialog } from '../dialogs/AddMembersDialog.tsx';
 import { ChannelOptions } from './ChannelOptions.tsx';
 import { useCanModerate } from './MessagePanel.tsx';
@@ -132,7 +133,9 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
               const presence = presenceOf(state.presence, m.id);
               return (
                 <div key={m.id} className="mrow pick-row">
-                  <UserAvatar userId={m.id} name={m.fullName} size="md" presence={presence} />
+                  <PersonButton userId={m.id} name={m.fullName}>
+                    <UserAvatar userId={m.id} name={m.fullName} size="md" presence={presence} />
+                  </PersonButton>
                   <span className="pi">
                     <b>
                       {m.fullName}

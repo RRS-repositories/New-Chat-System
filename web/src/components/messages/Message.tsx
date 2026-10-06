@@ -4,6 +4,7 @@ import { MessageSquare, Phone, Pin } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
 import { formatClock, formatTime } from '../../utils/format.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { PersonButton } from '../common/ProfileCard.tsx';
 import { MessageActions } from './MessageActions.tsx';
 import { ReplyPreview } from './ReplyPreview.tsx';
 
@@ -111,7 +112,9 @@ export const Message = memo(function Message({
       )}
       <div className="gav">
         {first ? (
-          <UserAvatar userId={m.userId} name={m.userName} />
+          <PersonButton userId={m.userId} name={m.userName}>
+            <UserAvatar userId={m.userId} name={m.userName} />
+          </PersonButton>
         ) : (
           <span className="ts-h">{formatClock(m.createdAt)}</span>
         )}
@@ -125,7 +128,9 @@ export const Message = memo(function Message({
         {m.replyTo && <ReplyPreview replyTo={m.replyTo} onJump={onJump} />}
         {first && (
           <div className="hd msg-meta">
-            <b className="msg-author">{m.userName}</b>
+            <PersonButton userId={m.userId} name={m.userName} className="msg-author-btn">
+              <b className="msg-author">{m.userName}</b>
+            </PersonButton>
             <time dateTime={m.createdAt} title={new Date(m.createdAt).toLocaleString()}>
               {formatClock(m.createdAt)}
             </time>
