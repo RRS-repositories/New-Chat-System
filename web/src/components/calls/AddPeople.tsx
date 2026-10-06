@@ -5,8 +5,8 @@ import { presenceOf } from '../../utils/presence.ts';
 import { Floating } from '../common/Floating.tsx';
 import { UserAvatar } from '../common/UserAvatar.tsx';
 
-/** A call holds this many people, counting those being rung. */
-export const CALL_LIMIT = 8;
+/** A call holds this many people, counting those being rung (kept in step with callMaxParticipants on the server). */
+export const CALL_LIMIT = 50;
 const SEARCH_FROM = 8;
 
 type Props = {

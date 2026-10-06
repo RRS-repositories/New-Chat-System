@@ -28,12 +28,15 @@ const canShare = () =>
   !!navigator.mediaDevices &&
   typeof navigator.mediaDevices.getDisplayMedia === 'function';
 
-/** How many columns the grid of people uses. */
+/** How many columns the grid of people uses: up to seven on a wide screen for the largest calls. */
 export function gridColumns(people: number, narrow: boolean): number {
   if (people <= 1) return 1;
-  if (narrow) return 2;
+  if (narrow) return people <= 6 ? 2 : 3;
   if (people <= 4) return 2;
-  return people <= 6 ? 3 : 4;
+  if (people <= 6) return 3;
+  if (people <= 12) return 4;
+  if (people <= 20) return 5;
+  return people <= 30 ? 6 : 7;
 }
 
 const first = (name: string) => name.split(' ')[0] || name;
@@ -402,7 +405,10 @@ export function CallScreen() {
                   )}
                 </div>
               )}
-              <div className="c-grid" style={{ '--cols': gridColumns(people.length, narrow) } as CSSProperties}>
+              <div
+                className={`c-grid${people.length > 12 ? ' big' : ''}`}
+                style={{ '--cols': gridColumns(people.length, narrow) } as CSSProperties}
+              >
                 {tiles}
               </div>
             </div>

@@ -43,7 +43,7 @@ These come from the owner (Brad) and do not change without his say.
 | **Unread tracking** | Unread counts, a red badge for mentions, the count in the browser tab title. A channel is not marked read while you are not looking at it. |
 | **Presence** | Green dot online, amber away, and a status message each person can set. |
 | **Notifications** | Sound and desktop notifications. Each person chooses all messages, mentions only, or nothing. Any channel can be muted. Push notifications reach people with no chat tab open. |
-| **Voice calls** | One-to-one and group, up to 8 people. Ring, accept, decline, join late, mute. A summary line appears in the channel when the call ends. |
+| **Voice calls** | One-to-one and group, up to 50 people (raised from 8 on 6 Oct 2026). Ring, accept, decline, join late, mute. A summary line appears in the channel when the call ends. |
 | **Screen sharing** | One person shares at a time. Viewers can go full screen or open the screen in its own window. The person sharing sees their own screen. |
 | **Call host controls** | The person who started a call can mute others and remove them, and cannot unmute anyone. A removed person asks to come back and the host lets them in or refuses. Someone who was only disconnected joins back freely. |
 | **Admin panel** (Management) | List of everyone, their role, whether chat is on, who is online. Per person: tick boxes for Messages, Calls and Private channels against every other person. Block or allow a whole group in one click. |

@@ -3,7 +3,7 @@ import { CallError } from '../services/callManager.ts';
 
 const SERVER_MESSAGES: Record<string, string> = {
   call_in_progress: 'A call is already in progress in this channel',
-  call_full: 'This call is full. A call holds up to 8 people.',
+  call_full: 'This call is full. A call holds up to 50 people.',
   restricted: 'You cannot call this person',
   call_ended: 'This call has ended',
   not_found: 'This call has ended',

@@ -372,7 +372,7 @@ System, join, leave and call-summary messages never notify.
 
 ### 9.8 Voice calls
 
-**Shape.** A full mesh: each browser holds one WebRTC connection to every other participant. Up to **8 people**. Voice only (no camera, by decision), with echo cancellation, noise suppression and automatic gain.
+**Shape.** A full mesh: each browser holds one WebRTC connection to every other participant. Up to **50 people** (raised from 8 on 6 Oct 2026; a full mesh strains well before that, so expect trouble past 15–20 on ordinary machines and connections). Voice only (no camera, by decision), with echo cancellation, noise suppression and automatic gain.
 
 **Starting and joining**
 
@@ -562,7 +562,7 @@ Read in one place, `server/src/config/index.js`, from `/opt/chat/.env` on the se
 | `CHAT_TURN_URLS`, `CHAT_TURN_SECRET` | Our coturn relay and its shared secret. | relay off if empty |
 | `CHAT_DIGEST_ENABLED`, `SMTP_*`, `MAIL_FROM`, `MAIL_FROM_NAME` | Daily mention digest. | off |
 
-Fixed in code: ring time 30 s, 8 people per call, call reconnect grace 10 s, wait before asking the host again 60 s, presence grace 5 s, digest hour 08:00 UTC, TURN credential 12 h.
+Fixed in code: ring time 30 s, 50 people per call, call reconnect grace 10 s, wait before asking the host again 60 s, presence grace 5 s, digest hour 08:00 UTC, TURN credential 12 h.
 
 ---
 

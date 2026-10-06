@@ -1684,3 +1684,10 @@
 .bo-banner.presenting svg {
   color: #ff8fb0;
 }
+
+/* A large call (more than twelve): tiles keep a readable height and the grid scrolls */
+.c-grid.big {
+  grid-auto-rows: minmax(118px, 1fr);
+  overflow-y: auto;
+  padding-right: 4px;
+}

@@ -39,7 +39,7 @@ export function loadConfig(env = process.env) {
     turnSecret: env.CHAT_TURN_SECRET || '',
     turnTtlSecs: 43200,
     callRingMs: 30_000,
-    callMaxParticipants: 8,
+    callMaxParticipants: 50, // raised from 8 on the owner's word, 6 Oct 2026 (mesh audio: expect strain well before this)
     callDisconnectGraceMs: 10_000,
     callAskAgainMs: 60_000, // after the host refuses a removed person, how long before they may ask again
     presenceOfflineGraceMs: 5000,

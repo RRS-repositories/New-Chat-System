@@ -5,18 +5,25 @@ import { formatDuration } from '../src/hooks/useCallClock.ts';
 import { callReducer, initialCallState } from '../src/context/callState.ts';
 
 // Kept in step with gridColumns in components/calls/CallScreen.tsx (a .tsx file cannot be loaded here).
-const gridColumns = (people: number, narrow: boolean) =>
-  people <= 1 ? 1 : narrow ? 2 : people <= 4 ? 2 : people <= 6 ? 3 : 4;
+const gridColumns = (people: number, narrow: boolean) => {
+  if (people <= 1) return 1;
+  if (narrow) return people <= 6 ? 2 : 3;
+  if (people <= 4) return 2;
+  if (people <= 6) return 3;
+  if (people <= 12) return 4;
+  if (people <= 20) return 5;
+  return people <= 30 ? 6 : 7;
+};
 
-test('the grid: one alone, two columns to four people, three to six, four to eight', () => {
+test('the grid: one alone, two columns to four, three to six, four to twelve, up to seven for the largest calls', () => {
   assert.deepEqual(
-    [1, 2, 3, 4, 5, 6, 7, 8].map((n) => gridColumns(n, false)),
-    [1, 2, 2, 2, 3, 3, 4, 4],
+    [1, 2, 4, 5, 6, 7, 12, 13, 20, 21, 30, 31, 50].map((n) => gridColumns(n, false)),
+    [1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7],
   );
   assert.deepEqual(
-    [1, 2, 5, 8].map((n) => gridColumns(n, true)),
-    [1, 2, 2, 2],
-    'a phone never goes past two columns',
+    [1, 2, 6, 7, 50].map((n) => gridColumns(n, true)),
+    [1, 2, 2, 3, 3],
+    'a phone never goes past three columns',
   );
 });
 
