@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 6 Oct 2026, 15:45 — tab title and icon badge
+Like Mattermost's tab: "(n) Chat" counts mentions and unread direct messages, "• Chat" marks unread channels, and the tab icon carries the same badge (drawn onto the chat icon). Deployed.
+
 ### 6 Oct 2026, 15:30 — router forwards the wider relay range: proven from outside
 The router team forwarded UDP 49160–51200 to 192.168.1.58. Checked from a PC outside the office with a real TURN allocation and a packet sent through the relay: relay ports 50829, 50985 and 50148 (all above the old 49200) answered. Remote group calls now have about 2,000 relay ports instead of 41. Phase 6 (calls from outside the office) is therefore complete.
 
