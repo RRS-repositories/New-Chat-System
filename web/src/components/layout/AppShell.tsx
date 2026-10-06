@@ -41,8 +41,8 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
   const [dialog, setDialog] = useState<Dialog>(null);
   const closeDialog = () => setDialog(null);
 
-  // The tab says what is waiting, the way Mattermost did: "(3) Chat" for mentions and direct messages,
-  // "• Chat" for unread channels, and the icon carries the same badge.
+  // The tab says what is waiting: "(3) Chat", one per unread channel and one per unread direct
+  // message; the icon carries the same number.
   useEffect(() => {
     const badge = tabBadge(state.channels);
     document.title = tabTitle(badge, APP_TITLE);

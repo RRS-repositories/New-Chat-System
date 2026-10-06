@@ -1,28 +1,22 @@
 import type { Channel } from '../types/index.ts';
 
-export type TabBadge = { count: number; dot: boolean };
+export type TabBadge = { count: number };
 
 /**
- * What the browser tab should say, the way people knew it from Mattermost: a number for the things
- * that call for you (mentions, and unread direct messages), a dot when other channels have unread
- * messages, nothing when all is read. The open channel is already counted as read by the time this runs.
+ * What the browser tab should say: "(n) Chat", where every channel with unread messages counts as
+ * one (however many messages it holds) and every unread direct message counts as one; the plain
+ * title when all is read. The open channel is already counted as read by the time this runs.
  */
 export function tabBadge(channels: Channel[]): TabBadge {
   let count = 0;
-  let dot = false;
   for (const c of channels) {
-    const mentions = c.mentionCount || 0;
-    const unread = c.unreadCount || 0;
-    if (c.type === 'dm') count += Math.max(mentions, unread);
-    else {
-      count += mentions;
-      if (unread > mentions) dot = true;
-    }
+    const unread = Math.max(c.unreadCount || 0, c.mentionCount || 0);
+    if (!unread) continue;
+    count += c.type === 'dm' ? unread : 1;
   }
-  return { count, dot };
+  return { count };
 }
 
 export function tabTitle(badge: TabBadge, appTitle: string): string {
-  if (badge.count) return `(${badge.count}) ${appTitle}`;
-  return badge.dot ? `• ${appTitle}` : appTitle;
+  return badge.count ? `(${badge.count}) ${appTitle}` : appTitle;
 }
