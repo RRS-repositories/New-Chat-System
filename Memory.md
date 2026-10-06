@@ -10,7 +10,7 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | Item | State |
 |---|---|
 | **Current phase** | **Phase 9 — the new design and call features from the owner's `Updates/` file**: all ten sections built, then **deployed to chat2 on 5 Oct 2026, 16:56** on the owner's word ("push on prod"). Waiting for the owner to try it on chat2 and on real phones. Before it: Phase 8 (the CRM's automatic messages) needs his decisions; Phase 4 has one step left; Phase 6 waits for the router rules. |
-| **Waiting to be deployed** | Nothing. chat2 runs commit `9b347ac` (deployed 6 Oct 2026, ~14:30: sidebar menu + Favourites, calls up to 50). All seven database files are applied. The Set password button works once CRM pull request #734 is merged and deployed. |
+| **Waiting to be deployed** | Nothing. chat2 runs commit `fb53320` (deployed 6 Oct 2026, ~15:00: person card, notification nudge, sidebar menu + Favourites, calls up to 50). All seven database files are applied. The Set password button works once CRM pull request #734 is merged and deployed. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -165,6 +165,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 6 Oct 2026, ~15:00 — person card; notifications nudge
+The owner got no notification in another tab/app: nobody on chat2 had granted the browser permission or subscribed to push (0 subscriptions), and the default level is Mentions and direct messages. Now a line above the messages asks to turn notifications on (push when the server has a key; Not now = a week). Clicking a name or photo opens a person card (photo, role, presence, status, Message). Deployed.
 
 ### 6 Oct 2026, afternoon — sidebar menu and Favourites; calls up to 50
 Asked for after Mattermost's channel menu: every conversation row has a ⋯ menu (also on right click) with Open in new window, Mark as unread, Add to favourites, Mute, Copy link, Add people, Leave channel; favourites sit in their own section at the top (database file `chat_007_favourites.sql`). The call limit went from 8 to 50 (mesh audio will strain well before that). Both deployed.
