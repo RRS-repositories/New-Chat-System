@@ -16,7 +16,8 @@ import {
   type AccessKind,
   type PairAccess,
 } from '../utils/access.ts';
-import { isManagement } from '../utils/restrictions.ts';
+import { isManagement, isManagementOrIT } from '../utils/restrictions.ts';
+import { SetPassword } from '../components/admin/SetPassword.tsx';
 
 const ALLOWED: PairAccess = {
   out: { dm: false, call: false, channel: false },
@@ -67,8 +68,9 @@ export function AdminUserAccessPage() {
   const userId = /^\d+$/.test(userIdParam) ? Number(userIdParam) : null;
   const { user, actions } = useChat();
   const navigate = useNavigate();
+  // Management see everything here; IT see the person and may set their password.
   const allowed = isManagement(user);
-  const { users, error: loadError, reload } = useAdminUsers(allowed);
+  const { users, error: loadError, reload } = useAdminUsers(isManagementOrIT(user));
   const [restrictions, setRestrictions] = useState<Restriction[] | null>(null);
   const [query, setQuery] = useState('');
   const [role, setRole] = useState('');
@@ -143,89 +145,98 @@ export function AdminUserAccessPage() {
         {subject && (
           <p className="admin-summary">
             <strong>{subject.fullName}</strong> · {subject.role} · chat access {subject.chatEnabled ? 'on' : 'off'}
-            {subject.online ? ' · online now' : ''}
+            {subject.online ? ' · online now' : subject.lastSeenAt ? '' : ' · never signed in to the chat'}
           </p>
         )}
-        <p className="muted admin-foot">
-          Ticked means {name} is allowed. Untick to block. Public channels are open to everyone in them; these settings
-          cover direct messages, calls and private channels. People who join later are allowed until you untick them.
-        </p>
-        <div className="admin-tools">
-          <PeopleFilters query={query} onQuery={setQuery} role={role} onRole={setRole} roles={roles} />
-          <label className="check-row">
-            <input
-              type="checkbox"
-              data-testid="access-both-ways"
-              checked={bothWays}
-              onChange={(e) => setBothWays(e.target.checked)}
-            />
-            Apply both ways
-          </label>
-          <button
-            className="btn-ghost btn-small"
-            data-testid="access-allow-all"
-            disabled={busy || !shown.length}
-            onClick={() => changeAllShown(true)}
-          >
-            Allow all shown
-          </button>
-          <button
-            className="btn-ghost btn-small danger"
-            data-testid="access-block-all"
-            disabled={busy || !shown.length}
-            onClick={() => changeAllShown(false)}
-          >
-            Block all shown
-          </button>
-        </div>
+        {subject && user.id !== subject.id && <SetPassword userId={subject.id} name={subject.fullName} />}
+        {!allowed && <p className="muted admin-foot">Who {name} may contact is set by Management.</p>}
+        {allowed && (
+          <>
+            <p className="muted admin-foot">
+              Ticked means {name} is allowed. Untick to block. Public channels are open to everyone in them; these
+              settings cover direct messages, calls and private channels. People who join later are allowed until you
+              untick them.
+            </p>
+            <div className="admin-tools">
+              <PeopleFilters query={query} onQuery={setQuery} role={role} onRole={setRole} roles={roles} />
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  data-testid="access-both-ways"
+                  checked={bothWays}
+                  onChange={(e) => setBothWays(e.target.checked)}
+                />
+                Apply both ways
+              </label>
+              <button
+                className="btn-ghost btn-small"
+                data-testid="access-allow-all"
+                disabled={busy || !shown.length}
+                onClick={() => changeAllShown(true)}
+              >
+                Allow all shown
+              </button>
+              <button
+                className="btn-ghost btn-small danger"
+                data-testid="access-block-all"
+                disabled={busy || !shown.length}
+                onClick={() => changeAllShown(false)}
+              >
+                Block all shown
+              </button>
+            </div>
+          </>
+        )}
         {(error || loadError) && (
           <p className="error" role="alert">
             {error || loadError}
           </p>
         )}
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Can contact</th>
-                <th>Role</th>
-                {ACCESS_KINDS.map((kind) => (
-                  <th key={kind} className="center">
-                    {KIND_LABEL[kind]}
-                  </th>
-                ))}
-                <th>Other direction</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
+        {allowed && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
                 <tr>
-                  <td colSpan={6} className="muted">
-                    Loading…
-                  </td>
+                  <th>Can contact</th>
+                  <th>Role</th>
+                  {ACCESS_KINDS.map((kind) => (
+                    <th key={kind} className="center">
+                      {KIND_LABEL[kind]}
+                    </th>
+                  ))}
+                  <th>Other direction</th>
                 </tr>
-              )}
-              {!loading && shown.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="muted">
-                    No one matches
-                  </td>
-                </tr>
-              )}
-              {!loading &&
-                shown.map((other) => (
-                  <AccessRow
-                    key={other.id}
-                    subjectName={name}
-                    other={other}
-                    access={access.get(other.id) || ALLOWED}
-                    disabled={busy}
-                    onChange={(kind, allow) => void change([other.id], kind, allow)}
-                  />
-                ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {loading && (
+                  <tr>
+                    <td colSpan={6} className="muted">
+                      Loading…
+                    </td>
+                  </tr>
+                )}
+                {!loading && shown.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="muted">
+                      No one matches
+                    </td>
+                  </tr>
+                )}
+                {!loading &&
+                  shown.map((other) => (
+                    <AccessRow
+                      key={other.id}
+                      subjectName={name}
+                      other={other}
+                      access={access.get(other.id) || ALLOWED}
+                      disabled={busy}
+                      onChange={(kind, allow) => void change([other.id], kind, allow)}
+                    />
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </AdminFrame>
   );

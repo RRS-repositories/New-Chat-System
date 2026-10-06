@@ -2,9 +2,10 @@ import { httpError, wrap } from '../middleware/errors.js';
 import { listRestrictions, addRestriction, removeRestriction } from '../models/restrictions.model.js';
 import { listAdminUsers } from '../models/users.model.js';
 import { setAccess } from '../services/access.service.js';
+import { forwardSetPassword } from '../services/crmPassword.service.js';
 import { UUID } from '../utils/ids.js';
 
-export function createAdminController({ db, presence = null }) {
+export function createAdminController({ db, presence = null, crmInternalUrl = '', fetchImpl = fetch }) {
   return {
     listRestrictions: wrap(async (req, res) => {
       const userId = req.query.userId ? req.query.userId : null;
@@ -39,6 +40,23 @@ export function createAdminController({ db, presence = null }) {
     listUsers: wrap(async (_req, res) => {
       const users = await listAdminUsers(db);
       res.json({ success: true, users: users.map((u) => ({ ...u, online: !!presence?.isConnected?.(u.id) })) });
+    }),
+
+    /** Management or IT set a person's password: the CRM does it (its rules, its audit), with the caller's own session. */
+    setPassword: wrap(async (req, res) => {
+      const userId = Number(req.params.userId);
+      if (!Number.isInteger(userId) || userId <= 0) throw httpError(404, 'not_found', 'User not found');
+      if (userId === req.user.id) throw httpError(400, 'own_password', 'Change your own password from the CRM');
+      const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+      const clientIp = String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip || '')
+        .split(',')[0]
+        .trim();
+      const { password, confirmPassword } = req.body || {};
+      const { status, body } = await forwardSetPassword(
+        { crmInternalUrl, fetchImpl },
+        { userId, token, password, confirmPassword, clientIp },
+      );
+      res.status(status).json(body);
     }),
 
     /** Allow or block one person contacting many others (optionally both ways) in one go. */

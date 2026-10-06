@@ -16,6 +16,12 @@ export function usePeopleActions({ chatApi, user, dispatch, stateRef }: ActionDe
     [chatApi, user.id, user.fullName, user.role],
   );
 
+  const setUserPassword = useCallback(
+    (userId: number, password: string, confirmPassword: string) =>
+      chatApi.setUserPassword(userId, password, confirmPassword),
+    [chatApi],
+  );
+
   /** Shown at once; the changed settings are put back and the error rethrown if the server refuses. */
   const updatePrefs = useCallback(
     async (patch: PreferencePatch) => {
@@ -55,5 +61,5 @@ export function usePeopleActions({ chatApi, user, dispatch, stateRef }: ActionDe
     avatarStore.set(user.id, null);
   }, [chatApi, user.id]);
 
-  return { listUsers, allUsers, updatePrefs, setStatus, setProfilePhoto, removeProfilePhoto };
+  return { listUsers, allUsers, setUserPassword, updatePrefs, setStatus, setProfilePhoto, removeProfilePhoto };
 }

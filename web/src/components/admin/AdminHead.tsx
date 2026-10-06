@@ -10,6 +10,8 @@ type Props = {
   onOpenSidebar: () => void;
   /** Shown on a person's page: back to the people list. */
   onBack?: () => void;
+  /** The restrictions tab is Management only. */
+  canSeeRestrictions?: boolean;
 };
 
 const TABS: { id: AdminTab; label: string }[] = [
@@ -18,7 +20,7 @@ const TABS: { id: AdminTab; label: string }[] = [
 ];
 
 /** The header shared by every admin page: title, the two tabs, and a way back to chat. */
-export function AdminHead({ title, tab, onTab, onClose, onOpenSidebar, onBack }: Props) {
+export function AdminHead({ title, tab, onTab, onClose, onOpenSidebar, onBack, canSeeRestrictions = true }: Props) {
   return (
     <header className="m-head chan-head">
       <button className="hbtn only-mobile" aria-label="Channels" onClick={onOpenSidebar}>
@@ -35,7 +37,7 @@ export function AdminHead({ title, tab, onTab, onClose, onOpenSidebar, onBack }:
         </div>
       </div>
       <nav className="admin-tabs" aria-label="Admin sections">
-        {TABS.map(({ id, label }) => (
+        {TABS.filter(({ id }) => id !== 'restrictions' || canSeeRestrictions).map(({ id, label }) => (
           <button
             key={id}
             className={`admin-tab${tab === id ? ' active' : ''}`}

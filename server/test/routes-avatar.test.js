@@ -75,6 +75,10 @@ test('the address appears wherever people are listed', async () => {
   const online = await as(3).get('/users/online');
   assert.match(online.body.avatars['2'], /^\/api\/chat\/users\/2\/avatar\?v=\d+$/);
   assert.equal(Object.keys(online.body.avatars).length, 1);
+  // The pick-from list offers only people who have signed in to the chat (a presence row).
+  await db.query(
+    `INSERT INTO chat.user_presence (user_id, last_seen_at) VALUES (1, now()), (2, now()) ON CONFLICT DO NOTHING`,
+  );
   const people = (await as(3).get('/users')).body.users;
   assert.equal(people.find((u) => u.id === 2).avatarUrl, online.body.avatars['2']);
   assert.equal(people.find((u) => u.id === 1).avatarUrl, null);

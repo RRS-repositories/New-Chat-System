@@ -150,6 +150,10 @@ test('GET /users excludes the caller and inactive users (SQL shape)', async () =
   assert.deepEqual(r.body.users, [{ id: 8, fullName: 'Bob', role: 'Sales', avatarUrl: null }]);
   const q = db.calls.find((x) => /FROM public\.users u WHERE/.test(x.sql));
   assert.ok(/is_approved = TRUE/.test(q.sql) && /is_active IS NOT FALSE/.test(q.sql) && /u\.id <> \$1/.test(q.sql));
+  assert.ok(
+    /EXISTS \(SELECT 1 FROM chat\.user_presence p WHERE p\.user_id = u\.id\)/.test(q.sql),
+    'only people who have signed in',
+  );
 });
 
 test('POST /auth/login forwards to the CRM and returns its body and status', async () => {

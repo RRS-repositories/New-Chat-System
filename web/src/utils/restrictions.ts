@@ -102,3 +102,5 @@ export function withSelfSorted(users: UserOption[], self: UserOption): UserOptio
 }
 
 export const isManagement = (u: { role: string }) => u.role === 'Management';
+/** Management and IT open the admin screen's people list and may set passwords; the rest is Management only. */
+export const isManagementOrIT = (u: { role: string }) => u.role === 'Management' || u.role === 'IT';

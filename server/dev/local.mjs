@@ -53,8 +53,39 @@ const config = {
   uploadsDir: mkdtempSync(path.join(tmpdir(), 'chat-local-uploads-')),
 };
 
-// Stand-in for the CRM's POST /api/auth/login: any seeded, active person + the local password.
-async function fakeCrmLogin(_url, init) {
+// Stand-in for the CRM: POST /api/auth/login (any seeded, active person + the local password) and
+// PUT /api/users/:id/password (Management or IT set a password; it only checks the length here).
+async function fakeCrmLogin(url, init) {
+  const setting = /\/api\/users\/(\d+)\/password$/.exec(String(url));
+  if (setting && init?.method === 'PUT') {
+    const { password, confirmPassword } = JSON.parse(init.body || '{}');
+    const answer = (status, body) => ({
+      status,
+      async json() {
+        return body;
+      },
+    });
+    const auth = String(init.headers?.Authorization || '').replace(/^Bearer /, '');
+    let actor = null;
+    try {
+      actor = jwt.verify(auth, SECRET, { audience: config.sessionAud });
+    } catch {
+      return answer(401, { success: false, message: 'Not authenticated' });
+    }
+    if (!['Management', 'IT'].includes(actor.role))
+      return answer(403, { success: false, message: 'Requires one of: Management, IT' });
+    if (typeof password !== 'string' || password.length < 8)
+      return answer(400, { success: false, message: 'Password must be at least 8 characters' });
+    if (password !== confirmPassword) return answer(400, { success: false, message: 'The two passwords do not match' });
+    const {
+      rows: [target],
+    } = await db.query(`SELECT full_name FROM users WHERE id = $1`, [Number(setting[1])]);
+    if (!target) return answer(404, { success: false, message: 'User not found' });
+    return answer(200, {
+      success: true,
+      message: `Password set for ${target.full_name}. They are signed out everywhere and can sign in with it now.`,
+    });
+  }
   const { email, password } = JSON.parse(init.body || '{}');
   const {
     rows: [u],

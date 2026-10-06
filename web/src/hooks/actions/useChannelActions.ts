@@ -45,6 +45,14 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     [chatApi, dispatch],
   );
 
+  const addMembers = useCallback(
+    async (channelId: string, userIds: number[]) => {
+      await chatApi.addMembers(channelId, userIds);
+      await loadMembers(channelId);
+    },
+    [chatApi, loadMembers],
+  );
+
   /** Shown at once; put back and rethrown if the server refuses. */
   const setChannelNotify = useCallback(
     async (channelId: string, pref: ChannelNotifyPref) => {
@@ -91,6 +99,7 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     joinChannel,
     browseChannels,
     loadMembers,
+    addMembers,
     setChannelNotify,
     renameChannel,
     leaveChannel,

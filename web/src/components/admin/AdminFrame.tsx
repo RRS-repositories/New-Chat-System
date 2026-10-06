@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { paths } from '../../config/routes.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useSidebar } from '../../hooks/useSidebar.ts';
-import { isManagement } from '../../utils/restrictions.ts';
+import { isManagement, isManagementOrIT } from '../../utils/restrictions.ts';
 import { AppShell } from '../layout/AppShell.tsx';
 import { AdminHead, type AdminTab } from './AdminHead.tsx';
 
 type Props = { title: string; tab: AdminTab; onBack?: () => void; children: ReactNode };
 
-/** The frame of every admin page: the app shell, the admin header, and the Management-only guard. */
+/** The frame of every admin page: the app shell, the admin header, and the guard (Management; IT for the people pages). */
 export function AdminFrame({ title, tab, onBack, children }: Props) {
   const { user, setCurrentChannelId } = useChat();
   const navigate = useNavigate();
@@ -33,12 +33,13 @@ export function AdminFrame({ title, tab, onBack, children }: Props) {
             onOpenSidebar={sidebar.openSidebar}
             onClose={() => navigate(paths.home)}
             onTab={(next) => navigate(next === 'restrictions' ? paths.adminRestrictions : paths.admin)}
+            canSeeRestrictions={isManagement(user)}
           />
-          {isManagement(user) ? (
+          {(tab === 'restrictions' ? isManagement(user) : isManagementOrIT(user)) ? (
             children
           ) : (
             <div className="admin-body">
-              <p className="muted">Management only</p>
+              <p className="muted">{tab === 'restrictions' ? 'Management only' : 'Management or IT only'}</p>
             </div>
           )}
         </div>

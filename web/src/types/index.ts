@@ -120,6 +120,8 @@ export type AdminUser = {
   role: string;
   chatEnabled: boolean;
   online: boolean;
+  /** When they last used the chat; null when they have never signed in. */
+  lastSeenAt: string | null;
   blockedFrom: number;
   blockedBy: number;
 };

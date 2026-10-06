@@ -62,6 +62,8 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       (await api.patch<{ channel: Channel }>(`/api/chat/channels/${channelId}`, change)).channel,
     /** Hide the channel for everyone; its messages are kept. */
     archiveChannel: (channelId: string) => api.post(`/api/chat/channels/${channelId}/archive`),
+    addMembers: (channelId: string, userIds: number[]) =>
+      api.post<{ added: number }>(`/api/chat/channels/${id(channelId)}/members`, { userIds }),
     leaveChannel: (channelId: string, userId: number) => api.del(`/api/chat/channels/${channelId}/members/${userId}`),
     members: async (channelId: string) =>
       (await api.get<{ members: ChannelMember[] }>(`/api/chat/channels/${channelId}`)).members,
@@ -156,6 +158,10 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
         .status,
 
     // Admin (Management only; the server refuses everyone else)
+    /** Management or IT: set a person's password (the CRM does it). Resolves to the CRM's message. */
+    setUserPassword: async (userId: number, password: string, confirmPassword: string) =>
+      (await api.put<{ message: string }>(`/api/chat/admin/users/${userId}/password`, { password, confirmPassword }))
+        .message,
     adminUsers: async () => (await api.get<{ users: AdminUser[] }>('/api/chat/admin/users')).users,
     restrictions: async () =>
       (await api.get<{ restrictions: Restriction[] }>('/api/chat/admin/restrictions')).restrictions,

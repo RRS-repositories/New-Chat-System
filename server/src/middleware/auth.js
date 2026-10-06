@@ -49,6 +49,14 @@ export function socketAuth({ db, secret, aud, requireBeta = false, enforceIp = t
 }
 
 /** Admin routes: Management only. */
+/** Management or IT (the admin screen's people list, and setting a person's password). */
+export function requireManagementOrIT(req, res, next) {
+  if (req.user?.role !== 'Management' && req.user?.role !== 'IT') {
+    return res.status(403).json({ success: false, code: 'forbidden', message: 'Only Management or IT can do this' });
+  }
+  next();
+}
+
 export function requireManagement(req, res, next) {
   if (req.user?.role !== 'Management') {
     return res.status(403).json({ success: false, code: 'forbidden', message: 'Only Management can do this' });

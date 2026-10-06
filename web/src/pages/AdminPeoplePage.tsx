@@ -7,7 +7,8 @@ import { useChat } from '../context/chatContext.ts';
 import { useAdminUsers } from '../hooks/useAdminUsers.ts';
 import type { AdminUser } from '../types/index.ts';
 import { filterPeople } from '../utils/access.ts';
-import { isManagement } from '../utils/restrictions.ts';
+import { isManagementOrIT } from '../utils/restrictions.ts';
+import { dayLabel } from '../utils/format.ts';
 
 const peopleCount = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`;
 const DASH = <span className="muted">—</span>;
@@ -43,7 +44,20 @@ function PersonRow({ person, onOpen }: { person: AdminUser; onOpen: () => void }
           </span>
         )}
       </td>
-      <td>{person.online ? <span className="pill on">Online</span> : DASH}</td>
+      <td>
+        {person.online ? (
+          <span className="pill on">Online</span>
+        ) : person.lastSeenAt ? (
+          <span className="muted">{dayLabel(person.lastSeenAt)}</span>
+        ) : (
+          <span
+            className="pill never"
+            title="Has not signed in to the chat yet, so is not offered when people pick someone"
+          >
+            Never signed in
+          </span>
+        )}
+      </td>
       <td>{person.blockedFrom ? peopleCount(person.blockedFrom) : DASH}</td>
       <td>{person.blockedBy ? peopleCount(person.blockedBy) : DASH}</td>
     </tr>
@@ -54,7 +68,7 @@ function PersonRow({ person, onOpen }: { person: AdminUser; onOpen: () => void }
 export function AdminPeoplePage() {
   const { user } = useChat();
   const navigate = useNavigate();
-  const { users, error } = useAdminUsers(isManagement(user));
+  const { users, error } = useAdminUsers(isManagementOrIT(user));
   const [query, setQuery] = useState('');
   const [role, setRole] = useState('');
   const roles = useMemo(() => [...new Set((users || []).map((u) => u.role))].sort(), [users]);
@@ -76,7 +90,7 @@ export function AdminPeoplePage() {
                 <th>Person</th>
                 <th>Role</th>
                 <th>Chat access</th>
-                <th>Now</th>
+                <th>Signed in</th>
                 <th>Blocked from</th>
                 <th>Blocked by</th>
               </tr>
@@ -105,7 +119,8 @@ export function AdminPeoplePage() {
         <p className="muted admin-foot">
           Chat access is switched on per person in the CRM (Settings → user → Permissions → “Team chat (beta)”);
           Management and IT always have it. Click a person to choose who they can message, call and share private
-          channels with.
+          channels with. Someone who has never signed in to the chat is not offered when people pick who to message,
+          call or add.
         </p>
       </div>
     </AdminFrame>

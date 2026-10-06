@@ -41,11 +41,16 @@ export async function loadSessionUser(db, { userId, iat }) {
   };
 }
 
-/** Everyone who can sign in except `exceptUserId`, by name — the list people pick from. */
+/**
+ * The people to pick from: everyone who can sign in, except `exceptUserId`, **who has signed in to the
+ * chat at least once** (the owner's rule of 6 Oct 2026: people who never came in are not offered).
+ * Signing in writes their row in chat.user_presence.
+ */
 export async function listActiveUsers(db, { exceptUserId }) {
   const { rows } = await db.query(
     `SELECT u.id, u.full_name, u.role, ${AVATAR_COLUMNS('u.id')}
-       FROM public.users u WHERE u.is_approved = TRUE AND u.is_active IS NOT FALSE AND u.id <> $1 ORDER BY u.full_name`,
+       FROM public.users u WHERE u.is_approved = TRUE AND u.is_active IS NOT FALSE AND u.id <> $1
+        AND EXISTS (SELECT 1 FROM chat.user_presence p WHERE p.user_id = u.id) ORDER BY u.full_name`,
     [exceptUserId],
   );
   return rows.map((u) => ({
@@ -56,11 +61,12 @@ export async function listActiveUsers(db, { exceptUserId }) {
   }));
 }
 
-/** Everyone who can sign in, with whether chat is on for them and how many people they are blocked from / by. */
+/** Everyone who can sign in, with whether chat is on for them, when they last used the chat (null: never signed in), and their block counts. */
 export async function listAdminUsers(db) {
   const { rows } = await db.query(`
     SELECT u.id, u.full_name, u.email, u.role::text AS role,
            ${CHAT_ENABLED_SQL} AS chat_enabled,
+           (SELECT p.last_seen_at FROM chat.user_presence p WHERE p.user_id = u.id) AS last_seen_at,
            (SELECT count(DISTINCT x.target_user_id) FROM chat.communication_restrictions x WHERE x.user_id = u.id) AS blocked_from,
            (SELECT count(DISTINCT x.user_id) FROM chat.communication_restrictions x WHERE x.target_user_id = u.id) AS blocked_by
       FROM public.users u
@@ -72,6 +78,7 @@ export async function listAdminUsers(db) {
     email: r.email || '',
     role: r.role,
     chatEnabled: !!r.chat_enabled,
+    lastSeenAt: r.last_seen_at ? new Date(r.last_seen_at).toISOString() : null,
     blockedFrom: Number(r.blocked_from || 0),
     blockedBy: Number(r.blocked_by || 0),
   }));

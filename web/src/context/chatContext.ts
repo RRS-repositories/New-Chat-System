@@ -33,6 +33,8 @@ export type ChatActions = {
   browseChannels: () => Promise<BrowseChannel[]>;
   joinChannel: (channelId: string) => Promise<Channel>;
   renameChannel: (channelId: string, change: { displayName?: string; purpose?: string }) => Promise<void>;
+  /** Adds people to a channel (anyone in it may). */
+  addMembers: (channelId: string, userIds: number[]) => Promise<void>;
   leaveChannel: (channelId: string) => Promise<void>;
   /** Hides the channel for everyone; its messages are kept. */
   archiveChannel: (channelId: string) => Promise<void>;
@@ -69,6 +71,8 @@ export type ChatActions = {
   adminUsers: () => Promise<AdminUser[]>;
   userRestrictions: (userId: number) => Promise<Restriction[]>;
   setAccess: (userId: number, change: AccessChange) => Promise<Restriction[]>;
+  /** Management or IT: set a person's password. Resolves to the CRM's message. */
+  setUserPassword: (userId: number, password: string, confirmPassword: string) => Promise<string>;
   /** Shown at once; the changed settings are put back and the error rethrown if the server refuses. */
   updatePrefs: (patch: PreferencePatch) => Promise<void>;
   setStatus: (text: string, emoji: string) => Promise<void>;

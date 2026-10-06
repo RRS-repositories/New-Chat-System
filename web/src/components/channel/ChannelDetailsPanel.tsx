@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileText, X } from 'lucide-react';
+import { FileText, UserPlus, X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { ChannelFileRow } from '../../types/index.ts';
 import { formatBytes } from '../../utils/files.ts';
@@ -7,6 +7,7 @@ import { formatTime } from '../../utils/format.ts';
 import { presenceOf, type PresenceState } from '../../utils/presence.ts';
 import { StatusBadge } from '../common/PresenceDot.tsx';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { AddMembersDialog } from '../dialogs/AddMembersDialog.tsx';
 import { ChannelOptions } from './ChannelOptions.tsx';
 import { useCanModerate } from './MessagePanel.tsx';
 
@@ -23,6 +24,7 @@ const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 
 export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
   const { state, user, actions } = useChat();
   const [tab, setTab] = useState<'members' | 'files' | 'options'>('members');
+  const [adding, setAdding] = useState(false);
   const channel = state.channels.find((c) => c.id === channelId);
   const canManage = useCanModerate(channelId);
   const isDm = channel?.type === 'dm';
@@ -108,6 +110,24 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
               </>
             )}
             <div className="inf-sec">Members — {members.length}</div>
+            {channel && !isDm && (
+              <button className="mrow pick-row add-member" data-testid="add-members" onClick={() => setAdding(true)}>
+                <span className="uav md add-ic" aria-hidden="true">
+                  <UserPlus size={15} />
+                </span>
+                <span className="pi">
+                  <b>Add people</b>
+                  <span>Invite someone into #{channel.displayName}</span>
+                </span>
+              </button>
+            )}
+            {adding && channel && (
+              <AddMembersDialog
+                channelId={channelId}
+                channelName={channel.displayName}
+                onClose={() => setAdding(false)}
+              />
+            )}
             {members.map((m) => {
               const presence = presenceOf(state.presence, m.id);
               return (

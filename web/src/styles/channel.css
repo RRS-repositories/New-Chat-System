@@ -561,3 +561,19 @@ mark.hit {
     margin-right: 10px;
   }
 }
+
+/* "Add people" at the top of the members list */
+.mrow.add-member {
+  width: 100%;
+  text-align: left;
+  color: var(--violet-ink);
+}
+.mrow.add-member .add-ic {
+  background: var(--violet-soft);
+  color: var(--violet);
+  display: grid;
+  place-items: center;
+}
+.mrow.add-member .pi b {
+  color: var(--violet-ink);
+}

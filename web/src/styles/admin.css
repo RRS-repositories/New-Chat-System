@@ -161,3 +161,48 @@
     padding: 6px 9px;
   }
 }
+
+/* A person's page: the password card */
+.admin-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 0 0 14px;
+  background: var(--paper);
+}
+.admin-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.admin-card-head svg {
+  color: var(--violet);
+  flex: 0 0 auto;
+}
+.admin-card-head > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.admin-card-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  margin-top: 12px;
+}
+.admin-card-form .field {
+  flex: 1 1 200px;
+  margin: 0;
+}
+.admin-card .ok {
+  color: var(--green);
+  font-weight: 600;
+  margin: 10px 0 0;
+}
+.pill.never {
+  color: var(--amber);
+  border-color: var(--amber);
+}

@@ -6,7 +6,7 @@ import { useChat } from '../../context/chatContext.ts';
 import { useGoToChannel } from '../../hooks/useGoToChannel.ts';
 import type { SidebarState } from '../../hooks/useSidebar.ts';
 import { presenceOf } from '../../utils/presence.ts';
-import { isManagement } from '../../utils/restrictions.ts';
+import { isManagementOrIT } from '../../utils/restrictions.ts';
 import { SearchPanel } from '../channel/SearchPanel.tsx';
 import { NotEnabled } from '../common/NotEnabled.tsx';
 import { BrowseChannelsDialog } from '../dialogs/BrowseChannelsDialog.tsx';
@@ -95,7 +95,7 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
             onBrowse={() => openFromSidebar('browse')}
             onSearch={() => openFromSidebar('search')}
             onSettings={() => openFromSidebar('settings')}
-            onAdmin={isManagement(user) ? openAdmin : undefined}
+            onAdmin={isManagementOrIT(user) ? openAdmin : undefined}
           />
         }
       />
