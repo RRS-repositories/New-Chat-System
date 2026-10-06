@@ -10,7 +10,7 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | Item | State |
 |---|---|
 | **Current phase** | **Phase 9 — the new design and call features from the owner's `Updates/` file**: all ten sections built, then **deployed to chat2 on 5 Oct 2026, 16:56** on the owner's word ("push on prod"). Waiting for the owner to try it on chat2 and on real phones. Before it: Phase 8 (the CRM's automatic messages) needs his decisions; Phase 4 has one step left; Phase 6 waits for the router rules. |
-| **Waiting to be deployed** | Nothing. chat2 runs commit `65ca010` (deployed 6 Oct 2026, 11:31: faster start, people search in Create a channel, plus the morning's Add people / signed-in rule / Set password / presenter's view). All six database files are applied. The Set password button works once CRM pull request #734 is merged and deployed. |
+| **Waiting to be deployed** | Nothing. chat2 runs commit `9b347ac` (deployed 6 Oct 2026, ~14:30: sidebar menu + Favourites, calls up to 50). All seven database files are applied. The Set password button works once CRM pull request #734 is merged and deployed. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -165,6 +165,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 6 Oct 2026, afternoon — sidebar menu and Favourites; calls up to 50
+Asked for after Mattermost's channel menu: every conversation row has a ⋯ menu (also on right click) with Open in new window, Mark as unread, Add to favourites, Mute, Copy link, Add people, Leave channel; favourites sit in their own section at the top (database file `chat_007_favourites.sql`). The call limit went from 8 to 50 (mesh audio will strain well before that). Both deployed.
 
 ### 6 Oct 2026, 13:45 — big remote calls: the TURN relay had only 41 ports
 A 13-person call with everyone outside the office left half of them on "connecting". Cause: the call is a full mesh (156 connections for 13 people), most of them relayed, and coturn's relay range was 49160–49200 (41 ports), all in use. Fixed on the server on the owner's word: `/etc/turnserver.conf` min-port 49160, max-port 51200, total-quota 1200, user-quota 64 (backup `/etc/turnserver.conf.bak-20261006`); ufw opened 49160:51200/udp; coturn restarted. **Still needed from the router team: forward UDP 49160–51200 to 192.168.1.58** (only 3478 and 49160–49200 are forwarded today); until then remote calls still have only 41 relay ports. Call limit raised to 50 the same day; mesh audio will strain past 15–20 people regardless.
