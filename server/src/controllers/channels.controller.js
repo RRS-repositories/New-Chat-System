@@ -1,17 +1,19 @@
 import { httpError, wrap } from '../middleware/errors.js';
 import {
-  listChannelsForUser,
-  getChannel,
-  createChannel,
-  openDm,
   addMembers,
-  removeMember,
-  listMembers,
-  markRead,
-  ensureDefaultMembership,
-  updateChannel,
   archiveChannel,
   countMembers,
+  createChannel,
+  ensureDefaultMembership,
+  getChannel,
+  listChannelsForUser,
+  listMembers,
+  markRead,
+  markUnread,
+  openDm,
+  removeMember,
+  setFavourite,
+  updateChannel,
 } from '../models/channels.model.js';
 import { getLiveCall } from '../models/calls.model.js';
 import { isBlocked, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
@@ -149,6 +151,21 @@ export function createChannelController({ db, emit }) {
       if (channel.type !== 'public' && (await countMembers(db, channelId)) === 0)
         await archiveChannel(db, channelId, { actorId: req.user.id, reason: 'last member left' });
       res.json({ success: true });
+    }),
+
+    /** The caller's own star on the conversation (shown in their Favourites section). */
+    setFavourite: wrap(async (req, res) => {
+      const favourite = await setFavourite(db, req.params.id, req.user.id, req.body?.on === true);
+      if (favourite === null) throw httpError(403, 'not_member', 'You are not in this channel');
+      res.json({ success: true, favourite });
+    }),
+
+    /** Mark as unread: the newest message from someone else is unread again, on every device. */
+    markUnread: wrap(async (req, res) => {
+      const unread = await markUnread(db, req.params.id, req.user.id);
+      if (unread === null) throw httpError(403, 'not_member', 'You are not in this channel');
+      emit.toUser(req.user.id, 'unread_update', { channel_id: req.params.id, unread_count: unread, mention_count: 0 });
+      res.json({ success: true, unreadCount: unread });
     }),
 
     markRead: wrap(async (req, res) => {

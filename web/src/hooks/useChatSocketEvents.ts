@@ -196,7 +196,21 @@ export function useChatSocketEvents(deps: Deps): void {
             userId: p.user_id,
           }),
       ],
-      ['unread_update', (p: { channel_id: string }) => dispatch({ type: 'read', channelId: p.channel_id })],
+      [
+        'unread_update',
+        (p: { channel_id: string; unread_count?: number; mention_count?: number }) =>
+          // Zero: read (on another device, say). Otherwise the counts as the server now has them (mark as unread).
+          dispatch(
+            Number(p.unread_count || 0) > 0 || Number(p.mention_count || 0) > 0
+              ? {
+                  type: 'unread_set',
+                  channelId: p.channel_id,
+                  unreadCount: Number(p.unread_count || 0),
+                  mentionCount: Number(p.mention_count || 0),
+                }
+              : { type: 'read', channelId: p.channel_id },
+          ),
+      ],
     ];
 
     for (const [event, handler] of handlers) socket.on(event, handler);

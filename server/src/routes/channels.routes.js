@@ -14,5 +14,7 @@ export function createChannelRoutes(deps) {
   r.post('/:id/members', channels.addMembers);
   r.delete('/:id/members/:userId', channels.removeMember);
   r.post('/:id/read', channels.markRead);
+  r.post('/:id/unread', channels.markUnread);
+  r.patch('/:id/favourite', channels.setFavourite);
   return r;
 }

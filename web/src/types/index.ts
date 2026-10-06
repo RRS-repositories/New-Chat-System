@@ -41,6 +41,8 @@ export type Channel = {
   memberCount: number;
   /** This user's level for the channel; `default` follows Preferences.desktopNotif. Filled with `default` when the server does not send it. */
   notifyPref: ChannelNotifyPref;
+  /** The signed-in person's own star: shown in their Favourites section. */
+  favourite?: boolean;
 };
 export type NotifyLevel = 'all' | 'mentions' | 'nothing';
 export type ChannelNotifyPref = NotifyLevel | 'default';

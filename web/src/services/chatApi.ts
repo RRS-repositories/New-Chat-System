@@ -67,6 +67,9 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
     leaveChannel: (channelId: string, userId: number) => api.del(`/api/chat/channels/${channelId}/members/${userId}`),
     members: async (channelId: string) =>
       (await api.get<{ members: ChannelMember[] }>(`/api/chat/channels/${channelId}`)).members,
+    setFavourite: (channelId: string, on: boolean) =>
+      api.patch<{ favourite: boolean }>(`/api/chat/channels/${id(channelId)}/favourite`, { on }),
+    markUnread: (channelId: string) => api.post<{ unreadCount: number }>(`/api/chat/channels/${id(channelId)}/unread`),
     setChannelNotify: (channelId: string, pref: ChannelNotifyPref) =>
       api.patch(`/api/chat/channels/${id(channelId)}/notify`, { pref }),
 

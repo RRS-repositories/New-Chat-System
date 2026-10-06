@@ -32,6 +32,7 @@ export async function createTestDb() {
     'chat_004_search_speed.sql',
     'chat_005_theme_avatars.sql',
     'chat_006_import_map.sql',
+    'chat_007_favourites.sql',
   ])
     await pg.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8'));
   const db = {

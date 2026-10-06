@@ -53,6 +53,27 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     [chatApi, loadMembers],
   );
 
+  const setFavourite = useCallback(
+    async (channelId: string, on: boolean) => {
+      dispatch({ type: 'channel_favourite', channelId, on });
+      try {
+        await chatApi.setFavourite(channelId, on);
+      } catch (e) {
+        dispatch({ type: 'channel_favourite', channelId, on: !on });
+        throw e;
+      }
+    },
+    [chatApi, dispatch],
+  );
+
+  const markUnread = useCallback(
+    async (channelId: string) => {
+      const { unreadCount } = await chatApi.markUnread(channelId);
+      dispatch({ type: 'unread_set', channelId, unreadCount, mentionCount: 0 });
+    },
+    [chatApi, dispatch],
+  );
+
   /** Shown at once; put back and rethrown if the server refuses. */
   const setChannelNotify = useCallback(
     async (channelId: string, pref: ChannelNotifyPref) => {
@@ -100,6 +121,8 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     browseChannels,
     loadMembers,
     addMembers,
+    setFavourite,
+    markUnread,
     setChannelNotify,
     renameChannel,
     leaveChannel,

@@ -79,6 +79,10 @@ export type ChatActions = {
   /** Saves a picture (already cut square and shrunk) as the signed-in person's profile photo. */
   setProfilePhoto: (picture: Blob) => Promise<void>;
   removeProfilePhoto: () => Promise<void>;
+  /** Star or unstar a conversation for yourself (shown at once; put back on failure). */
+  setFavourite: (channelId: string, on: boolean) => Promise<void>;
+  /** Mark a conversation unread again (the newest message from someone else). */
+  markUnread: (channelId: string) => Promise<void>;
   /** Shown at once; put back and rethrown on failure. */
   setChannelNotify: (channelId: string, pref: ChannelNotifyPref) => Promise<void>;
 };

@@ -75,6 +75,8 @@ export type Action =
   | { type: 'highlight'; messageId: string | null }
   | { type: 'not_enabled' }
   | { type: 'channel_notify'; channelId: string; pref: ChannelNotifyPref }
+  | { type: 'channel_favourite'; channelId: string; on: boolean }
+  | { type: 'unread_set'; channelId: string; unreadCount: number; mentionCount: number }
   | { type: 'prefs_set'; prefs: Preferences }
   | { type: 'presence_loaded'; snapshot: PresenceSnapshot }
   | { type: 'user_online'; userId: number }
@@ -419,6 +421,18 @@ export function chatReducer(state: State, action: Action): State {
       return { ...state, highlightId: action.messageId };
     case 'not_enabled':
       return { ...state, notEnabled: true };
+    case 'channel_favourite':
+      return {
+        ...state,
+        channels: state.channels.map((c) => (c.id === action.channelId ? { ...c, favourite: action.on } : c)),
+      };
+    case 'unread_set':
+      return {
+        ...state,
+        channels: state.channels.map((c) =>
+          c.id === action.channelId ? { ...c, unreadCount: action.unreadCount, mentionCount: action.mentionCount } : c,
+        ),
+      };
     case 'channel_notify':
       return {
         ...state,

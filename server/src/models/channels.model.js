@@ -29,6 +29,7 @@ const mapChannel = (r) =>
     memberCount: Number(r.member_count || 0),
     // The caller's own notification level for this channel; only the per-user list query knows it.
     notifyPref: r.notify_pref || 'default',
+    favourite: !!r.favourite,
   };
 
 const CHANNEL_LIST_SQL = `
@@ -39,7 +40,7 @@ const CHANNEL_LIST_SQL = `
             WHERE mn.channel_id = c.id AND mn.user_id = m.user_id AND mn.read = false) AS mention_count,
          (SELECT max(created_at) FROM chat.messages x WHERE x.channel_id = c.id AND x.deleted_at IS NULL) AS last_message_at,
          (SELECT count(*) FROM chat.channel_members mm WHERE mm.channel_id = c.id) AS member_count,
-         du.id AS dm_user_id, du.full_name AS dm_user_name, m.notify_pref
+         du.id AS dm_user_id, du.full_name AS dm_user_name, m.notify_pref, m.favourite
     FROM chat.channel_members m
     JOIN chat.channels c ON c.id = m.channel_id AND c.archived_at IS NULL
     LEFT JOIN LATERAL (
@@ -224,6 +225,38 @@ export async function listMembers(db, channelId) {
     channelRole: r.channel_role,
     avatarUrl: avatarUrl(r.id, r.avatar_updated_at),
   }));
+}
+
+/** The person's own star on a conversation. Null when they are not in it. */
+export async function setFavourite(db, channelId, userId, on) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `UPDATE chat.channel_members SET favourite = $3 WHERE channel_id = $1 AND user_id = $2 RETURNING favourite`,
+    [channelId, userId, on === true],
+  );
+  return r ? !!r.favourite : null;
+}
+
+/**
+ * Marks a conversation unread again: the newest message from someone else becomes unread. Returns
+ * how many are unread afterwards (0 when nobody else has written), or null when the person is not in it.
+ */
+export async function markUnread(db, channelId, userId) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `UPDATE chat.channel_members m
+        SET last_read_at = COALESCE(
+          (SELECT max(x.created_at) - interval '1 millisecond' FROM chat.messages x
+            WHERE x.channel_id = $1 AND x.deleted_at IS NULL AND x.thread_id IS NULL AND x.user_id <> $2),
+          m.last_read_at)
+      WHERE m.channel_id = $1 AND m.user_id = $2
+      RETURNING (SELECT count(*) FROM chat.messages x WHERE x.channel_id = $1 AND x.deleted_at IS NULL
+                   AND x.thread_id IS NULL AND x.created_at > m.last_read_at AND x.user_id <> $2) AS unread_count`,
+    [channelId, userId],
+  );
+  return r ? Number(r.unread_count || 0) : null;
 }
 
 export async function markRead(db, channelId, userId, at = new Date()) {

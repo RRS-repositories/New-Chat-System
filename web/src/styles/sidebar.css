@@ -367,3 +367,44 @@
 .s-item:has(.dot.offline):not(.active) .chan-name {
   opacity: 0.72;
 }
+
+/* A row's "⋯" menu button, shown on hover (or always on touch screens) in place of the badge */
+.s-row {
+  position: relative;
+}
+.s-row .row-more {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: #aeb4db;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.s-row:hover .row-more,
+.s-row.menu-open .row-more,
+.s-row .row-more:focus-visible {
+  opacity: 1;
+}
+.s-row .row-more:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+/* While the "⋯" shows, the row makes room for it so the badge stays visible beside it */
+.s-row:hover .s-item,
+.s-row.menu-open .s-item {
+  padding-right: 34px;
+}
+@media (hover: none) {
+  .s-row .row-more {
+    opacity: 1;
+  }
+  .s-row .s-item {
+    padding-right: 34px;
+  }
+}
