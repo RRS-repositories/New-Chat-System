@@ -10,7 +10,7 @@ Update it after every piece of finished work. Newest entries go at the top of th
 | Item | State |
 |---|---|
 | **Current phase** | **Phase 9 — the new design and call features from the owner's `Updates/` file**: all ten sections built, then **deployed to chat2 on 5 Oct 2026, 16:56** on the owner's word ("push on prod"). Waiting for the owner to try it on chat2 and on real phones. Before it: Phase 8 (the CRM's automatic messages) needs his decisions; Phase 4 has one step left; Phase 6 waits for the router rules. |
-| **Waiting to be deployed** | Nothing. chat2 runs commit `389c860` (deployed 6 Oct 2026, 11:11: Add people, the signed-in rule, Set password, the presenter's view). All six database files are applied. The Set password button works once CRM pull request #734 is merged and deployed. |
+| **Waiting to be deployed** | Nothing. chat2 runs commit `65ca010` (deployed 6 Oct 2026, 11:31: faster start, people search in Create a channel, plus the morning's Add people / signed-in rule / Set password / presenter's view). All six database files are applied. The Set password button works once CRM pull request #734 is merged and deployed. |
 | **This repository** | Holds the whole chat system, in the folder structure from `Architecture.md`. All tests pass from here. |
 | **Live site (chat2)** | Runs from `/opt/chat` (this repository) since 1 Oct 2026. Deploy with `/opt/chat/deploy/deploy.sh`. The old `chat-server/` and `chat-ui/` folders are still in `/opt/crm` until the CRM clean-up is finished; nothing uses them. |
 
@@ -165,6 +165,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 6 Oct 2026, 11:31 — faster start deployed
+The owner found a refresh slow to show the conversations. Measured: the server answers the list in under 25 ms; the browser was fetching it only once the live connection was up (slow through the proxy). Now the list and the open conversation load at once over HTTP, the admin screens / whiteboard / breakout groups / add-to-call load when first used, and built files are cached for good. Create a channel got a people search. Deployed at 11:31 with no call live.
 
 ### 6 Oct 2026 — Add people, the signed-in rule, passwords set by Management or IT, and the Mattermost copy
 The owner asked for four things and answered the copy questions (people with CRM accounts only; direct messages yes, groups later; no bot messages; skip large files; copy now).
