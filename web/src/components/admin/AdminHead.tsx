@@ -1,6 +1,6 @@
 import { ArrowLeft, Menu, X } from 'lucide-react';
 
-export type AdminTab = 'people' | 'restrictions';
+export type AdminTab = 'people' | 'deactivated' | 'restrictions';
 
 type Props = {
   title: string;
@@ -16,6 +16,7 @@ type Props = {
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: 'people', label: 'People' },
+  { id: 'deactivated', label: 'Deactivated' },
   { id: 'restrictions', label: 'All restrictions' },
 ];
 

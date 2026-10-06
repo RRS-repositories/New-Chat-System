@@ -408,3 +408,56 @@
     padding-right: 34px;
   }
 }
+
+/* Section headers carry their own "+" (new channel / browse; new message) */
+.s-sec-row {
+  display: flex;
+  align-items: center;
+}
+.s-sec-row .s-sec {
+  flex: 1;
+  min-width: 0;
+}
+.s-add {
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+  margin-top: 4px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: #848bb8;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.s-sec-row:hover .s-add,
+.s-add:focus-visible,
+.s-add[aria-expanded='true'] {
+  opacity: 1;
+}
+.s-add:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+@media (hover: none) {
+  .s-add {
+    opacity: 1;
+  }
+}
+/* The one small tool above the profile card (Admin, for Management and IT) */
+.s-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 5px 9px;
+  border-radius: 9px;
+  color: #aeb4db;
+  font-size: 12px;
+  font-weight: 700;
+}
+.s-tool:hover,
+.s-tool.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}

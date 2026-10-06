@@ -126,6 +126,9 @@ export type AdminUser = {
   lastSeenAt: string | null;
   /** Has notifications on (a push subscription) on at least one device. */
   pushOn?: boolean;
+  /** Switched off (cannot sign in) / approved in the CRM. */
+  isActive?: boolean;
+  isApproved?: boolean;
   blockedFrom: number;
   blockedBy: number;
 };

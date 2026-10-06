@@ -52,7 +52,9 @@ test('Management set a password: the CRM is asked with the caller’s session, a
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, 'http://crm.local/api/users/3/password');
   assert.equal(calls[0].init.method, 'PUT');
-  assert.equal(calls[0].init.headers.Authorization, auth(1), 'the caller’s own session goes to the CRM');
+  // The caller's own session goes to the CRM: the forwarded token is a bearer token for user 1 (a fresh token differs by its issue time).
+  const forwarded = String(calls[0].init.headers.Authorization).replace(/^Bearer /, '');
+  assert.equal(jwt.verify(forwarded, secret, { audience: aud }).sub, 1, 'the caller’s own session goes to the CRM');
   assert.deepEqual(JSON.parse(calls[0].init.body), { password: 'Correct-Horse-9', confirmPassword: 'Correct-Horse-9' });
 });
 

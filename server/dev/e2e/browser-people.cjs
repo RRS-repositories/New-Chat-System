@@ -60,7 +60,8 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
 
   await step('a channel’s details have “Add people”; it lists people not in the channel, and adds them', async () => {
     // Meg makes a private channel with nobody else, then adds Ann from its details.
-    await meg.page.click('text=New channel');
+    await meg.page.click(tid('channels-add'));
+    await meg.page.click(tid('menu-new-channel'));
     const dialog = meg.page.locator('[role=dialog][aria-label="New channel"]');
     await dialog.locator('input').first().fill('Rota');
     await dialog.locator('label.check-row input[type=checkbox]').first().check();
@@ -82,7 +83,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
   });
 
   await step('Admin → People says who has never signed in; a person’s page offers “Set a password”', async () => {
-    await meg.page.click('text=Admin');
+    await meg.page.click(tid('sidebar-admin'));
     await meg.page.waitForSelector(tid('admin-people'));
     const bob = meg.page.locator(tid('admin-person'), { hasText: 'Bob Sales' });
     await bob.locator('.pill.never').waitFor({ timeout: 8000 });
@@ -104,9 +105,32 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
       .waitFor({ timeout: 8000 });
   });
 
+  await step(
+    'Management deactivate a person: gone from People, listed under Deactivated, back again on Reactivate',
+    async () => {
+      await meg.page.click(tid('sidebar-admin'));
+      await meg.page.waitForSelector(tid('admin-people'));
+      meg.page.once('dialog', (d) => d.accept());
+      await meg.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).locator(tid('deactivate')).click();
+      await meg.page
+        .locator(tid('admin-person'), { hasText: 'Bob Sales' })
+        .waitFor({ state: 'detached', timeout: 8000 });
+      await meg.page.locator('.admin-tabs button', { hasText: 'Deactivated' }).click();
+      const bob = meg.page.locator(tid('admin-person'), { hasText: 'Bob Sales' });
+      await bob.waitFor({ timeout: 8000 });
+      meg.page.once('dialog', (d) => d.accept());
+      await bob.locator(tid('reactivate')).click();
+      await bob.waitFor({ state: 'detached', timeout: 8000 });
+      await meg.page.locator('.admin-tabs button', { hasText: 'People' }).click();
+      await meg.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).waitFor({ timeout: 8000 });
+      if (await meg.page.locator(tid('admin-person'), { hasText: 'Meg Manager' }).locator(tid('deactivate')).count())
+        throw new Error('Meg can deactivate herself');
+    },
+  );
+
   await step('IT sees the admin people list and can set a password, but not the restrictions', async () => {
     const eli = await person(browser, 'eli@x', 'Eli');
-    await eli.page.click('text=Admin');
+    await eli.page.click(tid('sidebar-admin'));
     await eli.page.waitForSelector(tid('admin-people'));
     if (await eli.page.locator('.admin-tabs button', { hasText: 'All restrictions' }).count())
       throw new Error('IT sees the restrictions tab');
@@ -121,7 +145,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
   });
 
   await step('someone who is not Management or IT has no Admin row at all', async () => {
-    if (await ann.page.locator('text=Admin').count()) throw new Error('Ann has an Admin row');
+    if (await ann.page.locator(tid('sidebar-admin')).count()) throw new Error('Ann has an Admin button');
   });
 
   await browser.close();

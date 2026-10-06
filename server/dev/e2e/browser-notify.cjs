@@ -84,7 +84,7 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
     });
   });
   await step('presence: a direct-message row shows the other person Online', async () => {
-    await ann.page.locator('.sidebar-foot .chan-row', { hasText: 'New message' }).click();
+    await ann.page.locator('.sidebar-head button[aria-label="New message"]').click();
     await ann.page.locator('.pick-row', { hasText: 'Meg Manager' }).click();
     await ann.page
       .locator('.chan-list .chan-row', { hasText: 'Meg Manager' })

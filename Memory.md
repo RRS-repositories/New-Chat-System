@@ -166,6 +166,10 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 6 Oct 2026, 16:30 — deactivate people; compact sidebar
+The owner found people who should not be here (Yash Chhaparwal) and asked for a Deactivate button, a sign-out on deactivation, and a separate tab. Now Admin → People has Deactivate on every row (Management only, never your own); it sets the CRM account inactive, ends every session at once (the open tab is signed out and told why), hides the person from every people picker and from other people's direct-message lists, and lists them under the new Deactivated tab, where Reactivate (which also approves) brings them back. The copy script now skips inactive or unapproved CRM accounts. Yash was never deactivated in Mattermost; his CRM account is unapproved, which the chat now treats the same way (hidden until Reactivate). No new database file: this uses the CRM's own `is_active`, `is_approved` and `sessions_valid_from`.
+The four sidebar footer rows (New channel, New message, Browse channels, Admin) are gone: the Channels and Direct messages headers carry a "+" (Channels: New channel / Browse channels), and Admin is a small icon button above the profile card.
+
 ### 6 Oct 2026, 15:45 — tab title and icon badge
 Like Mattermost's tab: "(n) Chat" counts mentions and unread direct messages, "• Chat" marks unread channels, and the tab icon carries the same badge (drawn onto the chat icon). Deployed.
 

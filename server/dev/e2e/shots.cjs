@@ -126,7 +126,7 @@ async function shotIfFirst(page) {
   await shot(page, '10-new-channel');
   await page.keyboard.press('Escape');
   await page.click('[role=dialog] [aria-label="Close"]').catch(() => {});
-  await page.locator('.chan-row', { hasText: 'Admin' }).click();
+  await page.locator('[data-testid="sidebar-admin"]').click();
   await wait(700);
   await shot(page, '11-admin');
 

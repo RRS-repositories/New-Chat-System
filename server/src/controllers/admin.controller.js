@@ -1,11 +1,11 @@
 import { httpError, wrap } from '../middleware/errors.js';
 import { listRestrictions, addRestriction, removeRestriction } from '../models/restrictions.model.js';
-import { listAdminUsers } from '../models/users.model.js';
+import { listAdminUsers, setUserActive } from '../models/users.model.js';
 import { setAccess } from '../services/access.service.js';
 import { forwardSetPassword } from '../services/crmPassword.service.js';
 import { UUID } from '../utils/ids.js';
 
-export function createAdminController({ db, presence = null, crmInternalUrl = '', fetchImpl = fetch }) {
+export function createAdminController({ db, emit = { toUser() {} }, presence = null, crmInternalUrl = '', fetchImpl = fetch }) {
   return {
     listRestrictions: wrap(async (req, res) => {
       const userId = req.query.userId ? req.query.userId : null;
@@ -37,9 +37,37 @@ export function createAdminController({ db, presence = null, crmInternalUrl = ''
     }),
 
     /** Everyone, whether chat is on for them, who is online, and their block counts. */
-    listUsers: wrap(async (_req, res) => {
-      const users = await listAdminUsers(db);
+    listUsers: wrap(async (req, res) => {
+      const users = await listAdminUsers(db, { deactivated: req.query.deactivated === '1' });
       res.json({ success: true, users: users.map((u) => ({ ...u, online: !!presence?.isConnected?.(u.id) })) });
+    }),
+
+    /** Management switch a person off: signed out everywhere now, and no sign-in (chat or CRM) until switched on again. */
+    deactivate: wrap(async (req, res) => {
+      const userId = Number(req.params.userId);
+      if (!Number.isInteger(userId) || userId <= 0) throw httpError(404, 'not_found', 'User not found');
+      if (userId === req.user.id) throw httpError(400, 'own_account', 'You cannot deactivate yourself');
+      const person = await setUserActive(db, userId, false);
+      if (!person) throw httpError(404, 'not_found', 'User not found');
+      emit.toUser(userId, 'session_ended', { reason: 'deactivated' });
+      await db.query(
+        `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'user.deactivate', 'user', $2, $3)`,
+        [req.user.id, String(userId), JSON.stringify({ email: person.email })],
+      );
+      res.json({ success: true, user: person });
+    }),
+
+    /** Management switch a person on again (this also approves a never-approved account). */
+    reactivate: wrap(async (req, res) => {
+      const userId = Number(req.params.userId);
+      if (!Number.isInteger(userId) || userId <= 0) throw httpError(404, 'not_found', 'User not found');
+      const person = await setUserActive(db, userId, true);
+      if (!person) throw httpError(404, 'not_found', 'User not found');
+      await db.query(
+        `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'user.reactivate', 'user', $2, $3)`,
+        [req.user.id, String(userId), JSON.stringify({ email: person.email })],
+      );
+      res.json({ success: true, user: person });
     }),
 
     /** Management or IT set a person's password: the CRM does it (its rules, its audit), with the caller's own session. */

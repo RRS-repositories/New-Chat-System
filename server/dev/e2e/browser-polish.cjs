@@ -72,7 +72,7 @@ async function person(browser, email, label) {
       throw new Error(`header/composer/sidebar moved off screen (${JSON.stringify(m)})`);
   });
   await step('sidebar sections collapse and expand on click, and the choice survives a reload', async () => {
-    await ann.page.locator('.sidebar-foot .chan-row', { hasText: 'New message' }).click();
+    await ann.page.locator('.sidebar-head button[aria-label="New message"]').click();
     await ann.page.locator('.pick-row', { hasText: 'Meg Manager' }).click();
     const dmTitle = ann.page.locator('button.chan-group-title', { hasText: 'Direct messages' });
     const chTitle = ann.page.locator('button.chan-group-title', { hasText: 'Channels' });

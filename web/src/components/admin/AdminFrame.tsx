@@ -32,7 +32,15 @@ export function AdminFrame({ title, tab, onBack, children }: Props) {
             onBack={onBack}
             onOpenSidebar={sidebar.openSidebar}
             onClose={() => navigate(paths.home)}
-            onTab={(next) => navigate(next === 'restrictions' ? paths.adminRestrictions : paths.admin)}
+            onTab={(next) =>
+              navigate(
+                next === 'restrictions'
+                  ? paths.adminRestrictions
+                  : next === 'deactivated'
+                    ? paths.adminDeactivated
+                    : paths.admin,
+              )
+            }
             canSeeRestrictions={isManagement(user)}
           />
           {(tab === 'restrictions' ? isManagement(user) : isManagementOrIT(user)) ? (

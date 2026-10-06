@@ -44,9 +44,11 @@ const CHANNEL_LIST_SQL = `
     FROM chat.channel_members m
     JOIN chat.channels c ON c.id = m.channel_id AND c.archived_at IS NULL
     LEFT JOIN LATERAL (
-      SELECT u.id, u.full_name FROM chat.channel_members o JOIN public.users u ON u.id = o.user_id
+      SELECT u.id, u.full_name, (u.is_active IS NOT FALSE AND u.is_approved = TRUE) AS ok
+        FROM chat.channel_members o JOIN public.users u ON u.id = o.user_id
        WHERE c.type = 'dm' AND o.channel_id = c.id AND o.user_id <> m.user_id LIMIT 1) du ON true
    WHERE m.user_id = $1
+     AND (c.type <> 'dm' OR du.ok IS NOT FALSE) -- a conversation with someone switched off (or never approved) is out of sight
    ORDER BY c.type = 'dm', last_message_at DESC NULLS LAST, c.display_name`;
 
 export async function listChannelsForUser(db, userId) {

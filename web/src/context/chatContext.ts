@@ -68,7 +68,10 @@ export type ChatActions = {
   listRestrictions: () => Promise<Restriction[]>;
   addRestriction: (input: RestrictionInput) => Promise<Restriction[]>;
   removeRestriction: (restrictionId: string) => Promise<void>;
-  adminUsers: () => Promise<AdminUser[]>;
+  adminUsers: (deactivated?: boolean) => Promise<AdminUser[]>;
+  /** Management: switch a person off (signed out everywhere, no sign-in until switched on) or on again. */
+  deactivateUser: (userId: number) => Promise<void>;
+  reactivateUser: (userId: number) => Promise<void>;
   userRestrictions: (userId: number) => Promise<Restriction[]>;
   setAccess: (userId: number, change: AccessChange) => Promise<Restriction[]>;
   /** Management or IT: set a person's password. Resolves to the CRM's message. */

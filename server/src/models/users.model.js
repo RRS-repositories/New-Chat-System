@@ -61,29 +61,51 @@ export async function listActiveUsers(db, { exceptUserId }) {
   }));
 }
 
-/** Everyone who can sign in, with whether chat is on for them, when they last used the chat (null: never signed in), and their block counts. */
-export async function listAdminUsers(db) {
+/**
+ * The admin screen's people: everyone who can sign in (or, with `deactivated`, everyone who cannot: switched
+ * off or never approved), with whether chat is on for them, when they last used the chat (null: never
+ * signed in), whether they have notifications on, and their block counts.
+ */
+export async function listAdminUsers(db, { deactivated = false } = {}) {
   const { rows } = await db.query(`
-    SELECT u.id, u.full_name, u.email, u.role::text AS role,
+    SELECT u.id, u.full_name, u.email, u.role::text AS role, u.is_active, u.is_approved,
            ${CHAT_ENABLED_SQL} AS chat_enabled,
            (SELECT p.last_seen_at FROM chat.user_presence p WHERE p.user_id = u.id) AS last_seen_at,
            EXISTS (SELECT 1 FROM chat.push_subscriptions ps WHERE ps.user_id = u.id) AS push_on,
            (SELECT count(DISTINCT x.target_user_id) FROM chat.communication_restrictions x WHERE x.user_id = u.id) AS blocked_from,
            (SELECT count(DISTINCT x.user_id) FROM chat.communication_restrictions x WHERE x.target_user_id = u.id) AS blocked_by
       FROM public.users u
-     WHERE u.is_approved = TRUE AND u.is_active IS NOT FALSE
+     WHERE ${deactivated ? '(u.is_approved IS NOT TRUE OR u.is_active = FALSE)' : 'u.is_approved = TRUE AND u.is_active IS NOT FALSE'}
      ORDER BY u.full_name`);
   return rows.map((r) => ({
     id: r.id,
     fullName: r.full_name || '',
     email: r.email || '',
     role: r.role,
+    isActive: r.is_active !== false,
+    isApproved: r.is_approved === true,
     chatEnabled: !!r.chat_enabled,
     lastSeenAt: r.last_seen_at ? new Date(r.last_seen_at).toISOString() : null,
     pushOn: !!r.push_on,
     blockedFrom: Number(r.blocked_from || 0),
     blockedBy: Number(r.blocked_by || 0),
   }));
+}
+
+/**
+ * Switches a person off (they are signed out everywhere at once and cannot sign in to the chat or the CRM
+ * until switched on again) or on again (which also approves them). Null when there is no such person.
+ */
+export async function setUserActive(db, userId, active) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `UPDATE public.users
+        SET is_active = $2, is_approved = CASE WHEN $2 THEN TRUE ELSE is_approved END, sessions_valid_from = NOW()
+      WHERE id = $1 RETURNING id, full_name, email, is_active`,
+    [userId, active === true],
+  );
+  return r ? { id: r.id, fullName: r.full_name || '', email: r.email || '', isActive: r.is_active !== false } : null;
 }
 
 /** How many of these ids are real people (used to refuse a change that names someone unknown). */

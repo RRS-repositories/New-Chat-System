@@ -36,12 +36,11 @@ const box = (page, name, kind) => row(page, name).locator(`input[data-kind="${ki
   const ann = await person(browser, 'a@x', 'Ann');
 
   await step('Management sees "Admin" in the sidebar; other people do not', async () => {
-    await meg.page.locator('.sidebar-foot .chan-row', { hasText: 'Admin' }).waitFor({ timeout: 5000 });
-    if (await ann.page.locator('.sidebar-foot .chan-row', { hasText: 'Admin' }).count())
-      throw new Error('a non-manager sees Admin');
+    await meg.page.locator('[data-testid="sidebar-admin"]').waitFor({ timeout: 5000 });
+    if (await ann.page.locator('[data-testid="sidebar-admin"]').count()) throw new Error('a non-manager sees Admin');
   });
   await step('People list shows everyone with role, chat access and who is online', async () => {
-    await meg.page.locator('.sidebar-foot .chan-row', { hasText: 'Admin' }).click();
+    await meg.page.locator('[data-testid="sidebar-admin"]').click();
     await meg.page.locator(tid('admin-person')).first().waitFor({ timeout: 8000 });
     const n = await meg.page.locator(tid('admin-person')).count();
     if (n < 6) throw new Error(`only ${n} people listed`);
@@ -80,7 +79,7 @@ const box = (page, name, kind) => row(page, name).locator(`input[data-kind="${ki
     if (!(await box(meg.page, 'Bob Sales', 'call').isChecked())) throw new Error('calls should still be allowed');
   });
   await step('the block is real: the blocked person is gone from Ann\'s "New message" list', async () => {
-    await ann.page.locator('.sidebar-foot .chan-row', { hasText: 'New message' }).click();
+    await ann.page.locator('.sidebar-head button[aria-label="New message"]').click();
     await ann.page.locator('.pick-row', { hasText: 'Meg Manager' }).waitFor({ timeout: 8000 });
     if (await ann.page.locator('.pick-row', { hasText: 'Bob Sales' }).count())
       throw new Error('Bob is still offered to Ann');

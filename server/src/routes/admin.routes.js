@@ -14,5 +14,7 @@ export function createAdminRoutes(deps) {
   r.post('/restrictions', admin.addRestriction);
   r.delete('/restrictions/:id', admin.removeRestriction);
   r.put('/users/:userId/access', admin.setAccess);
+  r.post('/users/:userId/deactivate', admin.deactivate);
+  r.post('/users/:userId/reactivate', admin.reactivate);
   return r;
 }

@@ -95,7 +95,7 @@ export async function runImport({
         AND (u.lastlogin > 0 OR EXISTS (SELECT 1 FROM status s WHERE s.userid = u.id AND s.lastactivityat > 0))`,
   );
   const crmUsers = await db.query(
-    `SELECT id, lower(email) AS email, full_name FROM public.users WHERE email IS NOT NULL`,
+    `SELECT id, lower(email) AS email, full_name FROM public.users WHERE email IS NOT NULL AND is_active IS NOT FALSE AND is_approved = TRUE`,
   );
   const crmByEmail = new Map(crmUsers.rows.map((r) => [r.email, r]));
   const userMap = new Map(); // mm user id -> crm user id

@@ -1,4 +1,4 @@
-import { Hash, MessageCircle, PenLine, Plus, Search, Settings, Shield } from 'lucide-react';
+import { MessageCircle, PenLine, Search, Settings, Shield } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { APP_TITLE, ORG_NAME } from '../../config/constants.ts';
 import type { Channel, UserStatus } from '../../types/index.ts';
@@ -28,17 +28,6 @@ type Props = {
 
 const isApple = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
 const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 'Away', offline: 'Offline' };
-
-type FootRowProps = { icon: ReactNode; label: string; active?: boolean; onClick: () => void };
-
-function FootRow({ icon, label, active, onClick }: FootRowProps) {
-  return (
-    <button className={`s-bitem chan-row${active ? ' active' : ''}`} onClick={onClick}>
-      {icon}
-      <span className="chan-name">{label}</span>
-    </button>
-  );
-}
 
 /** The left panel: the brand, search, your channels and people, the actions, and your own card (which opens Settings). */
 export function Sidebar(props: Props) {
@@ -77,12 +66,28 @@ export function Sidebar(props: Props) {
           <span className="kbd">{isApple ? '⌘K' : 'Ctrl K'}</span>
         </button>
       </div>
-      <ChannelList channels={channels} currentId={currentId} onSelect={onSelect} presence={presence} />
+      <ChannelList
+        channels={channels}
+        currentId={currentId}
+        onSelect={onSelect}
+        presence={presence}
+        onNewChannel={props.onNewChannel}
+        onBrowse={props.onBrowse}
+        onNewDm={props.onNewDm}
+      />
       <div className="s-bot sidebar-foot">
-        <FootRow icon={<Plus size={15} />} label="New channel" onClick={props.onNewChannel} />
-        <FootRow icon={<PenLine size={15} />} label="New message" onClick={props.onNewDm} />
-        <FootRow icon={<Hash size={15} />} label="Browse channels" onClick={props.onBrowse} />
-        {onAdmin && <FootRow icon={<Shield size={15} />} label="Admin" active={adminActive} onClick={onAdmin} />}
+        {onAdmin && (
+          <button
+            className={`s-tool${adminActive ? ' active' : ''}`}
+            aria-label="Admin"
+            title="Admin: people, access, restrictions"
+            data-testid="sidebar-admin"
+            onClick={onAdmin}
+          >
+            <Shield size={14} />
+            <span>Admin</span>
+          </button>
+        )}
         <button className="s-me" aria-label="Settings" title="Settings" onClick={props.onSettings}>
           <UserAvatar userId={userId} name={userName} presence={ownPresence} />
           <span className="nm">

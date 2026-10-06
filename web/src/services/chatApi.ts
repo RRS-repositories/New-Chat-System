@@ -165,7 +165,11 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
     setUserPassword: async (userId: number, password: string, confirmPassword: string) =>
       (await api.put<{ message: string }>(`/api/chat/admin/users/${userId}/password`, { password, confirmPassword }))
         .message,
-    adminUsers: async () => (await api.get<{ users: AdminUser[] }>('/api/chat/admin/users')).users,
+    adminUsers: async (deactivated = false) =>
+      (await api.get<{ users: AdminUser[] }>(`/api/chat/admin/users${deactivated ? '?deactivated=1' : ''}`)).users,
+    /** Management: switch a person off (signed out everywhere, no sign-in until switched on) or on again. */
+    deactivateUser: (userId: number) => api.post(`/api/chat/admin/users/${userId}/deactivate`),
+    reactivateUser: (userId: number) => api.post(`/api/chat/admin/users/${userId}/reactivate`),
     restrictions: async () =>
       (await api.get<{ restrictions: Restriction[] }>('/api/chat/admin/restrictions')).restrictions,
     restrictionsForUser: async (userId: number) =>

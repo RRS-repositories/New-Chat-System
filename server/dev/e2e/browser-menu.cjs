@@ -60,7 +60,8 @@ const openMenu = async (page, name) => {
     'a channel can be made a favourite: a Favourites section appears at the top, and it leaves the Channels list',
     async () => {
       // Ann makes a channel with Meg so there is something besides General.
-      await ann.page.click('text=New channel');
+      await ann.page.click(tid('channels-add'));
+      await ann.page.click(tid('menu-new-channel'));
       const dialog = ann.page.locator('[role=dialog][aria-label="New channel"]');
       await dialog.locator('input').first().fill('Rota');
       await dialog.locator('label.pick-row input[type=checkbox]').first().check();

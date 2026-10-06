@@ -7,5 +7,6 @@ export const paths = {
   channelPins: (channelId: string) => `/channels/${channelId}/pins`,
   admin: '/admin',
   adminUser: (userId: number) => `/admin/users/${userId}`,
+  adminDeactivated: '/admin/deactivated',
   adminRestrictions: '/admin/restrictions',
 } as const;

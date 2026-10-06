@@ -72,6 +72,14 @@ export function App({ api, socket, user, getToken, onSignOut, onAuthError }: Pro
                 }
               />
               <Route
+                path="/admin/deactivated"
+                element={
+                  <Suspense fallback={loading}>
+                    <AdminPeoplePage deactivated />
+                  </Suspense>
+                }
+              />
+              <Route
                 path="/admin/users/:userId"
                 element={
                   <Suspense fallback={loading}>

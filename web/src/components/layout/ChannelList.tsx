@@ -1,5 +1,6 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { BellOff, ChevronDown, Hash, Lock, MoreHorizontal } from 'lucide-react';
+import { BellOff, ChevronDown, Hash, Lock, MoreHorizontal, PenLine, Plus } from 'lucide-react';
+import { Floating } from '../common/Floating.tsx';
 import { STORAGE_KEYS } from '../../config/constants.ts';
 import type { Channel } from '../../types/index.ts';
 import { presenceOf, type Presence } from '../../utils/presence.ts';
@@ -28,10 +29,24 @@ type Props = {
   currentId: string | null;
   onSelect: (c: Channel) => void;
   presence?: Presence;
+  /** The "+" on the section headers: a new channel or browsing (Channels), a new message (Direct messages). */
+  onNewChannel?: () => void;
+  onBrowse?: () => void;
+  onNewDm?: () => void;
 };
 
 /** The foldable lists in the sidebar: favourites (when any), channels, then direct messages. Each row has a menu. */
-export function ChannelList({ channels, currentId, onSelect, presence = NOBODY }: Props) {
+export function ChannelList({
+  channels,
+  currentId,
+  onSelect,
+  presence = NOBODY,
+  onNewChannel,
+  onBrowse,
+  onNewDm,
+}: Props) {
+  const [addOpen, setAddOpen] = useState(false);
+  const addButton = useRef<HTMLButtonElement | null>(null);
   const favourites = channels.filter((c) => c.favourite);
   const rooms = channels.filter((c) => c.type !== 'dm' && !c.favourite);
   const dms = channels.filter((c) => c.type === 'dm' && !c.favourite);
@@ -54,20 +69,71 @@ export function ChannelList({ channels, currentId, onSelect, presence = NOBODY }
       }
       return next;
     });
-  const title = (k: keyof Collapsed, label: string, list: Channel[]) => {
+  const title = (k: keyof Collapsed, label: string, list: Channel[], add?: ReactNode) => {
     const unread = unreadTotal(list, currentId);
     return (
-      <button className="s-sec chan-group-title" aria-expanded={!collapsed[k]} onClick={() => toggle(k)}>
-        <ChevronDown size={11} />
-        <span>{label}</span>
-        {unread > 0 ? (
-          <span className="cnt">{unread}</span>
-        ) : (
-          collapsed[k] && <span className="cnt quiet">{list.length}</span>
-        )}
-      </button>
+      <div className="s-sec-row">
+        <button className="s-sec chan-group-title" aria-expanded={!collapsed[k]} onClick={() => toggle(k)}>
+          <ChevronDown size={11} />
+          <span>{label}</span>
+          {unread > 0 ? (
+            <span className="cnt">{unread}</span>
+          ) : (
+            collapsed[k] && <span className="cnt quiet">{list.length}</span>
+          )}
+        </button>
+        {add}
+      </div>
     );
   };
+  const addChannels = (onNewChannel || onBrowse) && (
+    <>
+      <button
+        ref={addButton}
+        className="s-add"
+        aria-label="New channel or browse channels"
+        aria-haspopup="menu"
+        aria-expanded={addOpen}
+        data-testid="channels-add"
+        onClick={() => setAddOpen(!addOpen)}
+      >
+        <Plus size={14} />
+      </button>
+      {addOpen && (
+        <Floating anchor={addButton} onClose={() => setAddOpen(false)} className="cmenu" role="menu" label="Channels">
+          {onNewChannel && (
+            <button
+              data-testid="menu-new-channel"
+              onClick={() => {
+                setAddOpen(false);
+                onNewChannel();
+              }}
+            >
+              <Plus size={15} />
+              <span>New channel</span>
+            </button>
+          )}
+          {onBrowse && (
+            <button
+              data-testid="menu-browse"
+              onClick={() => {
+                setAddOpen(false);
+                onBrowse();
+              }}
+            >
+              <Hash size={15} />
+              <span>Browse channels</span>
+            </button>
+          )}
+        </Floating>
+      )}
+    </>
+  );
+  const addDm = onNewDm && (
+    <button className="s-add" aria-label="New direct message" data-testid="dms-new" onClick={onNewDm}>
+      <PenLine size={13} />
+    </button>
+  );
   const shown = (list: Channel[], k: keyof Collapsed) =>
     collapsed[k] ? list.filter((c) => visibleWhenCollapsed(c, currentId)) : list;
   const row = (c: Channel, label: string, icon: ReactNode, extra?: ReactNode) => (
@@ -128,13 +194,13 @@ export function ChannelList({ channels, currentId, onSelect, presence = NOBODY }
       )}
       {rooms.length > 0 && (
         <div className="chan-group">
-          {title('rooms', 'Channels', rooms)}
+          {title('rooms', 'Channels', rooms, addChannels)}
           {shown(rooms, 'rooms').map(roomRow)}
         </div>
       )}
       {dms.length > 0 && (
         <div className="chan-group">
-          {title('dms', 'Direct messages', dms)}
+          {title('dms', 'Direct messages', dms, addDm)}
           {shown(dms, 'dms').map(dmRow)}
         </div>
       )}
