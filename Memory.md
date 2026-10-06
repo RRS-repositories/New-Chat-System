@@ -166,6 +166,14 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 6 Oct 2026 — Add people, the signed-in rule, passwords set by Management or IT, and the Mattermost copy
+The owner asked for four things and answered the copy questions (people with CRM accounts only; direct messages yes, groups later; no bot messages; skip large files; copy now).
+- **Add people** to an existing channel from its details panel (the server already allowed it; the button was missing).
+- **Signed-in rule:** only people who have signed in to the chat at least once are offered when picking someone (new message, new channel, add people, add to call). Admin > People shows when each person last used the chat, or Never signed in.
+- **Set password:** Management or IT open Admin > People (IT see no restrictions) and set a person's password from their page. The chat forwards to the CRM's new `PUT /api/users/:id/password` (CRM pull request #734, awaiting the owner's merge); until that is live the button says the CRM does not offer it yet.
+- **Mattermost copy:** `server/dev/import-mattermost.mjs` (rules in `server/dev/import/mattermost.js`, database file `chat_006_import_map.sql`). Dry run on the server: 78 people matched (42 who signed in to Mattermost have no CRM account), 45 channels, 416 one-to-one conversations, 158,510 messages, 5,183 files, 8,516 reactions; 70,941 messages left out (bots and people without accounts). The real copy was run the same day; **Result of the real copy (6 Oct 2026, 208 s, chat kept running):** 158,520 messages, 43 new channels (Town Square into General, 2 names already here reused), 416 one-to-one conversations, 3,958 files (1,495 left out: 268 over the limit or of other types, and about 1,200 that Mattermost lists but no longer has on disk), 8,516 reactions, 2,128 thread replies. Copied conversations start as read. People see the new channels after a reload. The staged Mattermost files stay in `/opt/chat-import/files` on the server for a later copy of group conversations; the Mattermost connection file was removed.
+- Not deployed with this entry: the copy runs against the live database without a restart; the screen changes wait for a deploy.
+
 ### 5 Oct 2026 (evening) — whiteboard: host only, move and zoom; clearer presence dots (built, **not deployed yet**)
 The owner tried the board on chat2 and asked for: Ctrl + click/drag, zoom in and out, more room to write further down, and only the host able to use the board; and said that in dark mode he could not tell who is online.
 - Whiteboard: only the host draws (the server refuses others); the board is larger than the screen; Ctrl + drag, the hand tool or scrolling moves it; Ctrl + scroll or the buttons zoom; everyone's view follows the host's. "Ctrl click" was read as the same gesture as Ctrl + drag.

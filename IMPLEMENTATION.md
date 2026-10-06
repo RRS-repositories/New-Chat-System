@@ -455,6 +455,18 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 ---
 
+### 9.13 Who is offered, adding people, passwords, and the Mattermost copy (6 Oct 2026)
+
+**Only people who have signed in.** Wherever a person is picked (new message, new channel, add people, add to call), the list holds only people who have signed in to the chat at least once: those with a row in `chat.user_presence`, written when they first connect. Admin → People shows when each person last used the chat, or "Never signed in".
+
+**Add people.** A channel's details panel has an Add people row (anyone in the channel may; private channels still apply the sharing restrictions). `POST /channels/:id/members`.
+
+**Set a password.** Management and IT may open Admin → People (IT see no restrictions tab and no access table) and set a person's password from their page. The chat forwards `PUT /api/chat/admin/users/:id/password` to the CRM's `PUT /api/users/:id/password` with the caller's own session; the CRM applies its password rules, signs the person out everywhere and writes its audit. Nobody sets their own password here. Until the CRM has that route (CRM pull request #734), the chat answers "The CRM does not offer this yet".
+
+**Mattermost copy.** `node server/dev/import-mattermost.mjs` (dry run) and `--commit`, run on the server with `MM_DATABASE_URL`, `MM_FILES_DIR` (a copy of Mattermost's data folder) and `IMPORT_ACTOR_ID` set. Rules (the owner's, 6 Oct 2026): only people who signed in to Mattermost and have a CRM account with the same email; public and private channels, and one-to-one conversations where both people qualify (group conversations not yet); no messages from bots or automations; files over 20 MB or of a type the chat does not take are left out; Town Square lands in General and Off-Topic is skipped; copied conversations start as read. Messages keep their original dates, threads, pins, edits, files and reactions. `chat.import_map` (database file `chat_006`) remembers what was copied, so the script can be run again and copies nothing twice. Nothing is written in a dry run.
+
+---
+
 ## 10. The web app
 
 - **Entry:** `main.tsx` → `App.tsx`: the sign-in gate, the providers, and the list of pages.
@@ -612,6 +624,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: whiteboard **(Phase 9)** | `node server/dev/e2e/browser-board.cjs` | 7 |
 | Real browser: recording (the saved file is played back) **(Phase 9)** | `node server/dev/e2e/browser-record.cjs` | 4 |
 | Real browser: breakout groups (checked on the real audio connections) **(Phase 9)** | `node server/dev/e2e/browser-breakout.cjs` | 7 |
+| Real browser: add people, the signed-in rule, Management or IT setting a password | `node server/dev/e2e/browser-people.cjs` | 5 |
 | Speed with heavy data (needs `SEED_HEAVY=1`) | `node server/dev/e2e/browser-perf.cjs` | 31 measurements |
 | Deploy scripts | `bash deploy/rehearse.sh` | 51 |
 
