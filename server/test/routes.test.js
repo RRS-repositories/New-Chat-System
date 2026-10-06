@@ -283,6 +283,7 @@ test('POST /auth/login forwards the real client IP and a timeout signal to the C
     .set('X-Forwarded-For', '203.0.113.9, 10.0.0.1')
     .send({ email: 'a', password: 'b' });
   assert.equal(seen[0].headers['CF-Connecting-IP'], '203.0.113.9');
+  assert.equal(seen[0].headers['X-Login-For'], 'chat', 'the CRM lets chat-only accounts in only when the chat asks');
   assert.equal(seen[0].headers['X-Forwarded-For'], '203.0.113.9');
   assert.ok(seen[0].signal, 'abort signal attached');
   const slow = express();

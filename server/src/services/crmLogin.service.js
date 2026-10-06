@@ -17,6 +17,8 @@ export async function forwardLogin({ crmInternalUrl, fetchImpl = fetch }, { cred
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        // Accounts that exist for the chat alone are let in by the CRM only when the chat is asking.
+        'X-Login-For': 'chat',
         'CF-Connecting-IP': clientIp,
         'X-Forwarded-For': clientIp,
         'User-Agent': userAgent,
