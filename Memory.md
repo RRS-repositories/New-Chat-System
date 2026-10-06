@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 6 Oct 2026, 15:20 — notifications are not optional
+Owner's rule: everyone in the app must have notifications on. The browser alone grants the permission (Allow in its prompt), so the chat cannot do it for them; the line above the messages now cannot be dismissed and stays until the device has them on, a blocked browser gets unblock instructions, and Admin > People shows who has them on (push subscription). Deployed.
+
 ### 6 Oct 2026, 15:00 — desktop notifications without push
 The owner heard only the sound. A desktop notification was shown only through the service worker, which exists only after push is enabled on the device. Now the page shows it itself when there is no worker (click opens the channel); both paths carry the new chat icon (`web/public/icon-192.png`). Deployed.
 
