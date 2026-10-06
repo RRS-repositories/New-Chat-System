@@ -107,6 +107,8 @@ export function createApp({
       if (err) res.status(404).end();
     });
   });
+  // Built files carry a hash in their name, so a browser may keep them for good; the page itself an hour.
+  app.use('/assets', express.static(path.join(dist, 'assets'), { index: false, maxAge: '365d', immutable: true }));
   app.use(express.static(dist, { index: false, maxAge: '1h' }));
   app.get('*', (req, res) => {
     if (req.method !== 'GET' || req.path.startsWith('/socket.io')) return res.status(404).end();

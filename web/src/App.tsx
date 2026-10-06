@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import type { Socket } from 'socket.io-client';
 import { CallScreen } from './components/calls/CallScreen.tsx';
@@ -10,12 +10,19 @@ import { ChatProvider } from './context/ChatProvider.tsx';
 import { SignOutContext } from './context/SignOutContext.ts';
 import { ToastProvider } from './context/ToastProvider.tsx';
 import { useNotificationOpen } from './hooks/useNotificationOpen.ts';
-import { AdminPeoplePage } from './pages/AdminPeoplePage.tsx';
-import { AdminUserAccessPage } from './pages/AdminUserAccessPage.tsx';
 import { ChatPage } from './pages/ChatPage.tsx';
 import { DmRedirectPage } from './pages/DmRedirectPage.tsx';
-import { RestrictionsPage } from './pages/RestrictionsPage.tsx';
 import type { ApiClient } from './services/apiClient.ts';
+
+// Management's screens are not part of the first load.
+const AdminPeoplePage = lazy(() => import('./pages/AdminPeoplePage.tsx').then((m) => ({ default: m.AdminPeoplePage })));
+const AdminUserAccessPage = lazy(() =>
+  import('./pages/AdminUserAccessPage.tsx').then((m) => ({ default: m.AdminUserAccessPage })),
+);
+const RestrictionsPage = lazy(() =>
+  import('./pages/RestrictionsPage.tsx').then((m) => ({ default: m.RestrictionsPage })),
+);
+const loading = <p className="muted pad">Loading…</p>;
 import type { ChatUser } from './types/index.ts';
 
 type Props = {
@@ -56,9 +63,30 @@ export function App({ api, socket, user, getToken, onSignOut, onAuthError }: Pro
               <Route path="/channels/:channelId/thread/:messageId" element={<ChatPage />} />
               <Route path="/channels/:channelId/details" element={<ChatPage details />} />
               <Route path="/channels/:channelId/pins" element={<ChatPage pins />} />
-              <Route path="/admin" element={<AdminPeoplePage />} />
-              <Route path="/admin/users/:userId" element={<AdminUserAccessPage />} />
-              <Route path="/admin/restrictions" element={<RestrictionsPage />} />
+              <Route
+                path="/admin"
+                element={
+                  <Suspense fallback={loading}>
+                    <AdminPeoplePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/users/:userId"
+                element={
+                  <Suspense fallback={loading}>
+                    <AdminUserAccessPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin/restrictions"
+                element={
+                  <Suspense fallback={loading}>
+                    <RestrictionsPage />
+                  </Suspense>
+                }
+              />
               <Route path="/dm/:userId" element={<DmRedirectPage />} />
               <Route path="*" element={<Navigate to={paths.home} replace />} />
             </Routes>

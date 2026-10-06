@@ -9,6 +9,7 @@ export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; 
   const [type, setType] = useState<'public' | 'private'>('public');
   const [users, setUsers] = useState<ChatUser[]>([]);
   const [picked, setPicked] = useState<number[]>([]);
+  const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -58,22 +59,34 @@ export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; 
           />
         </label>
         <div className="field">
-          <span>Members</span>
+          <span>Members{picked.length ? ` · ${picked.length} chosen` : ''}</span>
+          <input
+            value={query}
+            placeholder="Search people"
+            aria-label="Search people"
+            data-testid="new-channel-filter"
+            onChange={(e) => setQuery(e.target.value)}
+          />
           <div className="pick-list">
-            {users.map((u) => (
-              <label key={u.id} className="pick-row pick-check">
-                <input
-                  type="checkbox"
-                  checked={picked.includes(u.id)}
-                  onChange={(e) => setPicked(e.target.checked ? [...picked, u.id] : picked.filter((x) => x !== u.id))}
-                />
-                <UserAvatar userId={u.id} name={u.fullName} size="md" />
-                <span className="pi">
-                  <b>{u.fullName}</b>
-                  <span>{u.role}</span>
-                </span>
-              </label>
-            ))}
+            {users
+              .filter((u) => !query.trim() || u.fullName.toLowerCase().includes(query.trim().toLowerCase()))
+              .map((u) => (
+                <label key={u.id} className="pick-row pick-check">
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(u.id)}
+                    onChange={(e) => setPicked(e.target.checked ? [...picked, u.id] : picked.filter((x) => x !== u.id))}
+                  />
+                  <UserAvatar userId={u.id} name={u.fullName} size="md" />
+                  <span className="pi">
+                    <b>{u.fullName}</b>
+                    <span>{u.role}</span>
+                  </span>
+                </label>
+              ))}
+            {!!query.trim() && !users.some((u) => u.fullName.toLowerCase().includes(query.trim().toLowerCase())) && (
+              <p className="muted pad">No one found</p>
+            )}
           </div>
         </div>
         {error && <p className="error">{error}</p>}

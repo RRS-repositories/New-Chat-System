@@ -1,5 +1,5 @@
 import { HangUp } from '../common/HangUp.tsx';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { LayoutGrid, Maximize2, Mic, MicOff, Minimize2, MonitorUp } from 'lucide-react';
 import { FEATURES } from '../../config/features.ts';
 import { useChat } from '../../context/chatContext.ts';
@@ -10,16 +10,18 @@ import { useCallClock } from '../../hooks/useCallClock.ts';
 import { useSpeaking, type VoiceSource } from '../../hooks/useSpeaking.ts';
 import { initials } from '../../utils/format.ts';
 import { hueOf } from '../../utils/hue.ts';
-import { AddPeople } from './AddPeople.tsx';
 import { describeGroups, groupOf, roomOf } from '../../utils/breakout.ts';
-import { BreakoutPanel } from './BreakoutPanel.tsx';
 import { CallDock } from './CallDock.tsx';
 import { CallTile, type TilePerson } from './CallTile.tsx';
 import { JoinRequests } from './JoinRequests.tsx';
 import { OwnScreen } from './OwnScreen.tsx';
 import { RemoteAudio } from './RemoteAudio.tsx';
 import { RemoteScreen } from './RemoteScreen.tsx';
-import { WhiteboardView } from './WhiteboardView.tsx';
+
+// The parts of the call screen that most calls never open are fetched when first used.
+const AddPeople = lazy(() => import('./AddPeople.tsx').then((m) => ({ default: m.AddPeople })));
+const BreakoutPanel = lazy(() => import('./BreakoutPanel.tsx').then((m) => ({ default: m.BreakoutPanel })));
+const WhiteboardView = lazy(() => import('./WhiteboardView.tsx').then((m) => ({ default: m.WhiteboardView })));
 
 const canShare = () =>
   typeof navigator !== 'undefined' &&
@@ -361,7 +363,9 @@ export function CallScreen() {
         <div className="cstage">
           {boardOpen && !sharer ? (
             <div className="c-present">
-              <WhiteboardView board={whiteboard} isHost={isHost} hostName={hostName} onClose={closeBoard} />
+              <Suspense fallback={<div className="wb" />}>
+                <WhiteboardView board={whiteboard} isHost={isHost} hostName={hostName} onClose={closeBoard} />
+              </Suspense>
               <div className="c-strip">{tiles}</div>
             </div>
           ) : sharer ? (
@@ -455,32 +459,36 @@ export function CallScreen() {
           }
         />
         {groupsOpen && (
-          <BreakoutPanel
-            breakout={breakout}
-            people={[
-              { userId: user.id, name: user.fullName, isSelf: true, isHost: call.hostId === user.id },
-              ...everyone.map((p) => ({
-                userId: p.userId,
-                name: p.userName,
-                isSelf: false,
-                isHost: call.hostId === p.userId,
-              })),
-            ]}
-            isHost={isHost}
-            hostName={hostName}
-            onChange={setBreakoutGroups}
-            onStart={startBreakouts}
-            onEnd={endBreakouts}
-            onClose={() => setGroupsOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <BreakoutPanel
+              breakout={breakout}
+              people={[
+                { userId: user.id, name: user.fullName, isSelf: true, isHost: call.hostId === user.id },
+                ...everyone.map((p) => ({
+                  userId: p.userId,
+                  name: p.userName,
+                  isSelf: false,
+                  isHost: call.hostId === p.userId,
+                })),
+              ]}
+              isHost={isHost}
+              hostName={hostName}
+              onChange={setBreakoutGroups}
+              onStart={startBreakouts}
+              onEnd={endBreakouts}
+              onClose={() => setGroupsOpen(false)}
+            />
+          </Suspense>
         )}
         {adding && (
-          <AddPeople
-            anchor={addButton}
-            takenIds={people.map((p) => p.userId)}
-            onPick={(id) => void inviteToCall(id)}
-            onClose={closeAdd}
-          />
+          <Suspense fallback={null}>
+            <AddPeople
+              anchor={addButton}
+              takenIds={people.map((p) => p.userId)}
+              onPick={(id) => void inviteToCall(id)}
+              onClose={closeAdd}
+            />
+          </Suspense>
         )}
         {calling && (
           <div className="c-ring" data-testid="call-ringing-out">

@@ -122,6 +122,13 @@ export function ChatProvider({
     onNotice,
   });
 
+  // The conversation list is fetched the moment the app starts, not when the live connection comes
+  // up (that can take a few seconds through the proxy, and the screen stayed empty meanwhile).
+  // The connection, when it arrives, fetches it again so nothing sent in between is missed.
+  useEffect(() => {
+    void loadChannels();
+  }, [loadChannels]);
+
   const value = useMemo<ChatContextValue>(
     () => ({ state, user, api, actions, currentChannelId, setCurrentChannelId }),
     [state, user, api, actions, currentChannelId, setCurrentChannelId],
