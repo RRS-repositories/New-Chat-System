@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 7 Oct 2026 — tables, like Mattermost
+The owner copies a table and pastes it; Mattermost showed a table, the chat showed text. Now a pasted table (Excel or Google Sheets cells, or a web page's table) becomes a Markdown table in the box, and messages draw Markdown tables (header row, borders, striped rows, scroll sideways when wide). One row or one column is left as text. Deployed.
+
 ### 7 Oct 2026 — one tab Offline, another Online for the same person
 After the 10:28 restart everyone reconnected at once; the owner's tab showed Ayush Offline while a colleague's showed him Online. Cause: each tab fetches the online list over HTTP on (re)connect and gets live events separately; an event that arrives while the list is still on its way is overwritten when the older list lands, and nothing corrects it until that person goes offline and back. Fix: events that arrive during the fetch are applied again after it (`createSnapshotReplay` in `web/src/utils/presence.ts`). Deployed.
 

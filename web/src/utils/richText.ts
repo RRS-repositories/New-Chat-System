@@ -7,6 +7,7 @@ import { renderWithMentions } from './mentions.ts';
  * What is understood:
  *   **bold**            `code`            ```a block of code```
  *   - a list            1. a numbered list
+ *   | a | table |  with a |---|---| line under the first row (what a pasted table becomes)
  *   https://…  links (http and https only)        @mentions
  */
 export type Inline =
@@ -16,14 +17,56 @@ export type Inline =
   | { kind: 'link'; text: string; href: string }
   | { kind: 'bold'; children: Inline[] };
 
+export type Align = 'left' | 'center' | 'right' | null;
 export type Block =
   | { kind: 'paragraph'; lines: Inline[][] }
   | { kind: 'list'; ordered: boolean; start: number; items: Inline[][] }
-  | { kind: 'code'; text: string };
+  | { kind: 'code'; text: string }
+  | { kind: 'table'; align: Align[]; header: Inline[][]; rows: Inline[][][] };
 
 const FENCE = '```';
 const BULLET = /^\s{0,3}[-*•]\s+(\S.*)$/;
 const NUMBERED = /^\s{0,3}(\d{1,3})[.)]\s+(\S.*)$/;
+
+const SEPARATOR_CELL = /^:?-+:?$/;
+
+/** The cells of one table line (`| a | b |`, outer pipes optional, `\|` is a pipe inside a cell). Null when it is not one. */
+export function tableCells(line: string): string[] | null {
+  const t = line.trim();
+  if (!t.includes('|')) return null;
+  const inner = t.replace(/^\|/, '').replace(/\|$/, '');
+  const cells: string[] = [];
+  let cur = '';
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i]!;
+    if (ch === '\\' && inner[i + 1] === '|') {
+      cur += '|';
+      i++;
+    } else if (ch === '|') {
+      cells.push(cur.trim());
+      cur = '';
+    } else cur += ch;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+/** The `|---|:---:|` line under a table's first row: its alignments, or null when the line is not one. */
+function separatorAlign(line: string): Align[] | null {
+  const cells = tableCells(line);
+  if (!cells || !cells.every((c) => SEPARATOR_CELL.test(c))) return null;
+  return cells.map((c) =>
+    c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : c.startsWith(':') ? 'left' : null,
+  );
+}
+
+/** Does a table start at line `i`: a row of cells with a matching `|---|` line under it? */
+function tableAt(lines: string[], i: number): { cells: string[]; align: Align[] } | null {
+  const cells = tableCells(lines[i]!);
+  if (!cells || i + 1 >= lines.length) return null;
+  const align = separatorAlign(lines[i + 1]!);
+  return align && align.length === cells.length ? { cells, align } : null;
+}
 
 const CODE = /`([^`\n]+)`/;
 const LINK = /https?:\/\/[^\s<>"'`]+/;
@@ -105,6 +148,24 @@ export function parseRich(content: string, names: string[] = []): Block[] {
       continue;
     }
 
+    // A table: a row of cells, the |---| line under it, then rows until a line without a pipe.
+    const table = tableAt(lines, i);
+    if (table) {
+      const { cells: headerCells, align } = table;
+      const width = headerCells.length;
+      const fit = (cells: string[]) => Array.from({ length: width }, (_, c) => parseInline(cells[c] ?? '', names));
+      const rows: Inline[][][] = [];
+      i += 2;
+      while (i < lines.length) {
+        const cells = tableCells(lines[i]!);
+        if (!cells) break;
+        rows.push(fit(cells));
+        i++;
+      }
+      blocks.push({ kind: 'table', align, header: fit(headerCells), rows });
+      continue;
+    }
+
     const bullet = BULLET.exec(line);
     const numbered = bullet ? null : NUMBERED.exec(line);
     if (bullet || numbered) {
@@ -126,6 +187,8 @@ export function parseRich(content: string, names: string[] = []): Block[] {
     while (i < lines.length) {
       const next = lines[i]!;
       if (next.trim().startsWith(FENCE) || BULLET.test(next) || NUMBERED.test(next)) break;
+      // The start of a table ends the paragraph (never before its first line: that line is not a table).
+      if (paragraph.length && tableAt(lines, i)) break;
       paragraph.push(parseInline(next, names));
       i++;
     }

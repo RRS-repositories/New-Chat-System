@@ -36,6 +36,35 @@ function block(part: Block, key: number): ReactNode {
         <code>{part.text}</code>
       </pre>
     );
+  if (part.kind === 'table') {
+    const style = (c: number) => (part.align[c] ? { textAlign: part.align[c]! } : undefined);
+    return (
+      <div key={key} className="msg-table-wrap">
+        <table className="msg-table">
+          <thead>
+            <tr>
+              {part.header.map((cell, c) => (
+                <th key={c} style={style(c)}>
+                  {cell.map(piece)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {part.rows.map((row, r) => (
+              <tr key={r}>
+                {row.map((cell, c) => (
+                  <td key={c} style={style(c)}>
+                    {cell.map(piece)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
   if (part.kind === 'list') {
     const items = part.items.map((item, i) => <li key={i}>{item.map(piece)}</li>);
     return part.ordered ? (
@@ -62,7 +91,7 @@ function block(part: Block, key: number): ReactNode {
 }
 
 /**
- * Message text on screen: links, **bold**, `code`, code blocks, lists and @mentions.
+ * Message text on screen: links, **bold**, `code`, code blocks, lists, tables and @mentions.
  * Built from text pieces only, never from HTML, so nothing typed in a message can run as code.
  */
 export function renderRich(content: string, names: string[]): ReactNode {

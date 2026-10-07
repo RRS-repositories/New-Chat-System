@@ -15,6 +15,7 @@ import { EmojiPicker } from './EmojiPicker.tsx';
 import { MentionAutocomplete } from './MentionAutocomplete.tsx';
 import { mentionQueryAt, insertMention, mentionItems } from '../../utils/mentions.ts';
 import { ACCEPT, formatBytes, validateFiles } from '../../utils/files.ts';
+import { tableFromClipboard } from '../../utils/tablePaste.ts';
 
 type Props = {
   onSend: (c: string) => Promise<void>;
@@ -138,7 +139,29 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
     if (files.length && onUpload) {
       e.preventDefault();
       addFiles(files);
+      return;
     }
+    // A table from a spreadsheet or a web page lands as a Markdown table (drawn as a table when sent).
+    const table = tableFromClipboard({
+      html: e.clipboardData?.getData('text/html'),
+      text: e.clipboardData?.getData('text/plain'),
+    });
+    if (table) {
+      e.preventDefault();
+      insertAtCaret(text.trim() ? `\n${table}\n` : `${table}\n`);
+    }
+  }
+  /** Puts text where the cursor is (replacing any selection). */
+  function insertAtCaret(piece: string) {
+    const at = ta.current?.selectionStart ?? text.length;
+    const to = ta.current?.selectionEnd ?? at;
+    setText(text.slice(0, at) + piece + text.slice(to));
+    const after = at + piece.length;
+    setCaret(after);
+    requestAnimationFrame(() => {
+      ta.current?.focus();
+      ta.current?.setSelectionRange(after, after);
+    });
   }
   /** Puts an emoji where the cursor is. */
   function insertEmoji(emoji: string) {

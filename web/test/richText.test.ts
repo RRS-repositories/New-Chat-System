@@ -136,3 +136,30 @@ test('a very long message is handled quickly', () => {
   assert.ok(blocks.length >= 1);
   assert.ok(performance.now() - started < 50, 'well under a frame or two');
 });
+
+test('a table: a row of cells, the |---| line, then rows; outer pipes optional; \| is a pipe; short rows are padded', () => {
+  const t = parseRich('| Name | Amount |\n|---|---:|\n| Ann | 10 |\nBob | 2\\|3 |\n| Cy |');
+  assert.equal(t.length, 1);
+  const table = t[0]!;
+  assert.equal(table.kind, 'table');
+  if (table.kind !== 'table') return;
+  assert.deepEqual(table.align, [null, 'right']);
+  assert.deepEqual(table.header, [[text('Name')], [text('Amount')]]);
+  assert.deepEqual(table.rows, [
+    [[text('Ann')], [text('10')]],
+    [[text('Bob')], [text('2|3')]],
+    [[text('Cy')], []],
+  ]);
+});
+
+test('a table ends the paragraph before it and stops at a line without a pipe; pipes alone are not a table', () => {
+  const blocks = parseRich('totals:\n| a | b |\n| - | - |\n| 1 | 2 |\nthanks');
+  assert.deepEqual(
+    blocks.map((b) => b.kind),
+    ['paragraph', 'table', 'paragraph'],
+  );
+  assert.deepEqual(parseRich('a | b\nc | d'), [{ kind: 'paragraph', lines: [[text('a | b')], [text('c | d')]] }]);
+  assert.deepEqual(parseRich('| a | b |\n|---|'), [
+    { kind: 'paragraph', lines: [[text('| a | b |')], [text('|---|')]] },
+  ]);
+});

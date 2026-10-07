@@ -471,6 +471,33 @@
   padding-left: 22px;
   white-space: normal;
 }
+/* A table in a message (a pasted spreadsheet or web table) */
+.msg-table-wrap {
+  margin: 5px 0;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: normal;
+}
+.msg-table {
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.msg-table th,
+.msg-table td {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: pre-wrap;
+}
+.msg-table th {
+  background: var(--paper-3);
+  font-weight: 700;
+}
+.msg-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--paper-3) 45%, transparent);
+}
 
 /* Empty conversation */
 .empty {
