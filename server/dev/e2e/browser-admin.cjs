@@ -35,12 +35,19 @@ const box = (page, name, kind) => row(page, name).locator(`input[data-kind="${ki
   const meg = await person(browser, 'm@x', 'Meg (Management)');
   const ann = await person(browser, 'a@x', 'Ann');
 
-  await step('Management sees "Admin" in the sidebar; other people do not', async () => {
-    await meg.page.locator('[data-testid="sidebar-admin"]').waitFor({ timeout: 5000 });
-    if (await ann.page.locator('[data-testid="sidebar-admin"]').count()) throw new Error('a non-manager sees Admin');
-  });
+  await step(
+    'no Admin button in the sidebar; /admin is typed in; other people get "Management or IT only"',
+    async () => {
+      if (await meg.page.locator('[data-testid="sidebar-admin"]').count()) throw new Error('an Admin button is shown');
+      await ann.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
+      await ann.page.locator('.admin-body', { hasText: 'Management or IT only' }).waitFor({ timeout: 8000 });
+      if (await ann.page.locator(tid('admin-person')).count()) throw new Error('a non-manager sees the people list');
+      await ann.page.goto(BASE, { waitUntil: 'domcontentloaded' });
+      await ann.page.waitForSelector('.sidebar-user', { timeout: 20000 });
+    },
+  );
   await step('People list shows everyone with role, chat access and who is online', async () => {
-    await meg.page.locator('[data-testid="sidebar-admin"]').click();
+    await meg.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
     await meg.page.locator(tid('admin-person')).first().waitFor({ timeout: 8000 });
     const n = await meg.page.locator(tid('admin-person')).count();
     if (n < 6) throw new Error(`only ${n} people listed`);

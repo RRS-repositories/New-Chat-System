@@ -134,7 +134,7 @@ const closeSettings = (page) => page.click('[role=dialog][aria-label="Settings"]
     await again.ctx.close();
   });
   await step('the sign-in page and the admin pages follow the theme too', async () => {
-    await meg.page.locator('[data-testid="sidebar-admin"]').click();
+    await meg.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
     await meg.page.waitForSelector('.admin-table');
     const bg = (await css(meg.page, '.admin-table-wrap', 'backgroundColor')).match(/\d+/g).map(Number);
     if (bg[0] + bg[1] + bg[2] > 220) throw new Error('admin table stayed light in dark mode');

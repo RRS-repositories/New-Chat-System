@@ -1,4 +1,4 @@
-import { MessageCircle, PenLine, Search, Settings, Shield } from 'lucide-react';
+import { MessageCircle, PenLine, Search, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { APP_TITLE, ORG_NAME } from '../../config/constants.ts';
 import type { Channel, UserStatus } from '../../types/index.ts';
@@ -15,15 +15,12 @@ type Props = {
   /** The signed-in person's own presence and status, shown on their card at the bottom. */
   ownPresence: PresenceState;
   ownStatus?: UserStatus;
-  adminActive?: boolean;
   onSelect: (channel: Channel) => void;
   onNewChannel: () => void;
   onNewDm: () => void;
   onBrowse: () => void;
   onSearch: () => void;
   onSettings: () => void;
-  /** Passed only for Management; without it the Admin row is not shown. */
-  onAdmin?: () => void;
 };
 
 const isApple = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
@@ -31,19 +28,7 @@ const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 
 
 /** The left panel: the brand, search, your channels and people, the actions, and your own card (which opens Settings). */
 export function Sidebar(props: Props) {
-  const {
-    channels,
-    currentId,
-    presence,
-    userId,
-    userName,
-    ownPresence,
-    ownStatus,
-    adminActive,
-    onSelect,
-    onSearch,
-    onAdmin,
-  } = props;
+  const { channels, currentId, presence, userId, userName, ownPresence, ownStatus, onSelect, onSearch } = props;
   const statusLine = [ownStatus?.emoji, ownStatus?.text].filter(Boolean).join(' ');
   return (
     <div className="sidebar-inner">
@@ -76,18 +61,6 @@ export function Sidebar(props: Props) {
         onNewDm={props.onNewDm}
       />
       <div className="s-bot sidebar-foot">
-        {onAdmin && (
-          <button
-            className={`s-tool${adminActive ? ' active' : ''}`}
-            aria-label="Admin"
-            title="Admin: people, access, restrictions"
-            data-testid="sidebar-admin"
-            onClick={onAdmin}
-          >
-            <Shield size={14} />
-            <span>Admin</span>
-          </button>
-        )}
         <button className="s-me" aria-label="Settings" title="Settings" onClick={props.onSettings}>
           <UserAvatar userId={userId} name={userName} presence={ownPresence} />
           <span className="nm">

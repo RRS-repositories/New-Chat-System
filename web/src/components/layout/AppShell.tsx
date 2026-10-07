@@ -8,7 +8,6 @@ import { useChat } from '../../context/chatContext.ts';
 import { useGoToChannel } from '../../hooks/useGoToChannel.ts';
 import type { SidebarState } from '../../hooks/useSidebar.ts';
 import { presenceOf } from '../../utils/presence.ts';
-import { isManagementOrIT } from '../../utils/restrictions.ts';
 import { SearchPanel } from '../channel/SearchPanel.tsx';
 import { NotEnabled } from '../common/NotEnabled.tsx';
 import { BrowseChannelsDialog } from '../dialogs/BrowseChannelsDialog.tsx';
@@ -27,14 +26,13 @@ type Props = {
   /** The channel on screen, if any (highlighted in the sidebar; search jumps relative to it). */
   currentChannelId?: string | null;
   /** True on the admin pages (highlights "Admin" in the sidebar). */
-  adminActive?: boolean;
 };
 
 /**
  * What every signed-in screen shares: the sidebar, the dialogs it opens (new channel, new message,
  * browse, search, settings), the unread count in the tab title, and the "not enabled" screen.
  */
-export function AppShell({ sidebar, main, panel, currentChannelId = null, adminActive = false }: Props) {
+export function AppShell({ sidebar, main, panel, currentChannelId = null }: Props) {
   const { state, user, actions } = useChat();
   const navigate = useNavigate();
   const goToChannel = useGoToChannel(sidebar.closeSidebar);
@@ -67,10 +65,6 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
     setDialog(next);
     if (next === 'settings' || next === 'search') sidebar.closeSidebar();
   };
-  const openAdmin = () => {
-    navigate(paths.admin);
-    sidebar.closeSidebar();
-  };
   const jumpToMessage = (channelId: string, messageId: string) => {
     sidebar.closeSidebar();
     if (channelId !== currentChannelId) navigate(paths.channel(channelId));
@@ -93,14 +87,12 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null, adminA
             userName={user.fullName}
             ownPresence={state.connected ? presenceOf(state.presence, user.id) : 'offline'}
             ownStatus={state.presence.statuses[user.id]}
-            adminActive={adminActive}
             onSelect={(channel) => goToChannel(channel.id)}
             onNewChannel={() => openFromSidebar('channel')}
             onNewDm={() => openFromSidebar('dm')}
             onBrowse={() => openFromSidebar('browse')}
             onSearch={() => openFromSidebar('search')}
             onSettings={() => openFromSidebar('settings')}
-            onAdmin={isManagementOrIT(user) ? openAdmin : undefined}
           />
         }
       />

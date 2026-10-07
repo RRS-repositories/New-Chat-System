@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 7 Oct 2026 — no Admin button
+The owner does not want an Admin button in the sidebar: Management and IT type chat2.rowanroseclaims.co.uk/admin. The button and its styling are gone; everyone else still gets "Management or IT only" at that address. Web-only, deployed without a restart.
+
 ### 6 Oct 2026, 17:00 — "Chat access" tells the truth
 The owner saw Yash (switched off) with chat access On: the column showed only the CRM permission (IT always has it). Now it means "can actually use the chat": an approved, active account and, only when `CHAT_REQUIRE_BETA` is on, the permission. On chat2 the gate is off, so everyone who can sign in shows On and every switched-off person shows Off; the footer says which rule applies (the list carries `gate`). Deployed with no call live.
 

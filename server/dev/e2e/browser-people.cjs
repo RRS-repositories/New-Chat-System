@@ -83,7 +83,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
   });
 
   await step('Admin → People says who has never signed in; a person’s page offers “Set a password”', async () => {
-    await meg.page.click(tid('sidebar-admin'));
+    await meg.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
     await meg.page.waitForSelector(tid('admin-people'));
     const bob = meg.page.locator(tid('admin-person'), { hasText: 'Bob Sales' });
     await bob.locator('.pill.never').waitFor({ timeout: 8000 });
@@ -108,7 +108,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
   await step(
     'Management (or IT) deactivate a person: gone from People, listed under Deactivated, back again on Reactivate',
     async () => {
-      await meg.page.click(tid('sidebar-admin'));
+      await meg.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
       await meg.page.waitForSelector(tid('admin-people'));
       meg.page.once('dialog', (d) => d.accept());
       await meg.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).locator(tid('deactivate')).click();
@@ -130,7 +130,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
 
   await step('IT sees the admin people list and can set a password, but not the restrictions', async () => {
     const eli = await person(browser, 'eli@x', 'Eli');
-    await eli.page.click(tid('sidebar-admin'));
+    await eli.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
     await eli.page.waitForSelector(tid('admin-people'));
     if (await eli.page.locator('.admin-tabs button', { hasText: 'All restrictions' }).count())
       throw new Error('IT sees the restrictions tab');
@@ -146,8 +146,9 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
     await eli.page.locator(tid('set-password-done')).waitFor({ timeout: 8000 });
   });
 
-  await step('someone who is not Management or IT has no Admin row at all', async () => {
-    if (await ann.page.locator(tid('sidebar-admin')).count()) throw new Error('Ann has an Admin button');
+  await step('someone who is not Management or IT gets "Management or IT only" at /admin', async () => {
+    await ann.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
+    await ann.page.locator('.admin-body', { hasText: 'Management or IT only' }).waitFor({ timeout: 8000 });
   });
 
   await browser.close();

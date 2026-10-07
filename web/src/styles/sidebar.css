@@ -444,20 +444,3 @@
     opacity: 1;
   }
 }
-/* The one small tool above the profile card (Admin, for Management and IT) */
-.s-tool {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 5px 9px;
-  border-radius: 9px;
-  color: #aeb4db;
-  font-size: 12px;
-  font-weight: 700;
-}
-.s-tool:hover,
-.s-tool.active {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}

@@ -23,7 +23,6 @@ export function AdminFrame({ title, tab, onBack, children }: Props) {
   return (
     <AppShell
       sidebar={sidebar}
-      adminActive
       main={
         <div className="admin-page">
           <AdminHead
