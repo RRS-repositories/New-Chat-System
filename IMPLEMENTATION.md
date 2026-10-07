@@ -324,7 +324,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 ### 9.3 Files
 
 - Up to **5 files per message, 20 MB each**.
-- Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, ZIP, MP4, WebM.
+- Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, ZIP, MP4, WebM, and sound files (MP3, WAV, M4A, AAC, OGG; since 7 Oct 2026, for call recordings from the CRM's phone system). A sound file's card plays it in place on tap, then offers the download. Each type's content is checked against its first bytes (`server/src/utils/fileSignature.js`).
 - Stored under `CHAT_UPLOADS_DIR` (`/data/chat-uploads` on the server), in a folder per channel, under a generated name. File names are cleaned and sent back with a safe `Content-Disposition`.
 - Images get a 200-pixel-wide JPEG **thumbnail** (`sharp`). Clicking opens a full-size view.
 - Files are fetched with the sign-in token and shown from memory; only channel members can fetch them. An SVG is never served as an image (it can carry script); it downloads instead.

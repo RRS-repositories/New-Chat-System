@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 7 Oct 2026 — sound files (call recordings)
+A colleague could not attach a downloaded call recording: the chat took only pictures, documents, ZIP, MP4 and WebM, and the CRM's phone recordings are MP3 (or WAV). MP3, WAV, M4A, AAC and OGG are now accepted (first bytes checked, like every other type), and a sound file's card plays it in place; the 20 MB cap stays (about 20 minutes of MP3 at usual quality). Deployed.
+
 ### 7 Oct 2026 — tables, like Mattermost
 The owner copies a table and pastes it; Mattermost showed a table, the chat showed text. Now a pasted table (Excel or Google Sheets cells, or a web page's table) becomes a Markdown table in the box, and messages draw Markdown tables (header row, borders, striped rows, scroll sideways when wide). One row or one column is left as text. Deployed.
 

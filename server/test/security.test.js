@@ -183,6 +183,18 @@ test('real files pass; a file of another kind wearing the label does not', () =>
   assert.equal(contentMatchesType('image/png', PNG), true);
   assert.equal(contentMatchesType('image/jpeg', JPEG), true);
   assert.equal(contentMatchesType('application/pdf', PDF), true);
+  // Sound files: a CRM call recording (MP3 with an ID3 tag, or a bare frame), WAV, M4A, OGG.
+  assert.equal(contentMatchesType('audio/mpeg', Buffer.from('ID3\x04\x00\x00\x00\x00\x00\x00', 'latin1')), true);
+  assert.equal(contentMatchesType('audio/mpeg', Buffer.from([0xff, 0xfb, 0x90, 0x00])), true);
+  assert.equal(contentMatchesType('audio/mpeg', Buffer.from('RIFF....WAVE', 'latin1')), false);
+  assert.equal(contentMatchesType('audio/wav', Buffer.from('RIFF\x00\x00\x00\x00WAVEfmt ', 'latin1')), true);
+  assert.equal(contentMatchesType('audio/x-m4a', Buffer.from('\x00\x00\x00\x20ftypM4A ', 'latin1')), true);
+  assert.equal(contentMatchesType('audio/ogg', Buffer.from('OggS\x00\x02', 'latin1')), true);
+  assert.equal(
+    contentMatchesType('audio/ogg', Buffer.from('MZ\x90\x00', 'latin1')),
+    false,
+    'a program is not a sound file',
+  );
   assert.equal(
     contentMatchesType('application/vnd.openxmlformats-officedocument.wordprocessingml.document', ZIP),
     true,

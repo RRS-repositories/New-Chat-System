@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FileText, Download, Play } from 'lucide-react';
 import type { ChatFile } from '../../types/index.ts';
 import { useChat } from '../../context/chatContext.ts';
-import { fileKind, formatBytes, isImage, isVideo } from '../../utils/files.ts';
+import { fileKind, formatBytes, isAudio, isImage, isVideo } from '../../utils/files.ts';
 import { Lightbox } from './Lightbox.tsx';
 
 /** Hand a fetched file to the browser's download UI, then release the memory. */
@@ -74,6 +74,7 @@ export function FileAttachment({ file }: { file: ChatFile }) {
     );
   }
   if (isVideo(file.mimeType)) return <VideoAttachment file={file} src={dl} />;
+  if (isAudio(file.mimeType)) return <AudioAttachment file={file} src={dl} />;
   return (
     <button
       className="fcard file-card"
@@ -126,6 +127,56 @@ function VideoAttachment({ file, src }: { file: ChatFile; src: string }) {
         <span>{formatBytes(file.sizeBytes)} · tap to play</span>
       </span>
     </button>
+  );
+}
+
+/** A sound file: the card plays it in place on tap (fetched with the sign-in token, like everything else). */
+function AudioAttachment({ file, src }: { file: ChatFile; src: string }) {
+  const { actions } = useChat();
+  const [url, setUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(
+    () => () => {
+      if (url) URL.revokeObjectURL(url);
+    },
+    [url],
+  );
+  return (
+    <div className="file-audio-card" data-testid="audio-attachment">
+      <button
+        className="fcard file-card"
+        disabled={busy}
+        aria-label={url ? `Download ${file.filename}` : `Play ${file.filename}`}
+        title={url ? 'Download' : 'Play'}
+        onClick={() => {
+          setBusy(true);
+          const done = () => setBusy(false);
+          if (url) void saveToDevice(actions.fetchBlob, src, file.filename).then(done, done);
+          else
+            actions
+              .fetchBlob(src)
+              .then((u) => {
+                setUrl(u);
+                setBusy(false);
+              })
+              .catch(() => {
+                setError('Could not load');
+                setBusy(false);
+              });
+        }}
+      >
+        <span className="fic">{url ? <Download size={17} /> : <Play size={17} />}</span>
+        <span className="fmeta file-meta">
+          <b className="file-name">{file.filename}</b>
+          <span>
+            {formatBytes(file.sizeBytes)} · {url ? 'Audio · tap to download' : 'Audio · tap to play'}
+            {error ? ` · ${error}` : ''}
+          </span>
+        </span>
+      </button>
+      {url && <audio className="file-audio" src={url} controls autoPlay preload="metadata" />}
+    </div>
   );
 }
 

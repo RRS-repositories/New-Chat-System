@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatBytes, validateFiles, isImage } from '../src/utils/files.ts';
+import { formatBytes, validateFiles, isImage, isAudio, fileKind } from '../src/utils/files.ts';
 
 const f = (name: string, size: number, type = '') => ({ name, size, type }) as unknown as File;
 test('formatBytes', () => {
@@ -20,6 +20,14 @@ test('validateFiles: size, count and extension rules with readable errors', () =
   const six = validateFiles(Array.from({ length: 6 }, (_, i) => f(`${i}.txt`, 1)));
   assert.equal(six.ok.length, 5);
   assert.match(six.errors[0]!, /5 files/);
+});
+test('sound files (call recordings) are allowed and known as Audio', () => {
+  const r = validateFiles([f('call-2026-10-07.mp3', 10), f('note.wav', 10), f('voice.m4a', 10), f('x.ogg', 10)]);
+  assert.equal(r.errors.length, 0);
+  assert.equal(r.ok.length, 4);
+  assert.equal(isAudio('audio/mpeg'), true);
+  assert.equal(isAudio('video/webm'), false);
+  assert.equal(fileKind('audio/mpeg', 'call.mp3'), 'Audio');
 });
 test('isImage', () => {
   assert.equal(isImage('image/png'), true);

@@ -20,6 +20,19 @@ export const ALLOWED_MIME = new Map([
   ['application/x-zip-compressed', 'zip'],
   ['video/mp4', 'mp4'],
   ['video/webm', 'webm'],
+  // Sound: call recordings from the CRM's phone system and voice notes. Browsers label the same
+  // file differently (Chrome says audio/x-m4a, Firefox audio/mp4), so each spelling is here.
+  ['audio/mpeg', 'mp3'],
+  ['audio/mp3', 'mp3'],
+  ['audio/wav', 'wav'],
+  ['audio/x-wav', 'wav'],
+  ['audio/wave', 'wav'],
+  ['audio/vnd.wave', 'wav'],
+  ['audio/mp4', 'm4a'],
+  ['audio/x-m4a', 'm4a'],
+  ['audio/aac', 'aac'],
+  ['audio/ogg', 'ogg'],
+  ['audio/webm', 'weba'],
 ]);
 const THUMB_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 export const THUMB_WIDTH = 200;

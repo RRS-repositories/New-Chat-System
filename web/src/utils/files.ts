@@ -16,6 +16,12 @@ const EXT = [
   'zip',
   'mp4',
   'webm',
+  'mp3',
+  'wav',
+  'm4a',
+  'aac',
+  'ogg',
+  'weba',
 ];
 export const ACCEPT = EXT.map((e) => `.${e}`).join(',');
 export function formatBytes(n: number): string {
@@ -46,6 +52,8 @@ export function validateFiles(files: File[]): { ok: File[]; errors: string[] } {
 }
 export const isImage = (mime: string) => /^image\/(jpeg|png|gif|webp)$/.test(mime);
 export const isVideo = (mime: string) => /^video\/(mp4|webm)$/.test(mime);
+/** A sound file (a call recording from the CRM, a voice note): played in place. */
+export const isAudio = (mime: string) => /^audio\//.test(mime);
 
 const KINDS: Record<string, string> = {
   pdf: 'PDF',
@@ -58,6 +66,12 @@ const KINDS: Record<string, string> = {
   svg: 'Image',
   webm: 'Recording',
   mp4: 'Video',
+  mp3: 'Audio',
+  wav: 'Audio',
+  m4a: 'Audio',
+  aac: 'Audio',
+  ogg: 'Audio',
+  weba: 'Audio',
 };
 /** A plain word for what a file is, shown on its card: "PDF", "Spreadsheet", "Image". */
 export function fileKind(mime: string, filename: string): string {
