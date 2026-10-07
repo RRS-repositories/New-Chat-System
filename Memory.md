@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 7 Oct 2026 — one tab Offline, another Online for the same person
+After the 10:28 restart everyone reconnected at once; the owner's tab showed Ayush Offline while a colleague's showed him Online. Cause: each tab fetches the online list over HTTP on (re)connect and gets live events separately; an event that arrives while the list is still on its way is overwritten when the older list lands, and nothing corrects it until that person goes offline and back. Fix: events that arrive during the fetch are applied again after it (`createSnapshotReplay` in `web/src/utils/presence.ts`). Deployed.
+
 ### 7 Oct 2026 — no Admin button
 The owner does not want an Admin button in the sidebar: Management and IT type chat2.rowanroseclaims.co.uk/admin. The button and its styling are gone; everyone else still gets "Management or IT only" at that address. Web-only, deployed without a restart.
 

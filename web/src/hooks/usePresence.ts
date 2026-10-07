@@ -3,7 +3,7 @@ import type { Socket } from 'socket.io-client';
 import type { ChatApi } from '../services/chatApi.ts';
 import { avatarStore } from '../services/avatars.ts';
 import type { Action } from '../context/chatReducer.ts';
-import { backFromAway, computeAway } from '../utils/presence.ts';
+import { backFromAway, computeAway, createSnapshotReplay } from '../utils/presence.ts';
 
 const INPUT_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'] as const;
 
@@ -32,24 +32,27 @@ export function usePresence({
   const comeBack = useRef<() => void>(() => {});
   useEffect(() => {
     let live = true;
+    // Events that arrive while the snapshot is on its way are applied again after it (see createSnapshotReplay).
+    const replay = createSnapshotReplay<Action>(dispatch);
     const load = () => {
+      replay.begin();
       chatApi
         .presence()
         .then((r) => {
           if (!live) return;
-          dispatch({ type: 'presence_loaded', snapshot: r });
+          replay.end({ type: 'presence_loaded', snapshot: r });
           avatarStore.setAll(r.avatars || {});
         })
-        .catch(() => {});
+        .catch(() => replay.end());
     };
-    const onOnline = (p: { user_id: number }) => dispatch({ type: 'user_online', userId: Number(p.user_id) });
-    const onOffline = (p: { user_id: number }) => dispatch({ type: 'user_offline', userId: Number(p.user_id) });
+    const onOnline = (p: { user_id: number }) => replay.event({ type: 'user_online', userId: Number(p.user_id) });
+    const onOffline = (p: { user_id: number }) => replay.event({ type: 'user_offline', userId: Number(p.user_id) });
     const onAway = (p: { user_id: number; away: boolean }) =>
-      dispatch({ type: 'user_away', userId: Number(p.user_id), away: !!p.away });
+      replay.event({ type: 'user_away', userId: Number(p.user_id), away: !!p.away });
     const onUpdated = (p: { user_id: number; avatar_url?: string | null }) =>
       avatarStore.set(Number(p.user_id), p.avatar_url || null);
     const onStatus = (p: { user_id: number; text?: string; emoji?: string }) =>
-      dispatch({ type: 'user_status', userId: Number(p.user_id), text: p.text || '', emoji: p.emoji || '' });
+      replay.event({ type: 'user_status', userId: Number(p.user_id), text: p.text || '', emoji: p.emoji || '' });
 
     const check = () => {
       if (

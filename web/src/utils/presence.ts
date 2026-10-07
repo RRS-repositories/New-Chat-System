@@ -41,3 +41,35 @@ export function backFromAway(s: {
 }): boolean {
   return s.sentAway && !computeAway(s);
 }
+
+/**
+ * Keeps the live presence events straight with the snapshot fetched on (re)connect. The snapshot is
+ * fetched over HTTP, so an online/offline/away event can arrive while it is still on its way; when
+ * the older snapshot then lands it would overwrite that event (a person shown Offline in one tab
+ * and Online in another, after a restart made everyone reconnect at once). So: every event is
+ * applied at once, and the events that arrived during a fetch are applied again after the snapshot.
+ */
+export function createSnapshotReplay<A>(apply: (action: A) => void) {
+  let fetching = 0;
+  const during: A[] = [];
+  return {
+    /** A live event: apply it now, and remember it if a snapshot is still on its way. */
+    event(action: A) {
+      apply(action);
+      if (fetching) during.push(action);
+    },
+    /** The snapshot fetch starts. */
+    begin() {
+      fetching += 1;
+    },
+    /** The snapshot fetch ends (with the snapshot's action, or nothing when it failed). */
+    end(snapshot?: A) {
+      fetching = Math.max(0, fetching - 1);
+      if (snapshot !== undefined) apply(snapshot);
+      if (!fetching) {
+        const replay = during.splice(0);
+        if (snapshot !== undefined) for (const a of replay) apply(a);
+      }
+    },
+  };
+}
