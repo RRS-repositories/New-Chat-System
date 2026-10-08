@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { BellOff, Bell, ExternalLink, Link2, LogOut, MailOpen, Star, StarOff, Trash2, UserPlus } from 'lucide-react';
+import { BellOff, Bell, CheckCheck, ExternalLink, Link2, LogOut, Star, StarOff, Trash2, UserPlus } from 'lucide-react';
 import { isManagementOrIT } from '../../utils/restrictions.ts';
 import { paths } from '../../config/routes.ts';
 import { useChat } from '../../context/chatContext.ts';
@@ -15,7 +15,7 @@ type Props = {
   onClose: () => void;
 };
 
-/** The menu on a conversation in the sidebar: open elsewhere, unread, favourite, mute, link, people, leave. */
+/** The menu on a conversation in the sidebar: open elsewhere, mark as read, favourite, mute, link, people, leave, delete. */
 export function ChannelMenu({ channel, anchor, onClose }: Props) {
   const { actions, user } = useChat();
   const toast = useToast();
@@ -44,9 +44,9 @@ export function ChannelMenu({ channel, anchor, onClose }: Props) {
         <ExternalLink size={15} />
         <span>Open in new window</span>
       </button>
-      <button data-testid="menu-unread" onClick={() => run(() => actions.markUnread(channel.id))}>
-        <MailOpen size={15} />
-        <span>Mark as unread</span>
+      <button data-testid="menu-read" onClick={() => run(() => actions.markRead(channel.id))}>
+        <CheckCheck size={15} />
+        <span>Mark as read</span>
       </button>
       <button
         data-testid="menu-favourite"

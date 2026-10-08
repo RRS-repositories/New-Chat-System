@@ -1,5 +1,5 @@
 // Real-browser check of the sidebar's conversation menu against the local harness
-// (node server/dev/local.mjs → http://localhost:5021): favourites section, mark as unread, mute,
+// (node server/dev/local.mjs → http://localhost:5021): favourites section, mark as read, mute,
 // copy link, add people, leave — from the ⋯ button and from a right click.
 //   node server/dev/e2e/browser-menu.cjs
 const { chromium } = require('playwright-core');
@@ -93,24 +93,23 @@ const openMenu = async (page, name) => {
     await meg.page.locator('.chan-group .chan-row', { hasText: 'Rota' }).waitFor();
   });
 
-  await step(
-    'mark as unread: the badge appears and the person is not moved; opening the channel clears it',
-    async () => {
-      await ann.page.locator('.chan-row', { hasText: 'Rota' }).first().click();
-      await ann.page.fill('.panel > .input-bar textarea', 'Rota for next week is up');
-      await ann.page.keyboard.press('Enter');
-      await meg.page.locator('.chan-row', { hasText: 'Rota' }).first().click();
-      await meg.page.locator('.msg-text', { hasText: 'Rota for next week' }).waitFor({ timeout: 8000 });
-      await meg.page.locator('.chan-row', { hasText: 'General' }).first().click();
-      await openMenu(meg.page, 'Rota');
-      await meg.page.click(tid('menu-unread'));
-      await rowOf(meg.page, 'Rota').locator('.badge').waitFor({ timeout: 8000 });
-      if (!/General/.test(await meg.page.locator('.chan-title').innerText()))
-        throw new Error('marking unread moved the person');
-      await meg.page.locator('.chan-row', { hasText: 'Rota' }).first().click();
-      await rowOf(meg.page, 'Rota').locator('.badge').waitFor({ state: 'detached', timeout: 8000 });
-    },
-  );
+  await step('mark as read: the badge goes without opening the channel, and the person is not moved', async () => {
+    await meg.page.locator('.chan-row', { hasText: 'General' }).first().click();
+    await ann.page.locator('.chan-row', { hasText: 'Rota' }).first().click();
+    await ann.page.fill('.panel > .input-bar textarea', 'Rota for next week is up');
+    await ann.page.keyboard.press('Enter');
+    await rowOf(meg.page, 'Rota').locator('.badge').waitFor({ timeout: 8000 });
+    await openMenu(meg.page, 'Rota');
+    await meg.page.click(tid('menu-read'));
+    await rowOf(meg.page, 'Rota').locator('.badge').waitFor({ state: 'detached', timeout: 8000 });
+    if (!/General/.test(await meg.page.locator('.chan-title').innerText()))
+      throw new Error('marking read moved the person');
+    // The server agrees: the channel is read for Meg on every device.
+    await meg.page.reload({ waitUntil: 'domcontentloaded' });
+    await meg.page.waitForSelector('.sidebar-user', { timeout: 15000 });
+    await rowOf(meg.page, 'Rota').waitFor({ timeout: 8000 });
+    if (await rowOf(meg.page, 'Rota').locator('.badge').count()) throw new Error('still unread after a reload');
+  });
 
   await step(
     'mute shows the bell on the row and the menu offers Unmute; copy link puts the address on the clipboard',

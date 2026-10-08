@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 8 Oct 2026 — "Mark as read" instead of "Mark as unread"
+The owner: nobody needs Mark as unread; Mark as read is the useful one. The sidebar ⋯ menu item now clears a conversation's badge (and mentions) without opening it, on every device. The server's mark-unread route stays but nothing uses it. Deployed.
+
 ### 8 Oct 2026 — delete a channel (Management and IT only)
 The owner asked for a way to delete a channel, for Management and IT only. Channel details → Options has "Delete channel" (and the sidebar ⋯ menu too) for those two roles; it asks first, then deletes the channel with every message, thread, file, reaction, mention and call record for good, in one transaction, writes an audit row and takes the channel off everybody's sidebar at once. General and direct messages cannot be deleted; a live call blocks it. Archive stays as the gentler option (messages kept). Deployed.
 
