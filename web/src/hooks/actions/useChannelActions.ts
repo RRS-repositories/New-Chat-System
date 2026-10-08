@@ -113,6 +113,15 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     [chatApi, dispatch],
   );
 
+  /** Management or IT: the channel and everything in it, gone for good. */
+  const deleteChannel = useCallback(
+    async (channelId: string) => {
+      await chatApi.deleteChannel(channelId);
+      dispatch({ type: 'channel_removed', channelId });
+    },
+    [chatApi, dispatch],
+  );
+
   return {
     loadChannels,
     createChannel,
@@ -127,5 +136,6 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     renameChannel,
     leaveChannel,
     archiveChannel,
+    deleteChannel,
   };
 }

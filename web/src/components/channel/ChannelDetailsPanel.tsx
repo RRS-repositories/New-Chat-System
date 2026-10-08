@@ -11,6 +11,7 @@ import { PersonButton } from '../common/ProfileCard.tsx';
 import { AddMembersDialog } from '../dialogs/AddMembersDialog.tsx';
 import { ChannelOptions } from './ChannelOptions.tsx';
 import { useCanModerate } from './MessagePanel.tsx';
+import { isManagementOrIT } from '../../utils/restrictions.ts';
 
 type Props = {
   channelId: string;
@@ -162,7 +163,13 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
           </>
         )}
         {tab === 'options' && channel && hasOptions && (
-          <ChannelOptions key={channel.id} channel={channel} canManage={canManage} onGone={onGone} />
+          <ChannelOptions
+            key={channel.id}
+            channel={channel}
+            canManage={canManage}
+            canDelete={isManagementOrIT(user)}
+            onGone={onGone}
+          />
         )}
         {tab === 'files' && (
           <>

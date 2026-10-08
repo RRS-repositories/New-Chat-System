@@ -11,6 +11,7 @@ export function createChannelRoutes(deps) {
   r.get('/:id', channels.get);
   r.patch('/:id', channels.update);
   r.post('/:id/archive', channels.archive);
+  r.delete('/:id', channels.remove);
   r.post('/:id/members', channels.addMembers);
   r.delete('/:id/members/:userId', channels.removeMember);
   r.post('/:id/read', channels.markRead);

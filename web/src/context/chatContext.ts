@@ -38,6 +38,7 @@ export type ChatActions = {
   leaveChannel: (channelId: string) => Promise<void>;
   /** Hides the channel for everyone; its messages are kept. */
   archiveChannel: (channelId: string) => Promise<void>;
+  deleteChannel: (channelId: string) => Promise<void>;
   typing: (channelId: string) => void;
   markRead: (channelId: string) => void;
   reply: (message: Message | null) => void;

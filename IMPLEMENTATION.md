@@ -227,6 +227,7 @@ All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks
 | `GET /messages/:id/thread` | A thread: the root and its replies. |
 | `GET /channels/:id/pins` · `POST /messages/:id/pin` · `DELETE /messages/:id/pin` | Pinned messages, 50 per channel at most. |
 | `POST /messages/:id/reactions` · `DELETE /messages/:id/reactions/:emoji` | Reactions (emoji up to 8 characters). |
+| `DELETE /channels/:id` | Management or IT: delete the channel and everything in it (messages, threads, files, mentions, reactions, calls, memberships) for good, in one transaction; files come off the disk after. Never General or a direct message; 409 while a call is going on. Audit row `channel.delete`. Everyone in it gets `channel_deleted`. |
 | `POST /channels/:id/upload` | Upload up to 5 files of 20 MB each, with an optional caption. Limit: 5 uploads per minute per person. |
 | `GET /channels/:id/files` | Files shared in a channel. |
 | `GET /files/:id/download` · `GET /files/:id/thumb` | The file, or its thumbnail. Channel members only. |
@@ -280,7 +281,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 | `message_pinned`, `message_unpinned`, `reaction_added`, `reaction_removed` | |
 | `typing` | Someone is typing. Shown for 5 seconds. |
 | `unread_update { channel_id, unread_count, mention_count }` | Badge changes for this person. |
-| `member_added`, `member_removed`, `channel_updated`, `channel_archived` | Membership and channel changes: joined, left or removed, renamed, archived. |
+| `member_added`, `member_removed`, `channel_updated`, `channel_archived`, `channel_deleted` | Membership and channel changes: joined, left or removed, renamed, archived, deleted. |
 | `user_online`, `user_offline`, `user_away`, `user_status` | Presence and status. |
 | `call_started`, `call_participant_joined`, `call_participant_left`, `call_ended`, `call_dismissed` | Call lifecycle. |
 | `call_muted_by_host`, `call_removed` **(Phase 5)** | The host muted this person (sent to their call tab) or removed them (sent to all their tabs). |

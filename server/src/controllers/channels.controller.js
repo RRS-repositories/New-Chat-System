@@ -2,6 +2,7 @@ import { httpError, wrap } from '../middleware/errors.js';
 import {
   addMembers,
   archiveChannel,
+  deleteChannel,
   countMembers,
   createChannel,
   ensureDefaultMembership,
@@ -16,11 +17,12 @@ import {
   updateChannel,
 } from '../models/channels.model.js';
 import { getLiveCall } from '../models/calls.model.js';
+import { removeUpload } from '../services/files/storage.js';
 import { isBlocked, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
 import { assertMember, assertCanShareChannel, canModerate } from '../services/channels.service.js';
 import { toIds } from '../utils/ids.js';
 
-export function createChannelController({ db, emit }) {
+export function createChannelController({ db, emit, uploadsDir = '' }) {
   const joinRooms = (userIds, channelId) => {
     for (const userId of userIds) emit.joinRoom?.(userId, channelId);
   };
@@ -131,6 +133,33 @@ export function createChannelController({ db, emit }) {
       await archiveChannel(db, channelId, { actorId: req.user.id });
       emit.toChannel(channelId, 'channel_archived', { channel_id: channelId });
       res.json({ success: true });
+    }),
+
+    /**
+     * Deletes the channel for good, with everything in it. Management and IT only (the owner's rule,
+     * 8 Oct 2026), never General or a direct message, never while a call is going on in it.
+     */
+    remove: wrap(async (req, res) => {
+      const channelId = req.params.id;
+      if (!['Management', 'IT'].includes(req.user.role))
+        throw httpError(403, 'forbidden', 'Only Management and IT can delete a channel');
+      mustBeOrdinary(await channelOr404(channelId));
+      if (await getLiveCall(db, channelId))
+        throw httpError(409, 'call_in_progress', 'A call is going on in this channel. End it first.');
+      const gone = await deleteChannel(db, channelId, { actorId: req.user.id });
+      if (!gone) throw httpError(404, 'not_found', 'Channel not found');
+      emit.toChannel(channelId, 'channel_deleted', { channel_id: channelId });
+      for (const userId of gone.memberIds) {
+        emit.toUser(userId, 'channel_deleted', { channel_id: channelId });
+        emit.leaveRoom?.(userId, channelId);
+      }
+      // The files come off the disk after the rows are gone; a failure here only leaves a stray file.
+      if (uploadsDir)
+        for (const f of gone.files) {
+          await removeUpload(uploadsDir, f.file_path);
+          await removeUpload(uploadsDir, f.thumbnail_path);
+        }
+      res.json({ success: true, deleted: { messages: gone.messageCount, files: gone.files.length } });
     }),
 
     /** Anyone may leave; removing someone else needs a channel admin or Management. */

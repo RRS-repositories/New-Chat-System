@@ -1,6 +1,7 @@
 import { useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { BellOff, Bell, ExternalLink, Link2, LogOut, MailOpen, Star, StarOff, UserPlus } from 'lucide-react';
+import { BellOff, Bell, ExternalLink, Link2, LogOut, MailOpen, Star, StarOff, Trash2, UserPlus } from 'lucide-react';
+import { isManagementOrIT } from '../../utils/restrictions.ts';
 import { paths } from '../../config/routes.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
@@ -16,7 +17,7 @@ type Props = {
 
 /** The menu on a conversation in the sidebar: open elsewhere, unread, favourite, mute, link, people, leave. */
 export function ChannelMenu({ channel, anchor, onClose }: Props) {
-  const { actions } = useChat();
+  const { actions, user } = useChat();
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const isDm = channel.type === 'dm';
@@ -94,6 +95,24 @@ export function ChannelMenu({ channel, anchor, onClose }: Props) {
             <LogOut size={15} />
             <span>Leave channel</span>
           </button>
+          {isManagementOrIT(user) && (
+            <button
+              className="danger"
+              data-testid="menu-delete"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Delete ${name} for everyone? Every message and file in it is deleted for good. This cannot be undone.`,
+                  )
+                )
+                  run(() => actions.deleteChannel(channel.id));
+                else onClose();
+              }}
+            >
+              <Trash2 size={15} />
+              <span>Delete channel</span>
+            </button>
+          )}
         </>
       )}
     </Floating>

@@ -184,3 +184,77 @@ test('a channel with a call going on is not archived under the people in it', as
   ok(await as(2).post(`/calls/${started.body.call.id}/leave`));
   ok(await as(2).post(`/channels/${id}/archive`));
 });
+
+// ---- delete ------------------------------------------------------------------
+
+test('Management or IT delete a channel for good: rows gone, members told, audit written', async () => {
+  await db.query(`UPDATE users SET role = 'IT' WHERE id = 5`);
+  const id = await room([1, 5]);
+  const m = (
+    await db.query(`INSERT INTO chat.messages (channel_id, user_id, content) VALUES ($1, 2, 'root') RETURNING id`, [id])
+  ).rows[0].id;
+  await db.query(
+    `INSERT INTO chat.messages (channel_id, user_id, content, thread_id, reply_to_id) VALUES ($1, 3, 'reply', $2, $2)`,
+    [id, m],
+  );
+  await db.query(`INSERT INTO chat.reactions (message_id, user_id, emoji) VALUES ($1, 3, '👍')`, [m]);
+  await db.query(`INSERT INTO chat.mentions (message_id, channel_id, user_id) VALUES ($1, $2, 3)`, [m, id]);
+  await db.query(
+    `INSERT INTO chat.files (message_id, channel_id, user_id, filename, mime_type, size_bytes, file_path) VALUES ($1, $2, 2, 'a.txt', 'text/plain', 1, 'x/a.txt')`,
+    [m, id],
+  );
+  // A plain member may not, even the owner.
+  isErr(await as(2).del(`/channels/${id}`), 403, 'forbidden');
+  isErr(await as(3).del(`/channels/${id}`), 403, 'forbidden');
+  const mark = events.length;
+  const r = await as(5).del(`/channels/${id}`);
+  ok(r);
+  assert.deepEqual(r.body.deleted, { messages: 2, files: 1 });
+  for (const t of [
+    'channels WHERE id',
+    'messages WHERE channel_id',
+    'files WHERE channel_id',
+    'mentions WHERE channel_id',
+    'channel_members WHERE channel_id',
+  ])
+    assert.equal((await db.query(`SELECT count(*)::int AS n FROM chat.${t} = $1`, [id])).rows[0].n, 0, t);
+  assert.equal(
+    (await db.query(`SELECT count(*)::int AS n FROM chat.reactions WHERE message_id = $1`, [m])).rows[0].n,
+    0,
+  );
+  const told = since(mark, 'channel_deleted');
+  assert.ok(told.some((e) => e.to === 'channel' && e.id === id));
+  assert.deepEqual(
+    told
+      .filter((e) => e.to === 'user')
+      .map((e) => e.id)
+      .sort(),
+    [1, 2, 3, 5],
+  );
+  assert.ok(!(await listed(2)).includes(id));
+  const audit = await db.query(
+    `SELECT actor_id, detail FROM chat.audit_log WHERE action = 'channel.delete' AND target_id = $1`,
+    [id],
+  );
+  assert.equal(audit.rows[0].actor_id, 5);
+  assert.equal(audit.rows[0].detail.messages, 2);
+  isErr(await as(1).del(`/channels/${id}`), 404, 'not_found');
+});
+
+test('General and direct messages cannot be deleted; a live call blocks it', async () => {
+  isErr(await as(1).del(`/channels/${await general()}`), 403, 'default_channel');
+  const dm = await openDm(db, 1, 3);
+  isErr(await as(1).del(`/channels/${dm.id}`), 403, 'dm_fixed');
+  const id = await room([1]);
+  await db.query(`INSERT INTO chat.calls (channel_id, initiated_by, type, status) VALUES ($1, 2, 'voice', 'active')`, [
+    id,
+  ]);
+  isErr(await as(1).del(`/channels/${id}`), 409, 'call_in_progress');
+  await db.query(`UPDATE chat.calls SET status = 'ended', ended_at = now() WHERE channel_id = $1`, [id]);
+  ok(await as(1).del(`/channels/${id}`));
+  assert.equal(
+    (await db.query(`SELECT count(*)::int AS n FROM chat.calls WHERE channel_id = $1`, [id])).rows[0].n,
+    0,
+    'old calls go too',
+  );
+});

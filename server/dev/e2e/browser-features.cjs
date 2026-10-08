@@ -181,6 +181,33 @@ const openOptions = async (page, channelName) => {
     },
   );
 
+  await step(
+    'Management delete a channel for good: the owner is not offered it; it vanishes for everyone',
+    async () => {
+      const r = await fetch(`${BASE}/api/chat/channels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ann.token}` },
+        body: JSON.stringify({ displayName: 'Doomed', type: 'private', memberIds: [1] }),
+      });
+      const doomedId = (await r.json()).channel.id;
+      await meg.page.locator('.chan-row', { hasText: 'Doomed' }).first().waitFor({ timeout: 10000 });
+      await ann.page.reload({ waitUntil: 'domcontentloaded' });
+      await ann.page.locator('.chan-row', { hasText: 'Doomed' }).first().waitFor({ timeout: 15000 });
+      await openOptions(ann.page, 'Doomed');
+      await ann.page.waitForSelector(tid('channel-archive'));
+      if (await ann.page.locator(tid('channel-delete')).count())
+        throw new Error('the owner (not Management) is offered Delete');
+      await openOptions(meg.page, 'Doomed');
+      await meg.page.click(tid('channel-delete'));
+      await meg.page.click(tid('channel-confirm'));
+      for (const p of [ann, meg]) await gone(p.page.locator('.chan-row', { hasText: 'Doomed' }));
+      const after = await fetch(`${BASE}/api/chat/channels/${doomedId}`, {
+        headers: { Authorization: `Bearer ${meg.token}` },
+      });
+      if (![403, 404].includes(after.status)) throw new Error(`deleted channel still answers ${after.status}`);
+    },
+  );
+
   await browser.close();
   for (const [s, n] of results) console.log(`${s}  ${n}`);
   console.log(`\nbrowser errors: ${errors.length ? '\n  ' + errors.join('\n  ') : 'none'}`);

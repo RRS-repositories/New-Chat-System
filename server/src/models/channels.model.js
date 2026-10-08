@@ -122,6 +122,57 @@ export async function archiveChannel(db, channelId, { actorId, reason = 'archive
   return true;
 }
 
+/**
+ * Deletes a channel for good: its messages, threads, files (rows; the caller removes them from disk),
+ * mentions, reactions, pins, calls and memberships, then the channel. One transaction. Returns the
+ * member ids (to tell them) and the files' paths (to unlink), or null when there is no such channel.
+ */
+export async function deleteChannel(db, channelId, { actorId }) {
+  await db.query('BEGIN');
+  try {
+    const {
+      rows: [channel],
+    } = await db.query(`SELECT id, name, display_name, type FROM chat.channels WHERE id = $1 FOR UPDATE`, [channelId]);
+    if (!channel) {
+      await db.query('ROLLBACK');
+      return null;
+    }
+    const memberIds = (
+      await db.query(`SELECT user_id FROM chat.channel_members WHERE channel_id = $1`, [channelId])
+    ).rows.map((r) => r.user_id);
+    const files = (
+      await db.query(`SELECT file_path, thumbnail_path FROM chat.files WHERE channel_id = $1`, [channelId])
+    ).rows;
+    const {
+      rows: [{ n: messageCount }],
+    } = await db.query(`SELECT count(*)::int AS n FROM chat.messages WHERE channel_id = $1`, [channelId]);
+    await db.query(`DELETE FROM chat.mentions WHERE channel_id = $1`, [channelId]);
+    await db.query(`DELETE FROM chat.files WHERE channel_id = $1`, [channelId]);
+    await db.query(`DELETE FROM chat.messages WHERE channel_id = $1`, [channelId]);
+    await db.query(`DELETE FROM chat.calls WHERE channel_id = $1`, [channelId]);
+    await db.query(`DELETE FROM chat.channels WHERE id = $1`, [channelId]);
+    await db.query(
+      `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'channel.delete', 'channel', $2, $3)`,
+      [
+        actorId,
+        channelId,
+        JSON.stringify({
+          name: channel.name,
+          displayName: channel.display_name,
+          type: channel.type,
+          messages: messageCount,
+          files: files.length,
+        }),
+      ],
+    );
+    await db.query('COMMIT');
+    return { memberIds, files, messageCount };
+  } catch (e) {
+    await db.query('ROLLBACK').catch(() => {});
+    throw e;
+  }
+}
+
 export async function countMembers(db, channelId) {
   const { rows } = await db.query(`SELECT count(*)::int AS n FROM chat.channel_members WHERE channel_id = $1`, [
     channelId,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Archive, LogOut, Pencil } from 'lucide-react';
+import { Archive, LogOut, Pencil, Trash2 } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { Channel } from '../../types/index.ts';
 
@@ -10,6 +10,8 @@ type Props = {
   channel: Channel;
   /** Channel owner or admin, or Management: may rename and archive. */
   canManage: boolean;
+  /** Management or IT: may delete the channel for good. */
+  canDelete: boolean;
   /** The channel is no longer in this person's list (they left it, or it was archived). */
   onGone: () => void;
 };
@@ -18,11 +20,11 @@ type Props = {
  * Housekeeping for one channel: rename it, leave it, archive it.
  * Nothing here applies to a direct message, and General can be renamed but never left or archived.
  */
-export function ChannelOptions({ channel, canManage, onGone }: Props) {
+export function ChannelOptions({ channel, canManage, canDelete, onGone }: Props) {
   const { actions } = useChat();
   const [name, setName] = useState(channel.displayName);
   const [purpose, setPurpose] = useState(channel.purpose);
-  const [asking, setAsking] = useState<'leave' | 'archive' | null>(null);
+  const [asking, setAsking] = useState<'leave' | 'archive' | 'delete' | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -49,6 +51,7 @@ export function ChannelOptions({ channel, canManage, onGone }: Props) {
   const confirmed = () =>
     run(async () => {
       if (asking === 'leave') await actions.leaveChannel(channel.id);
+      else if (asking === 'delete') await actions.deleteChannel(channel.id);
       else await actions.archiveChannel(channel.id);
       onGone();
     });
@@ -102,7 +105,9 @@ export function ChannelOptions({ channel, canManage, onGone }: Props) {
           <p>
             {asking === 'leave'
               ? `Leave ${channel.displayName}? You will stop getting its messages.`
-              : `Archive ${channel.displayName} for everyone? It disappears from everybody's list. Its messages are kept, but nobody can read or post in it.`}
+              : asking === 'delete'
+                ? `Delete ${channel.displayName} for everyone? Every message and file in it is deleted for good. This cannot be undone.`
+                : `Archive ${channel.displayName} for everyone? It disappears from everybody's list. Its messages are kept, but nobody can read or post in it.`}
           </p>
           <div className="row gap">
             <button
@@ -111,7 +116,7 @@ export function ChannelOptions({ channel, canManage, onGone }: Props) {
               disabled={busy}
               onClick={() => void confirmed()}
             >
-              {asking === 'leave' ? 'Yes, leave' : 'Yes, archive'}
+              {asking === 'leave' ? 'Yes, leave' : asking === 'delete' ? 'Yes, delete for good' : 'Yes, archive'}
             </button>
             <button className="btn-ghost btn-small" disabled={busy} onClick={() => setAsking(null)}>
               Cancel
@@ -133,10 +138,19 @@ export function ChannelOptions({ channel, canManage, onGone }: Props) {
                 <Archive size={13} /> Archive channel
               </button>
             )}
+            {canDelete && (
+              <button
+                className="btn-ghost btn-small danger"
+                data-testid="channel-delete"
+                onClick={() => setAsking('delete')}
+              >
+                <Trash2 size={13} /> Delete channel
+              </button>
+            )}
           </div>
         )
       )}
-      {isGeneral && <p className="muted">Everyone stays in General, so it cannot be left or archived.</p>}
+      {isGeneral && <p className="muted">Everyone stays in General, so it cannot be left, archived or deleted.</p>}
       {error && (
         <p className="error" role="alert">
           {error}

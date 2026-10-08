@@ -162,6 +162,11 @@ export function useChatSocketEvents(deps: Deps): void {
         'channel_archived',
         (p: { channel_id: string }) => dispatch({ type: 'channel_removed', channelId: p.channel_id }),
       ],
+      // Management or IT deleted a channel this person is in: it leaves their list the same way.
+      [
+        'channel_deleted',
+        (p: { channel_id: string }) => dispatch({ type: 'channel_removed', channelId: p.channel_id }),
+      ],
       [
         'message_pinned',
         (p: { message_id: string; channel_id: string; pinned_by: number }) => {

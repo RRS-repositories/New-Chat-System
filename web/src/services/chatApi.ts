@@ -62,6 +62,8 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       (await api.patch<{ channel: Channel }>(`/api/chat/channels/${channelId}`, change)).channel,
     /** Hide the channel for everyone; its messages are kept. */
     archiveChannel: (channelId: string) => api.post(`/api/chat/channels/${channelId}/archive`),
+    /** Management or IT: delete the channel and everything in it, for good. */
+    deleteChannel: (channelId: string) => api.del(`/api/chat/channels/${channelId}`),
     addMembers: (channelId: string, userIds: number[]) =>
       api.post<{ added: number }>(`/api/chat/channels/${id(channelId)}/members`, { userIds }),
     leaveChannel: (channelId: string, userId: number) => api.del(`/api/chat/channels/${channelId}/members/${userId}`),
