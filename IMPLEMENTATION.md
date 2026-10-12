@@ -576,7 +576,7 @@ Read in one place, `server/src/config/index.js`, from `/opt/chat/.env` on the se
 | `CHAT_PUBLIC_URL` | Link used in the digest email. | `https://chat2.rowanroseclaims.co.uk` |
 | `CHAT_UPLOADS_DIR` | Where files are kept. | `/data/chat-uploads` |
 | `CHAT_CORS_ORIGINS` | Only for development on another origin. | empty |
-| `CHAT_FRAME_ANCESTORS` | The pages allowed to show the chat in a frame. Unset: the CRM's two addresses. Empty: nobody but the chat itself. | unset |
+| `CHAT_FRAME_ANCESTORS` | The pages allowed to show the chat in a frame. Unset: the CRM's two addresses and the Sales CRM's two (`sales.`, `opsales.`). Empty: nobody but the chat itself. | unset |
 | `CHAT_REQUIRE_BETA` | `false` opens chat to all staff. | on |
 | `IP_RESTRICTION_ENFORCE` **(PR #9)** | `false` only logs what would be refused. | on |
 | `CHAT_VAPID_PUBLIC`, `CHAT_VAPID_PRIVATE`, `CHAT_VAPID_SUBJECT` | Web Push. | push off if empty |
