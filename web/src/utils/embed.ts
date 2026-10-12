@@ -1,23 +1,16 @@
-import type { Session } from '../types/index.ts';
-
 /**
- * Running inside the CRM. The CRM shows the chat in an iframe and hands over the session the person
- * already has, by window message, so nobody signs in twice. Messages are only ever accepted from the
- * CRM's own addresses, and the token never goes in the address bar.
+ * Running inside the CRM. The CRM shows the chat in an iframe. Everyone signs in to the chat as
+ * themselves the first time (the CRM login is shared by several people, so the chat never takes
+ * an account from it), and the browser remembers that account. The chat only ever tells the
+ * page around it one thing: how many conversations are waiting, for the CRM's Chat nav item.
  *
- *   CRM → chat   crm-chat:session   { token, user: { id, fullName, role, email } }
- *   chat → CRM   crm-chat:ready     the chat is loaded and would like the session
- *   chat → CRM   crm-chat:badge     { count }  what the tab title would show
- *   chat → CRM   crm-chat:auth-error  the token was refused; please send a fresh one
+ *   chat → CRM   crm-chat:badge   { count }  what the tab title would show
  */
 export const MSG = {
-  ready: 'crm-chat:ready',
-  session: 'crm-chat:session',
   badge: 'crm-chat:badge',
-  authError: 'crm-chat:auth-error',
 } as const;
 
-/** The addresses the CRM is served from (the only parents whose session messages are taken). */
+/** The addresses the CRM is served from: the only pages the count is sent to. */
 export const PARENT_ORIGINS = ['https://crm.rowanroseclaims.co.uk', 'https://rowanroseclaims.co.uk'];
 
 /** True when the page is shown inside another page. */
@@ -29,31 +22,12 @@ export function isEmbedded(): boolean {
   }
 }
 
-/** The parents a message may come from: the CRM, and the page's own address (used by the local check). */
+/** The pages a message may go to: the CRM, and the page's own address (used by the local check). */
 export function allowedParents(ownOrigin: string): string[] {
   return [...PARENT_ORIGINS, ownOrigin];
 }
 
-/**
- * A session message from a parent → the session, or null when it is not one: wrong type, a parent
- * that is not allowed, no token, or no usable person.
- */
-export function acceptSession(event: { origin: string; data: unknown }, allowed: string[]): Session | null {
-  if (!allowed.includes(event.origin)) return null;
-  const d = event.data as any;
-  if (!d || typeof d !== 'object' || d.type !== MSG.session) return null;
-  if (typeof d.token !== 'string' || !d.token) return null;
-  const u = d.user;
-  const id = Number(u?.id);
-  if (!u || !Number.isFinite(id) || id <= 0) return null;
-  const email = typeof u.email === 'string' && u.email ? u.email : undefined;
-  return {
-    token: d.token,
-    user: { id, fullName: String(u.fullName || email || ''), role: String(u.role || ''), ...(email ? { email } : {}) },
-  };
-}
-
-/** Sends a message to the page around us; a parent that is not an allowed address never receives it. */
+/** Sends a message to the page around us; a parent at any other address never receives it. */
 export function postToParent(type: string, payload: Record<string, unknown> = {}): void {
   if (!isEmbedded()) return;
   for (const origin of allowedParents(window.location.origin)) {

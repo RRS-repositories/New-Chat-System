@@ -11,14 +11,13 @@ import { clearSession, getSession, setSession } from './services/session.ts';
 import { createChatSocket } from './services/socket.ts';
 import type { Session } from './types/index.ts';
 import { withTimeout } from './utils/timeout.ts';
-import { MSG, acceptSession, allowedParents, isEmbedded, postToParent } from './utils/embed.ts';
+import { isEmbedded } from './utils/embed.ts';
 import '@fontsource-variable/inter/wght.css';
 import './styles/index.css';
 
 const SIGN_OUT_WAIT_MS = 2000;
-/** Inside the CRM: how long to wait for its session before offering the sign-in page instead. */
-const EMBED_WAIT_MS = 6000;
 const currentToken = () => getSession()?.token ?? null;
+// Inside the CRM's Chat tab. Everyone signs in to the chat as themselves there, once per browser.
 const embedded = isEmbedded();
 
 /** Shows the sign-in page until there is a session, then the app. The session is kept in browser storage. */
@@ -33,37 +32,6 @@ function Root() {
     socketRef.current = null;
     clearSession();
     setCurrentSession(null);
-    // Inside the CRM a refused token means the CRM should send a fresh one.
-    if (embedded) postToParent(MSG.authError);
-  }, []);
-  // Inside the CRM: ask the page around us for the session, and take what it sends. A session
-  // for a different person than the one stored here means the stored one is stale (someone
-  // else signed in to the CRM on this browser), so it is replaced.
-  const [waitedLong, setWaitedLong] = useState(false);
-  useEffect(() => {
-    if (!embedded) return;
-    const allowed = allowedParents(window.location.origin);
-    const onMessage = (e: MessageEvent) => {
-      const next = acceptSession(e, allowed);
-      if (!next) return;
-      const current = getSession();
-      if (current && current.token === next.token) return;
-      socketRef.current?.close();
-      socketRef.current = null;
-      setSession(next);
-      setCurrentSession(next);
-    };
-    window.addEventListener('message', onMessage);
-    postToParent(MSG.ready);
-    const again = setInterval(() => {
-      if (!getSession()) postToParent(MSG.ready);
-    }, 2000);
-    const t = setTimeout(() => setWaitedLong(true), EMBED_WAIT_MS);
-    return () => {
-      window.removeEventListener('message', onMessage);
-      clearInterval(again);
-      clearTimeout(t);
-    };
   }, []);
 
   const api = useMemo(
@@ -90,14 +58,13 @@ function Root() {
   }, [api, signOut]);
 
   if (!session || !socket) {
-    if (embedded && !waitedLong)
-      return (
-        <div className="embed-wait" role="status">
-          Opening the chat…
-        </div>
-      );
     return (
       <LoginPage
+        note={
+          embedded
+            ? 'Sign in to your own chat account with your CRM email and password. This browser remembers it, so you only do this once.'
+            : undefined
+        }
         onLoggedIn={(next) => {
           setSession(next);
           setCurrentSession(next);
