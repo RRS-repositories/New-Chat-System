@@ -20,7 +20,7 @@ About 56 people have a CRM login. They sign in to the chat with the same email a
 
 These come from the owner (Brad) and do not change without his say.
 
-1. **The chat lives on chat2 and, since 12 Oct 2026, inside the CRM's Chat tab** (an iframe of chat2 signed in with the CRM session). The CRM's own screens no longer show Mattermost; its automatic Mattermost messages remain until Phase 8.
+1. **The chat lives on chat2 and, since 12 Oct 2026, inside the CRM's Chat tab** (an iframe of chat2; everyone signs in to the chat as themselves there, once per browser). The CRM's own screens no longer show Mattermost; its automatic Mattermost messages remain until Phase 8.
 2. **No paid services.** Only self-hosted or free components.
 3. **Minimal and lightweight.** A simple, fast interface. No heavy extras. It must not lag or freeze however long a channel gets or however large the files are; this is measured with heavy test data, not assumed.
 4. **Calls are decentralised.** Voice and screen share travel directly between browsers. One person's bad connection must not affect the others.

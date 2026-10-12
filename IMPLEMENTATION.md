@@ -464,7 +464,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Set a password.** Management and IT may open Admin → People (IT see no restrictions tab and no access table) and set a person's password from their page. The chat forwards `PUT /api/chat/admin/users/:id/password` to the CRM's `PUT /api/users/:id/password` with the caller's own session; the CRM applies its password rules, signs the person out everywhere and writes its audit. Nobody sets their own password here. Until the CRM has that route (CRM pull request #734), the chat answers "The CRM does not offer this yet".
 
-**Inside the CRM (12 Oct 2026).** The CRM's Chat tab (`/chat`; the old `/mattermost` address lands there too) is an iframe of chat2. The chat posts `crm-chat:ready`; the CRM answers with `crm-chat:session` (the person's own CRM session token and who they are) to the chat's address only, and the chat takes it only from the CRM's addresses (`web/src/utils/embed.ts`), so nobody signs in twice and the token never goes in the address bar. A session for a different person replaces a stored one, so a shared browser never shows the previous person's chat. The chat posts `crm-chat:badge { count }` (the tab-title count) for the CRM's nav item, and `crm-chat:auth-error` when its token is refused, which makes the CRM send a fresh one. The server allows framing by the CRM alone (`frame-ancestors`, `CHAT_FRAME_ANCESTORS`). CRM side: `components/ChatPanel.tsx`, `src/chatEmbed.ts`.
+**Inside the CRM (12 Oct 2026).** The CRM's Chat tab (`/chat`; the old `/mattermost` address lands there too) is an iframe of chat2. The CRM login is shared by several people, so the chat never takes an account from it (the owner's rule): everyone signs in to the chat as themselves the first time, with their CRM email and password, and the browser remembers it (the chat's own session store on chat2's address). The chat posts `crm-chat:badge { count }` (the tab-title count) to the CRM's addresses for its nav item, and nothing else (`web/src/utils/embed.ts`). The server allows framing by the CRM alone (`frame-ancestors`, `CHAT_FRAME_ANCESTORS`). CRM side: `components/ChatPanel.tsx`, `src/chatEmbed.ts`.
 
 **Reaching Admin.** The admin screens have no button in the sidebar (the owner's choice, 7 Oct 2026): Management and IT open `/admin` by address; anyone else sees "Management or IT only" there.
 
@@ -561,7 +561,7 @@ Read in one place, `server/src/config/index.js`, from `/opt/chat/.env` on the se
 | `CHAT_PORT` | Port the chat listens on (localhost only). | 5020 |
 | `CHAT_PUBLIC_URL` | Link used in the digest email. | `https://chat2.rowanroseclaims.co.uk` |
 | `CHAT_UPLOADS_DIR` | Where files are kept. | `/data/chat-uploads` |
-| `CHAT_CORS_ORIGINS` | The CRM's addresses, so its Chat nav item may poll the conversation list for the waiting count. | empty |
+| `CHAT_CORS_ORIGINS` | Only for development on another origin. | empty |
 | `CHAT_FRAME_ANCESTORS` | The pages allowed to show the chat in a frame. Unset: the CRM's two addresses. Empty: nobody but the chat itself. | unset |
 | `CHAT_REQUIRE_BETA` | `false` opens chat to all staff. | on |
 | `IP_RESTRICTION_ENFORCE` **(PR #9)** | `false` only logs what would be refused. | on |
@@ -626,7 +626,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser, **real screen**: a two-person call sharing the PC's actual screen (opens a window; needs a desktop) | `node server/dev/e2e/browser-real-share.cjs` | 1 |
 | Real browser: links, formatting, channel rename, leave and archive | `node server/dev/e2e/browser-features.cjs` | 12 |
 | Real browser: a pasted spreadsheet or web table becomes a table in the message | `node server/dev/e2e/browser-table.cjs` | 4 |
-| Real browser: the chat inside the CRM (session by message, waiting count, person switch, frame header) | `node server/dev/e2e/browser-embed.cjs` | 5 |
+| Real browser: the chat inside the CRM (own sign-in, remembered, waiting count, sign out, frame header) | `node server/dev/e2e/browser-embed.cjs` | 6 |
 | Real browser: the new design (themes, panels, messages) **(Phase 9)** | `node server/dev/e2e/browser-redesign.cjs` | 17 |
 | Real browser: profile photos **(Phase 9)** | `node server/dev/e2e/browser-avatars.cjs` | 6 |
 | Real browser: the call screen, reactions, hands, stand-in host **(Phase 9)** | `node server/dev/e2e/browser-callscreen.cjs` | 11 |

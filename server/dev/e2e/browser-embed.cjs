@@ -1,7 +1,7 @@
 // Real-browser check of the chat inside the CRM: a parent page (stood in for by a page on the same
-// address) frames the chat, hands it the session by window message, gets the waiting count back,
-// and can switch the chat to another person. Against the local harness
-// (node server/dev/local.mjs → http://localhost:5021).
+// address) frames the chat; the person signs in to their own account inside the frame; the browser
+// remembers it; the waiting count is reported to the parent; signing out offers the form again.
+// Against the local harness (node server/dev/local.mjs → http://localhost:5021).
 //   node server/dev/e2e/browser-embed.cjs
 const { chromium } = require('playwright-core');
 const BASE = process.env.BASE || 'http://localhost:5021';
@@ -16,32 +16,17 @@ const step = async (name, fn) => {
   }
 };
 
-/** Signs in through the API the way the CRM would already have: a token and who the person is. */
-async function sessionFor(email) {
-  const r = await fetch(`${BASE}/api/chat/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password: 'local' }),
-  });
-  const d = await r.json();
-  const { id, fullName, role } = d.user;
-  return { token: d.token, user: { id, fullName, role, email } };
-}
-
-// The stand-in CRM page: frames the chat and speaks the same messages the CRM's ChatPanel does.
+// The stand-in CRM page: frames the chat and listens the way the CRM's ChatPanel does.
 const PARENT_HTML = `<!doctype html><title>CRM stand-in</title>
 <style>html,body,iframe{margin:0;height:100%;width:100%;border:0}</style>
 <iframe id="chat" src="${BASE}/" allow="microphone; display-capture; autoplay"></iframe>
 <script>
-  window.__badges = []; window.__authErrors = 0; window.__session = null;
-  const chat = () => document.getElementById('chat').contentWindow;
-  window.sendSession = (s) => chat().postMessage({ type: 'crm-chat:session', ...s }, '${BASE}');
+  window.__badges = []; window.__other = [];
   window.addEventListener('message', (e) => {
     if (e.origin !== '${BASE}') return;
     const d = e.data || {};
-    if (d.type === 'crm-chat:ready' && window.__session) window.sendSession(window.__session);
-    else if (d.type === 'crm-chat:badge') window.__badges.push(d.count);
-    else if (d.type === 'crm-chat:auth-error') window.__authErrors += 1;
+    if (d.type === 'crm-chat:badge') window.__badges.push(d.count);
+    else window.__other.push(d.type);
   });
 </script>`;
 
@@ -55,8 +40,6 @@ const PARENT_HTML = `<!doctype html><title>CRM stand-in</title>
       errors.push(`console: ${m.text().slice(0, 160)}`);
   });
   await page.route(`${BASE}/crm-stand-in`, (route) => route.fulfill({ contentType: 'text/html', body: PARENT_HTML }));
-  const meg = await sessionFor('m@x');
-  const ann = await sessionFor('a@x');
   const chat = page.frameLocator('#chat');
 
   await step('the server lets the CRM frame the chat, and nobody else', async () => {
@@ -67,41 +50,39 @@ const PARENT_HTML = `<!doctype html><title>CRM stand-in</title>
     if (r.headers.get('x-frame-options')) throw new Error('X-Frame-Options is still sent');
   });
 
-  await step('framed by the CRM, the chat asks for the session and opens signed in, with no sign-in form', async () => {
+  await step('framed by the CRM, the chat offers its own sign-in, saying this browser will remember it', async () => {
     await page.goto(`${BASE}/crm-stand-in`, { waitUntil: 'domcontentloaded' });
-    await page.evaluate((s) => {
-      window.__session = s;
-    }, meg);
-    await chat.locator('.sidebar-user', { hasText: 'Meg Manager' }).waitFor({ timeout: 15000 });
-    if (await chat.locator('input[type=password]').count()) throw new Error('a sign-in form is shown');
+    await chat.locator('input[type=password]').waitFor({ timeout: 15000 });
+    const text = await chat.locator('.login-card').innerText();
+    if (!/remembers it/.test(text)) throw new Error(`no note: ${text.slice(0, 120)}`);
   });
 
-  await step('the chat reports its waiting count to the CRM', async () => {
+  await step('the person signs in as themselves and the chat opens as them', async () => {
+    await chat.locator('input[type=email]').fill('b@x');
+    await chat.locator('input[type=password]').fill('local');
+    await chat.locator('button[type=submit]').click();
+    await chat.locator('.sidebar-user', { hasText: 'Bob Sales' }).waitFor({ timeout: 15000 });
+  });
+
+  await step('the chat reports its waiting count to the CRM, and nothing else', async () => {
     await page.waitForFunction(() => window.__badges.length > 0, null, { timeout: 8000 });
     const last = await page.evaluate(() => window.__badges[window.__badges.length - 1]);
     if (typeof last !== 'number') throw new Error(`count is ${JSON.stringify(last)}`);
+    const other = await page.evaluate(() => window.__other);
+    if (other.length) throw new Error(`other messages sent: ${other}`);
   });
 
-  await step(
-    'a session for another person replaces the one the chat had (a shared browser never shows the previous person)',
-    async () => {
-      await page.evaluate((s) => window.sendSession(s), ann);
-      await chat.locator('.sidebar-user', { hasText: 'Ann Agent' }).waitFor({ timeout: 15000 });
-      if (await chat.locator('.sidebar-user', { hasText: 'Meg Manager' }).count()) throw new Error('still Meg');
-    },
-  );
+  await step('opened again later, this browser is still signed in as the same person', async () => {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await chat.locator('.sidebar-user', { hasText: 'Bob Sales' }).waitFor({ timeout: 15000 });
+    if (await chat.locator('input[type=password]').count()) throw new Error('asked to sign in again');
+  });
 
-  await step(
-    'opened again later, the chat is still signed in and asks the CRM for nothing it does not need',
-    async () => {
-      await page.evaluate((s) => {
-        window.__session = s;
-      }, ann);
-      await page.reload({ waitUntil: 'domcontentloaded' });
-      await chat.locator('.sidebar-user', { hasText: 'Ann Agent' }).waitFor({ timeout: 15000 });
-      if (await page.evaluate(() => window.__authErrors)) throw new Error('the chat reported an auth error');
-    },
-  );
+  await step('signing out inside the frame offers the sign-in form again (another person can sign in)', async () => {
+    await chat.locator('.s-me').click();
+    await chat.locator('[data-testid="sign-out"]').click();
+    await chat.locator('input[type=password]').waitFor({ timeout: 15000 });
+  });
 
   await browser.close();
   for (const [s, n] of results) console.log(`${s}  ${n}`);

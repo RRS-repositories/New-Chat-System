@@ -16,12 +16,3 @@
 @import './admin.css';
 
 /* Plain rules go after the imports, never before them. */
-.embed-wait {
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  color: var(--mut);
-  font:
-    500 14px/1.4 system-ui,
-    sans-serif;
-}
