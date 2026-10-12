@@ -1,13 +1,8 @@
-/* Styles, one file per area. The order matters: later files win when two rules are equal. */
-.embed-wait {
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  color: var(--mut);
-  font:
-    500 14px/1.4 system-ui,
-    sans-serif;
-}
+/* Styles, one file per area. The order matters: later files win when two rules are equal.
+   EVERY @import must come first: CSS ignores an @import that follows a style rule, so a
+   rule placed above these silently drops all eleven stylesheets. That happened on 12 Oct
+   2026 — .embed-wait sat above them and chat2 served a 2 KB stylesheet with no styling
+   at all. Keep plain rules below the imports. */
 @import './tokens.css';
 @import './theme.css';
 @import './base.css';
@@ -19,3 +14,14 @@
 @import './auth.css';
 @import './calls.css';
 @import './admin.css';
+
+/* Plain rules go after the imports, never before them. */
+.embed-wait {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  color: var(--mut);
+  font:
+    500 14px/1.4 system-ui,
+    sans-serif;
+}

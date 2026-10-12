@@ -166,6 +166,14 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 12 Oct 2026 — chat2 was serving no styling at all
+The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styles/index.css` had the
+`.embed-wait` rule **above** its eleven `@import` lines, added by `6b80071` (embedded mode). CSS ignores an
+`@import` that comes after a style rule, so every stylesheet was dropped at build time and the bundle fell to
+2,147 bytes — only the font faces. The rule now sits below the imports, with a note saying why. The built
+stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
+
+
 ### 12 Oct 2026 — the chat inside the CRM; Mattermost out of the CRM
 The owner: "add the new chat system here and remove mattermost" (the CRM's Chat tab). The chat now runs in embedded mode when framed: it asks the page around it for the session, takes it only from the CRM's addresses, swaps a stale stored session for the one the CRM sends, reports the waiting count up, and asks for a fresh token when one is refused. The server's frame-ancestors now names the CRM (no X-Frame-Options). CRM pull request: Chat tab at `/chat` (iframe of chat2, session by message, nav count from the iframe or a 30-second poll), `/mattermost` redirects there, the Mattermost panel, bubble, account card and sound settings removed from the CRM screens. The CRM's ~150 automatic Mattermost messages are untouched (Phase 8).
 
