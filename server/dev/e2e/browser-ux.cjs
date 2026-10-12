@@ -138,9 +138,23 @@ const send = async (page, text) => {
     const pill = ann.page.locator(tid('new-pill'));
     await pill.waitFor({ timeout: 5000 });
     if (!/26 new/.test(await pill.innerText())) throw new Error(`pill says ${await pill.innerText()}`);
-    await pill.click();
+    // Well above the newest message: the bar at the top says so and "Go to latest" brings you down.
+    const bar = ann.page.locator(tid('older-bar'));
+    await bar.waitFor({ timeout: 5000 });
+    if (!/older messages/.test(await bar.innerText())) throw new Error(`bar says ${await bar.innerText()}`);
+    await ann.page.locator(tid('go-latest')).click();
+    await bar.waitFor({ state: 'detached', timeout: 5000 });
     await pill.waitFor({ state: 'detached', timeout: 5000 });
     await ann.page.locator('.msg', { hasText: 'rota line 26' }).waitFor({ timeout: 5000 });
+    // Scrolling back up brings the bar back; at the bottom it goes.
+    await ann.page.locator('.feed').evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    await bar.waitFor({ timeout: 5000 });
+    await ann.page.locator('.feed').evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await bar.waitFor({ state: 'detached', timeout: 5000 });
   });
 
   await browser.close();

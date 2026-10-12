@@ -38,6 +38,8 @@ type Props = {
 
 const NEAR_EDGE_PX = 80;
 const AT_BOTTOM_PX = 40;
+/** How far above the newest message counts as "reading older messages" (about a screen). */
+const FAR_UP_PX = 320;
 /** How far past the cap the newest end may grow before the oldest are let go. */
 const TRIM_SLACK = 100;
 
@@ -89,6 +91,8 @@ export const MessageFeed = memo(function MessageFeed({
   const box = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [fresh, setFresh] = useState(false);
+  // Scrolled well above the newest message: a bar at the top says so and offers the way back.
+  const [farUp, setFarUp] = useState(false);
   const lastId = items.at(-1)?.id;
   const loading = useRef(false);
   // Following the newest message only makes sense when the newest message is on the page.
@@ -132,6 +136,7 @@ export const MessageFeed = memo(function MessageFeed({
           el.scrollTop = Math.max(0, el.scrollTop + top - 56);
           setAtBottom(false);
           setLanded(true);
+          setFarUp(el.scrollHeight - el.scrollTop - el.clientHeight > FAR_UP_PX);
           return;
         }
       }
@@ -182,6 +187,7 @@ export const MessageFeed = memo(function MessageFeed({
     const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const bottom = fromBottom < AT_BOTTOM_PX;
     setAtBottom(bottom);
+    setFarUp(fromBottom > FAR_UP_PX);
     if (bottom && !windowed) {
       setFresh(false);
       setLanded(false);
@@ -194,8 +200,33 @@ export const MessageFeed = memo(function MessageFeed({
   if (!items.length) return <div className="feed">{empty ?? <p className="muted pad">No messages yet</p>}</div>;
 
   let previousDay = '';
+  const goLatest = () => {
+    if (windowed && onLoadLatest) {
+      void onLoadLatest().then(() => {
+        setAtBottom(true);
+        setFresh(false);
+        setLanded(false);
+        setFarUp(false);
+      });
+      return;
+    }
+    const el = box.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    setAtBottom(true);
+    setFresh(false);
+    setLanded(false);
+    setFarUp(false);
+  };
   return (
     <div className="feed-wrap">
+      {(farUp || windowed) && (
+        <div className="older-bar" data-testid="older-bar" role="status">
+          <span>You’re reading older messages</span>
+          <button className="btn-accent btn-small" data-testid="go-latest" onClick={goLatest}>
+            Go to latest
+          </button>
+        </div>
+      )}
       <div className="feed" ref={box} role="log" aria-label="Messages" onScroll={() => void onScroll()}>
         {hasOlder && <p className="feed-edge">Scroll up for older messages</p>}
         {items.map((m, i) => {

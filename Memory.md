@@ -214,6 +214,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 12 Oct 2026 — "You're reading older messages · Go to latest"
+The owner wanted Discord's "Jump to present" bar in our own words. When scrolled well above the newest message a bar at the top of the feed says "You're reading older messages" with "Go to latest". Deployed.
+
 ### 12 Oct 2026 — four polish items the owner picked from a list
 Of ten suggestions the owner chose: (4) land on the first unread with a "N new" pill; (5) three quick reactions on the hover bar (most used on this device); (6) drag rows to arrange the sidebar, and an All / Recent switch on Direct messages; (9) the chat inside the CRM returning to the last conversation (already the case: the last conversation is remembered per browser and opened when the address has none). Deployed.
 
