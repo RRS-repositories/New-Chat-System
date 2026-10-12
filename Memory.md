@@ -166,6 +166,14 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 12 Oct 2026 — the web app could not build: a prop that was never declared
+`main.tsx` has passed a `note` to `LoginPage` since `6b80071` (embedded mode), but `LoginPage` never declared it,
+so `tsc --noEmit` failed and `deploy.sh` stopped before building. It went unnoticed because the deploy before it
+changed only CSS and took the lighter path. `LoginPage` now takes `note?: string` and shows it in place of the
+standing line, which is what the embedded sign-in was meant to say all along. Same commit as the missing
+stylesheet.
+
+
 ### 12 Oct 2026 — Phase 8 step 1: a way in for the CRM's automatic messages
 The owner: "move automated messages in chat 2". Step 1 of the Phase 8 plan is built: `POST /api/chat/bot/post`,
 outside the session gate, with its own key in `x-chat-bot-key` (`CHAT_BOT_KEY`) and its own account

@@ -4,8 +4,15 @@ import { APP_TITLE, ORG_NAME } from '../config/constants.ts';
 import { signIn } from '../services/authApi.ts';
 import type { Session } from '../types/index.ts';
 
-/** The sign-in page. People use their CRM email and password; there is no separate chat account. */
-export function LoginPage({ onLoggedIn }: { onLoggedIn: (session: Session) => void }) {
+/**
+ * The sign-in page. People use their CRM email and password; there is no separate chat account.
+ *
+ * `note` replaces the standing line when the caller needs to say more — inside the CRM the
+ * chat is framed and cannot borrow that session, so the person has to be told why they are
+ * being asked to sign in again. main.tsx has passed it since the embedded-mode change; the
+ * prop was never declared here, which made the whole web app fail to build.
+ */
+export function LoginPage({ onLoggedIn, note }: { onLoggedIn: (session: Session) => void; note?: string }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +43,7 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: (session: Session) => vo
             <span className="muted">{ORG_NAME}</span>
           </div>
         </div>
-        <p className="muted">Sign in with your CRM email and password.</p>
+        <p className="muted">{note || 'Sign in with your CRM email and password.'}</p>
         <label className="field">
           <span>Email</span>
           <input
