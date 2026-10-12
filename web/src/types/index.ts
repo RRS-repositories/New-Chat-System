@@ -132,6 +132,15 @@ export type AdminUser = {
   blockedFrom: number;
   blockedBy: number;
 };
+/** One channel on a person's admin page: are they in it, are they blocked from it. */
+export type ChannelAccess = {
+  id: string;
+  displayName: string;
+  type: 'public' | 'private';
+  member: boolean;
+  blocked: boolean;
+  isGeneral: boolean;
+};
 export type AccessChange = {
   targetUserIds: number[];
   kind: 'dm' | 'call' | 'channel' | 'all';

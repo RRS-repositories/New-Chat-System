@@ -37,6 +37,8 @@ export function useChatActions(deps: Deps) {
       addRestriction: chatApi.addRestriction,
       removeRestriction: chatApi.removeRestriction,
       adminUsers: chatApi.adminUsers,
+      userChannels: chatApi.userChannels,
+      setUserChannel: chatApi.setUserChannel,
       deactivateUser: async (userId: number) => {
         await chatApi.deactivateUser(userId);
       },

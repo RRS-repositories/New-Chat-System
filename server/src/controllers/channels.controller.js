@@ -18,6 +18,7 @@ import {
   updateChannel,
 } from '../models/channels.model.js';
 import { getLiveCall } from '../models/calls.model.js';
+import { blockedUserIds } from '../models/channelAccess.model.js';
 import { removeUpload } from '../services/files/storage.js';
 import { isBlocked, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
 import { assertMember, assertCanShareChannel, canModerate } from '../services/channels.service.js';
@@ -91,6 +92,9 @@ export function createChannelController({ db, emit, uploadsDir = '' }) {
       const channel = await channelOr404(channelId);
       if (channel.type === 'dm') throw httpError(403, 'dm_fixed', 'A direct message is between two people');
       const userIds = Array.isArray(req.body?.userIds) ? req.body.userIds : [];
+      const blocked = await blockedUserIds(db, { channelId, userIds: toIds(userIds) });
+      if (blocked.length)
+        throw httpError(403, 'channel_blocked', 'Someone you picked is blocked from this channel by Management');
       if (channel.type !== 'public') {
         const currentIds = (await listMembers(db, channel.id)).map((m) => m.id);
         const joiningIds = toIds(userIds).filter((id) => !currentIds.includes(id));

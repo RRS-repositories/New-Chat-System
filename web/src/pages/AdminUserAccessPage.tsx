@@ -5,7 +5,7 @@ import { PeopleFilters } from '../components/admin/PeopleFilters.tsx';
 import { paths } from '../config/routes.ts';
 import { useChat } from '../context/chatContext.ts';
 import { useAdminUsers } from '../hooks/useAdminUsers.ts';
-import type { AdminUser, Restriction } from '../types/index.ts';
+import type { AdminUser, ChannelAccess, Restriction } from '../types/index.ts';
 import {
   ACCESS_KINDS,
   KIND_LABEL,
@@ -72,6 +72,43 @@ export function AdminUserAccessPage() {
   const allowed = isManagementOrIT(user);
   const { users, error: loadError, reload } = useAdminUsers(isManagementOrIT(user));
   const [restrictions, setRestrictions] = useState<Restriction[] | null>(null);
+  // The channels: in it or not, blocked or allowed.
+  const [channelAccess, setChannelAccess] = useState<ChannelAccess[] | null>(null);
+  useEffect(() => {
+    if (!allowed || userId === null) return;
+    let live = true;
+    setChannelAccess(null);
+    actions
+      .userChannels(userId)
+      .then((rows) => {
+        if (live) setChannelAccess(rows);
+      })
+      .catch(() => {
+        if (live) setChannelAccess([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [allowed, actions, userId]);
+  async function changeChannel(c: ChannelAccess, allow: boolean) {
+    if (busy || userId === null) return;
+    if (
+      !allow &&
+      !window.confirm(
+        `Block ${name} from #${c.displayName}? They are taken out of it now and cannot join or be added until allowed again.`,
+      )
+    )
+      return;
+    setBusy(true);
+    setError(null);
+    try {
+      setChannelAccess(await actions.setUserChannel(userId, c.id, allow));
+    } catch (e: any) {
+      setError(e?.message || 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  }
   const [query, setQuery] = useState('');
   const [role, setRole] = useState('');
   const [bothWays, setBothWays] = useState(true);
@@ -233,6 +270,51 @@ export function AdminUserAccessPage() {
                       onChange={(kind, allow) => void change([other.id], kind, allow)}
                     />
                   ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {allowed && channelAccess && (
+          <div className="admin-table-wrap" data-testid="channel-access-table">
+            <h3 className="admin-sub">Channels</h3>
+            <p className="muted">
+              Ticked means {name} may be in the channel. Untick to block: they are taken out of it now and cannot join
+              or be added until you tick it again. Everyone stays in General.
+            </p>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Channel</th>
+                  <th>Type</th>
+                  <th>In it</th>
+                  <th>Allowed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {channelAccess.map((c) => (
+                  <tr
+                    key={c.id}
+                    data-testid="channel-access"
+                    data-channel-id={c.id}
+                    className={c.blocked ? 'restricted' : undefined}
+                  >
+                    <td>
+                      <b>{c.displayName}</b>
+                    </td>
+                    <td>{c.type === 'private' ? 'Private' : 'Public'}</td>
+                    <td>{c.member ? 'Yes' : <span className="muted">—</span>}</td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`${name} may be in ${c.displayName}`}
+                        checked={!c.blocked}
+                        disabled={busy || c.isGeneral}
+                        title={c.isGeneral ? 'Everyone stays in General' : undefined}
+                        onChange={(e) => void changeChannel(c, e.target.checked)}
+                      />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

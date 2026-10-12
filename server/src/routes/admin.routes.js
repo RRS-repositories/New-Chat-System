@@ -10,8 +10,10 @@ export function createAdminRoutes(deps) {
   r.put('/users/:userId/password', requireManagementOrIT, admin.setPassword);
   r.post('/users/:userId/deactivate', requireManagementOrIT, admin.deactivate);
   r.post('/users/:userId/reactivate', requireManagementOrIT, admin.reactivate);
-  // Who may contact whom: Management and IT too, since 12 Oct 2026.
+  // Who may contact whom, and which channels a person may be in: Management and IT too, since 12 Oct 2026.
   r.use(requireManagementOrIT);
+  r.get('/users/:userId/channels', admin.listUserChannels);
+  r.put('/users/:userId/channels/:channelId', admin.setUserChannel);
   r.get('/restrictions', admin.listRestrictions);
   r.get('/restrictions/user/:userId', admin.listRestrictionsForUser);
   r.post('/restrictions', admin.addRestriction);

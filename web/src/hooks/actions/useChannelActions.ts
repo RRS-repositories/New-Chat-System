@@ -105,6 +105,15 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     [chatApi, dispatch, user.id],
   );
 
+  /** Take someone else out of a channel (the server checks who may); the member list is read again. */
+  const removeMember = useCallback(
+    async (channelId: string, userId: number) => {
+      await chatApi.leaveChannel(channelId, userId);
+      await loadMembers(channelId);
+    },
+    [chatApi, loadMembers],
+  );
+
   const archiveChannel = useCallback(
     async (channelId: string) => {
       await chatApi.archiveChannel(channelId);
@@ -135,6 +144,7 @@ export function useChannelActions({ chatApi, socket, user, dispatch, stateRef }:
     setChannelNotify,
     renameChannel,
     leaveChannel,
+    removeMember,
     archiveChannel,
     deleteChannel,
   };

@@ -1,4 +1,5 @@
-import { wrap } from '../middleware/errors.js';
+import { httpError, wrap } from '../middleware/errors.js';
+import { isChannelBlocked } from '../models/channelAccess.model.js';
 import { listPublicChannels, joinPublicChannel } from '../models/browse.model.js';
 
 export function createBrowseController({ db, emit }) {
@@ -9,6 +10,8 @@ export function createBrowseController({ db, emit }) {
 
     join: wrap(async (req, res) => {
       const channelId = req.params.id;
+      if (await isChannelBlocked(db, { userId: req.user.id, channelId }))
+        throw httpError(403, 'channel_blocked', 'You are blocked from this channel');
       const { channel, joined } = await joinPublicChannel(db, { channelId, userId: req.user.id });
       // A retry that finds the person already a member must not re-join their connection to the
       // channel or announce them a second time. The answer is the same either way.

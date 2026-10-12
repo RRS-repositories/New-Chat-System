@@ -29,6 +29,8 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
   const [adding, setAdding] = useState(false);
   const channel = state.channels.find((c) => c.id === channelId);
   const canManage = useCanModerate(channelId);
+  // Taking someone out of a channel: its owner or admin, or Management or IT; never in a direct message.
+  const canRemove = (canManage || isManagementOrIT(user)) && channel?.type !== 'dm';
   const isDm = channel?.type === 'dm';
   const hasOptions = !!channel && !isDm;
   const [files, setFiles] = useState<ChannelFileRow[]>([]);
@@ -149,6 +151,19 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
                   <StatusBadge status={state.presence.statuses[m.id]} withText />
                   {(m.channelRole === 'owner' || m.channelRole === 'admin') && (
                     <span className="rolechip">{m.channelRole === 'owner' ? 'Owner' : 'Admin'}</span>
+                  )}
+                  {canRemove && m.id !== user.id && m.channelRole !== 'owner' && (
+                    <button
+                      className="btn-ghost btn-small danger"
+                      data-testid="remove-member"
+                      data-user-id={m.id}
+                      onClick={() => {
+                        if (window.confirm(`Remove ${m.fullName} from ${channel?.displayName || 'this channel'}?`))
+                          void actions.removeMember(channelId, m.id).catch(() => {});
+                      }}
+                    >
+                      Remove
+                    </button>
                   )}
                 </div>
               );

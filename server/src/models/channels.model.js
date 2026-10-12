@@ -206,6 +206,7 @@ export async function createChannel(db, { name, displayName, type, purpose = '',
       `INSERT INTO chat.channel_members (channel_id, user_id, role)
        SELECT $1, u.id, 'member' FROM public.users u
         WHERE u.role::text = ANY($2) AND u.is_active IS NOT FALSE AND u.is_approved = TRUE
+          AND NOT EXISTS (SELECT 1 FROM chat.channel_blocks b WHERE b.user_id = u.id AND b.channel_id = $1)
        ON CONFLICT DO NOTHING`,
       [row.id, OVERSEER_ROLES],
     );
@@ -280,6 +281,7 @@ export async function ensureDefaultMembership(db, userId) {
         AND ((c.name = 'general' AND c.type = 'public')
              OR (c.type IN ('public', 'private')
                  AND EXISTS (SELECT 1 FROM public.users u WHERE u.id = $1 AND u.role::text = ANY($2))))
+        AND NOT EXISTS (SELECT 1 FROM chat.channel_blocks b WHERE b.user_id = $1 AND b.channel_id = c.id)
      ON CONFLICT DO NOTHING`,
     [userId, OVERSEER_ROLES],
   );

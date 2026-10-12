@@ -16,6 +16,7 @@ import type {
   SearchHit,
   UserOption,
   UserStatus,
+  ChannelAccess,
 } from '../types/index.ts';
 import type { Theme } from '../utils/theme.ts';
 
@@ -186,6 +187,15 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
     removeRestriction: async (restrictionId: string) => {
       await api.del(`/api/chat/admin/restrictions/${id(restrictionId)}`);
     },
+    /** Management or IT: the channels a person is in or blocked from, and allowing or blocking one. */
+    userChannels: async (userId: number) =>
+      (await api.get<{ channels: ChannelAccess[] }>(`/api/chat/admin/users/${userId}/channels`)).channels,
+    setUserChannel: async (userId: number, channelId: string, allowed: boolean) =>
+      (
+        await api.put<{ channels: ChannelAccess[] }>(`/api/chat/admin/users/${userId}/channels/${id(channelId)}`, {
+          allowed,
+        })
+      ).channels,
     setAccess: async (userId: number, change: AccessChange) =>
       (await api.put<{ restrictions: Restriction[] }>(`/api/chat/admin/users/${userId}/access`, change)).restrictions,
   };

@@ -37,7 +37,12 @@ before(async () => {
   await pg.exec(migration2);
   await pg.exec(migration2); // idempotent
   // The later files that add columns the per-user channel list reads (chat_004 needs the pg_trgm extension, which this bare PGlite lacks).
-  for (const f of ['chat_003_notify_calls.sql', 'chat_005_theme_avatars.sql', 'chat_007_favourites.sql'])
+  for (const f of [
+    'chat_003_notify_calls.sql',
+    'chat_005_theme_avatars.sql',
+    'chat_007_favourites.sql',
+    'chat_008_channel_access.sql',
+  ])
     await pg.exec(readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8'));
   db = {
     async query(sql, params = []) {

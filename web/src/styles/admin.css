@@ -38,6 +38,11 @@
 .admin-form .field {
   margin-bottom: 0;
 }
+.admin-sub {
+  margin: 18px 0 4px;
+  font-size: 14px;
+  font-weight: 800;
+}
 .admin-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--line);

@@ -214,6 +214,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 12 Oct 2026 — Remove a member; allow or block per channel
+The owner asked for a Remove button on channel members and for channels on a person's access page. Channel details now has Remove on each member (owner, admin, Management or IT); the person's admin page has a Channels table with an Allowed tick per channel: unticking takes them out at once and keeps them out (join and add refused) until ticked again; General cannot be blocked. Database file `chat_008_channel_access.sql`, applied on the server before the deploy. Deployed.
+
 ### 12 Oct 2026 — Management and IT see every channel
 The owner, signed in as System Administrator, saw only General: the copied channels had their Mattermost members only. Rule now: Management and IT are members of every public and private channel (not direct messages or group conversations), added when a channel is created and, for existing channels, the next time their channel list loads. Deployed.
 

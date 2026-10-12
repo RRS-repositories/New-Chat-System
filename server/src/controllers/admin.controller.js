@@ -1,6 +1,7 @@
 import { httpError, wrap } from '../middleware/errors.js';
 import { listRestrictions, addRestriction, removeRestriction } from '../models/restrictions.model.js';
 import { listAdminUsers, setUserActive } from '../models/users.model.js';
+import { listChannelAccess, setChannelAccess } from '../models/channelAccess.model.js';
 import { setAccess } from '../services/access.service.js';
 import { forwardSetPassword } from '../services/crmPassword.service.js';
 import { UUID } from '../utils/ids.js';
@@ -44,6 +45,29 @@ export function createAdminController({
     }),
 
     /** Everyone, whether chat is on for them, who is online, and their block counts. */
+    /** Every channel, with whether this person is in it and whether they are blocked from it. */
+    listUserChannels: wrap(async (req, res) => {
+      const userId = parseInt(req.params.userId, 10);
+      if (!Number.isFinite(userId) || userId <= 0) throw httpError(400, 'bad_user', 'Bad user id');
+      res.json({ success: true, channels: await listChannelAccess(db, userId) });
+    }),
+
+    /** Allow or block this person for one channel. Blocking removes them from it at once. */
+    setUserChannel: wrap(async (req, res) => {
+      const userId = parseInt(req.params.userId, 10);
+      if (!Number.isFinite(userId) || userId <= 0) throw httpError(400, 'bad_user', 'Bad user id');
+      const channelId = String(req.params.channelId || '');
+      if (!UUID.test(channelId)) throw httpError(400, 'bad_channel', 'Bad channel id');
+      const allowed = req.body?.allowed === true;
+      const { removed } = await setChannelAccess(db, { userId, channelId, allowed, actorId: req.user.id });
+      if (removed) {
+        emit.leaveRoom?.(userId, channelId);
+        emit.toChannel?.(channelId, 'member_removed', { channel_id: channelId, user_id: userId });
+        emit.toUser(userId, 'member_removed', { channel_id: channelId, user_id: userId });
+      }
+      res.json({ success: true, channels: await listChannelAccess(db, userId) });
+    }),
+
     listUsers: wrap(async (req, res) => {
       const users = await listAdminUsers(db, { deactivated: req.query.deactivated === '1', requireBeta });
       // `gate`: whether the chat.beta permission is being enforced, so the screen can say what "On" means.

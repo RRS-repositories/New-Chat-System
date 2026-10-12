@@ -40,7 +40,10 @@ function makeDb(overrides = {}) {
       if (/FROM chat\.channels/.test(sql) && /archived_at IS NULL/.test(sql))
         return { rows: CHANNELS, rowCount: CHANNELS.length };
       if (/INSERT INTO chat\.channels/.test(sql))
-        return { rows: [{ id: 'c-dm', name: params[0], display_name: '', type: 'dm', created_at: NOW, updated_at: NOW }], rowCount: 1 };
+        return {
+          rows: [{ id: 'c-dm', name: params[0], display_name: '', type: 'dm', created_at: NOW, updated_at: NOW }],
+          rowCount: 1,
+        };
       if (/FROM public\.users WHERE id/.test(sql))
         return { rows: [{ id: params[0], full_name: 'Someone' }], rowCount: 1 };
       if (/INSERT INTO chat\.messages/.test(sql)) {

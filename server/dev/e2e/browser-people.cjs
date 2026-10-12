@@ -87,6 +87,59 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
     await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ timeout: 10000 });
   });
 
+  await step('a member can be removed from a channel by whoever runs it: Ann is taken out of Rota', async () => {
+    await meg.page.locator('.chan-row', { hasText: 'Rota' }).first().click();
+    await meg.page.click('button[aria-label="Channel details"]');
+    meg.page.once('dialog', (d) => d.accept());
+    await meg.page.locator(`${tid('remove-member')}[data-user-id="2"]`).click();
+    await meg.page.locator('.mrow', { hasText: 'Ann Agent' }).waitFor({ state: 'detached', timeout: 8000 });
+    await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ state: 'detached', timeout: 10000 });
+  });
+
+  await step(
+    'a person’s page lists the channels; blocking one takes them out and keeps them out; General cannot be blocked',
+    async () => {
+      // Ann is put back into Rota first, so there is something to take her out of.
+      await meg.page.click(tid('add-members'));
+      await meg.page.waitForSelector(tid('add-members-list'));
+      await meg.page.locator(`${tid('add-members-person')}[data-user-id="2"]`).check();
+      await meg.page.click(tid('add-members-save'));
+      await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ timeout: 10000 });
+      await meg.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
+      await meg.page.locator(tid('admin-person'), { hasText: 'Ann Agent' }).click();
+      await meg.page.waitForSelector(tid('channel-access-table'));
+      const rota = meg.page.locator(tid('channel-access'), { hasText: 'Rota' });
+      if ((await rota.locator('td').nth(2).innerText()) !== 'Yes') throw new Error('Ann is not shown as in Rota');
+      const generalBox = meg.page.locator(tid('channel-access'), { hasText: 'General' }).locator('input');
+      if (!(await generalBox.isDisabled())) throw new Error('General can be blocked');
+      meg.page.once('dialog', (d) => d.accept());
+      await rota.locator('input').click();
+      await meg.page.waitForFunction(
+        () => {
+          const row = [...document.querySelectorAll('[data-testid="channel-access"]')].find((r) =>
+            r.textContent.includes('Rota'),
+          );
+          return row && !row.querySelector('input').checked && row.querySelectorAll('td')[2].textContent !== 'Yes';
+        },
+        null,
+        { timeout: 8000 },
+      );
+      await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ state: 'detached', timeout: 10000 });
+      // Allowed again: she can be added back.
+      await rota.locator('input').click();
+      await meg.page.waitForFunction(
+        () => {
+          const row = [...document.querySelectorAll('[data-testid="channel-access"]')].find((r) =>
+            r.textContent.includes('Rota'),
+          );
+          return row && row.querySelector('input').checked;
+        },
+        null,
+        { timeout: 8000 },
+      );
+    },
+  );
+
   await step('Admin → People says who has never signed in; a person’s page offers “Set a password”', async () => {
     await meg.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
     await meg.page.waitForSelector(tid('admin-people'));
