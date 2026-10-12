@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { paths } from '../../config/routes.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useSidebar } from '../../hooks/useSidebar.ts';
-import { isManagement, isManagementOrIT } from '../../utils/restrictions.ts';
+import { isManagementOrIT } from '../../utils/restrictions.ts';
 import { AppShell } from '../layout/AppShell.tsx';
 import { AdminHead, type AdminTab } from './AdminHead.tsx';
 
@@ -40,13 +40,13 @@ export function AdminFrame({ title, tab, onBack, children }: Props) {
                     : paths.admin,
               )
             }
-            canSeeRestrictions={isManagement(user)}
+            canSeeRestrictions={isManagementOrIT(user)}
           />
-          {(tab === 'restrictions' ? isManagement(user) : isManagementOrIT(user)) ? (
+          {isManagementOrIT(user) ? (
             children
           ) : (
             <div className="admin-body">
-              <p className="muted">{tab === 'restrictions' ? 'Management only' : 'Management or IT only'}</p>
+              <p className="muted">Management or IT only</p>
             </div>
           )}
         </div>

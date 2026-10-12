@@ -133,23 +133,26 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
     },
   );
 
-  await step('IT sees the admin people list and can set a password, but not the restrictions', async () => {
-    const eli = await person(browser, 'eli@x', 'Eli');
-    await eli.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
-    await eli.page.waitForSelector(tid('admin-people'));
-    if (await eli.page.locator('.admin-tabs button', { hasText: 'All restrictions' }).count())
-      throw new Error('IT sees the restrictions tab');
-    if (!(await eli.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).locator(tid('deactivate')).count()))
-      throw new Error('IT has no Deactivate button');
-    await eli.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).click();
-    await eli.page.waitForSelector(tid('set-password'));
-    if (await eli.page.locator(tid('access-row')).count()) throw new Error('IT sees who Bob may contact');
-    await eli.page.click(tid('set-password-open'));
-    await eli.page.fill(tid('set-password-new'), 'Correct-Horse-9');
-    await eli.page.fill(tid('set-password-again'), 'Correct-Horse-9');
-    await eli.page.click(tid('set-password-save'));
-    await eli.page.locator(tid('set-password-done')).waitFor({ timeout: 8000 });
-  });
+  await step(
+    'IT sees the admin people list, the restrictions and who a person may contact, and can set a password',
+    async () => {
+      const eli = await person(browser, 'eli@x', 'Eli');
+      await eli.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });
+      await eli.page.waitForSelector(tid('admin-people'));
+      if (!(await eli.page.locator('.admin-tabs button', { hasText: 'All restrictions' }).count()))
+        throw new Error('IT does not see the restrictions tab');
+      if (!(await eli.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).locator(tid('deactivate')).count()))
+        throw new Error('IT has no Deactivate button');
+      await eli.page.locator(tid('admin-person'), { hasText: 'Bob Sales' }).click();
+      await eli.page.waitForSelector(tid('set-password'));
+      await eli.page.locator(tid('access-row')).first().waitFor({ timeout: 8000 });
+      await eli.page.click(tid('set-password-open'));
+      await eli.page.fill(tid('set-password-new'), 'Correct-Horse-9');
+      await eli.page.fill(tid('set-password-again'), 'Correct-Horse-9');
+      await eli.page.click(tid('set-password-save'));
+      await eli.page.locator(tid('set-password-done')).waitFor({ timeout: 8000 });
+    },
+  );
 
   await step('someone who is not Management or IT gets "Management or IT only" at /admin', async () => {
     await ann.page.goto(`${BASE}/admin`, { waitUntil: 'domcontentloaded' });

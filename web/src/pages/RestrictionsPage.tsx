@@ -4,7 +4,7 @@ import { useChat } from '../context/chatContext.ts';
 import type { Restriction, RestrictionType, UserOption } from '../types/index.ts';
 import {
   RESTRICTION_TYPES,
-  isManagement,
+  isManagementOrIT,
   restrictionRow,
   toRestrictionInput,
   typeLabel,
@@ -17,7 +17,7 @@ export const PICKER_FOOTNOTE =
 /** Management-only page: who is blocked from contacting whom (/admin/restrictions). */
 export function RestrictionsPage() {
   const { user, actions } = useChat();
-  const allowed = isManagement(user);
+  const allowed = isManagementOrIT(user);
   const [rows, setRows] = useState<Restriction[] | null>(null);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);

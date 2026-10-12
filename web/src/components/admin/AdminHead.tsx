@@ -10,7 +10,7 @@ type Props = {
   onOpenSidebar: () => void;
   /** Shown on a person's page: back to the people list. */
   onBack?: () => void;
-  /** The restrictions tab is Management only. */
+  /** The restrictions tab: Management and IT. */
   canSeeRestrictions?: boolean;
 };
 

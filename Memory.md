@@ -194,6 +194,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 12 Oct 2026 — restrictions for IT too
+The owner (IT) could not find "who may contact whom": it was Management only. Now Management and IT: the access table on a person's page, the All restrictions tab, and the routes behind them. Deployed.
+
 ### 12 Oct 2026 — the chat inside the CRM; Mattermost out of the CRM
 The owner: "add the new chat system here and remove mattermost" (the CRM's Chat tab). First built with the CRM handing its session to the chat; the owner then ruled (seeing the shared System Administrator login) that **everyone signs in to the chat as themselves** in the Chat tab, once per browser, the way Mattermost's per-browser link worked, so one CRM login never maps to one person's chat. So: the chat inside the CRM shows its own sign-in page (with a note that the browser remembers it), takes nothing from the CRM, and only reports its waiting count up. The server's frame-ancestors names the CRM (no X-Frame-Options). CRM: pull request #984 (merged and deployed 12 Oct: Chat tab at `/chat`, `/mattermost` redirects, Mattermost panel, bubble, account card and sound settings removed, 4 department chat tabs switched) and a follow-up pull request that drops the session handoff and the CRM-token poll. The CRM's ~150 automatic Mattermost messages are untouched (Phase 8). Lesson the same day: a plain CSS rule placed above the `@import` lines in `index.css` made chat2 serve no styling for a while (fixed in 9eff4b0).
 

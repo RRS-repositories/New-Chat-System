@@ -16,7 +16,7 @@ import {
   type AccessKind,
   type PairAccess,
 } from '../utils/access.ts';
-import { isManagement, isManagementOrIT } from '../utils/restrictions.ts';
+import { isManagementOrIT } from '../utils/restrictions.ts';
 import { SetPassword } from '../components/admin/SetPassword.tsx';
 
 const ALLOWED: PairAccess = {
@@ -69,7 +69,7 @@ export function AdminUserAccessPage() {
   const { user, actions } = useChat();
   const navigate = useNavigate();
   // Management see everything here; IT see the person and may set their password.
-  const allowed = isManagement(user);
+  const allowed = isManagementOrIT(user);
   const { users, error: loadError, reload } = useAdminUsers(isManagementOrIT(user));
   const [restrictions, setRestrictions] = useState<Restriction[] | null>(null);
   const [query, setQuery] = useState('');
@@ -149,7 +149,7 @@ export function AdminUserAccessPage() {
           </p>
         )}
         {subject && user.id !== subject.id && <SetPassword userId={subject.id} name={subject.fullName} />}
-        {!allowed && <p className="muted admin-foot">Who {name} may contact is set by Management.</p>}
+        {!allowed && <p className="muted admin-foot">Who {name} may contact is set by Management or IT.</p>}
         {allowed && (
           <>
             <p className="muted admin-foot">

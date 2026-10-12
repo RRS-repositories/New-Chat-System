@@ -420,7 +420,7 @@ System, join, leave and call-summary messages never notify.
 
 **(Phase 5) Own-screen preview.** The person sharing sees their own shared screen, small, in the call panel, with "This is what the others see". It plays the capture that is already running, so nothing extra is sent.
 
-### 9.10 Admin panel (Management only)
+### 9.10 Admin panel (Management and IT)
 
 - **People:** everyone, their role, whether chat is switched on for them, who is online, and how many people they are blocked from or by. Filters and search.
 - **One person's access:** a row per colleague with three ticks — Messages, Calls, Private channels. Saved in one request. Blocking all three is stored as one `all` row; otherwise one row per kind. Every change is written to `audit_log`.
@@ -462,7 +462,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Add people.** A channel's details panel has an Add people row (anyone in the channel may; private channels still apply the sharing restrictions). `POST /channels/:id/members`.
 
-**Set a password.** Management and IT may open Admin → People (IT see no restrictions tab and no access table) and set a person's password from their page. The chat forwards `PUT /api/chat/admin/users/:id/password` to the CRM's `PUT /api/users/:id/password` with the caller's own session; the CRM applies its password rules, signs the person out everywhere and writes its audit. Nobody sets their own password here. Until the CRM has that route (CRM pull request #734), the chat answers "The CRM does not offer this yet".
+**Set a password.** Management and IT may open Admin → People (since 12 Oct 2026 IT see the restrictions too) and set a person's password from their page. The chat forwards `PUT /api/chat/admin/users/:id/password` to the CRM's `PUT /api/users/:id/password` with the caller's own session; the CRM applies its password rules, signs the person out everywhere and writes its audit. Nobody sets their own password here. Until the CRM has that route (CRM pull request #734), the chat answers "The CRM does not offer this yet".
 
 **Inside the CRM (12 Oct 2026).** The CRM's Chat tab (`/chat`; the old `/mattermost` address lands there too) is an iframe of chat2. The CRM login is shared by several people, so the chat never takes an account from it (the owner's rule): everyone signs in to the chat as themselves the first time, with their CRM email and password, and the browser remembers it (the chat's own session store on chat2's address). The chat posts `crm-chat:badge { count }` (the tab-title count) to the CRM's addresses for its nav item, and nothing else (`web/src/utils/embed.ts`). The server allows framing by the CRM alone (`frame-ancestors`, `CHAT_FRAME_ANCESTORS`). CRM side: `components/ChatPanel.tsx`, `src/chatEmbed.ts`.
 

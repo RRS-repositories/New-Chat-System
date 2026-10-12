@@ -86,7 +86,7 @@ test('the CRM’s refusals come back as they are; a CRM without the route is exp
   assert.equal((await put(1, 'abc', { password: 'x', confirmPassword: 'x' })).status, 404);
 });
 
-test('the people list is open to Management and IT and says who has never signed in; the rest of admin is Management only', async () => {
+test('the admin screens are open to Management and IT (and nobody else); the people list says who has never signed in', async () => {
   await db.query(`INSERT INTO chat.user_presence (user_id, last_seen_at) VALUES (3, now()) ON CONFLICT DO NOTHING`);
   for (const id of [1, 6]) {
     const r = await request(app).get('/api/chat/admin/users').set('Authorization', auth(id));
@@ -99,9 +99,10 @@ test('the people list is open to Management and IT and says who has never signed
   assert.equal((await request(app).get('/api/chat/admin/users').set('Authorization', auth(3))).status, 403);
   assert.equal(
     (await request(app).get('/api/chat/admin/restrictions').set('Authorization', auth(6))).status,
-    403,
-    'IT: no restrictions',
+    200,
+    'IT: the restrictions too (12 Oct 2026)',
   );
+  assert.equal((await request(app).get('/api/chat/admin/restrictions').set('Authorization', auth(3))).status, 403);
 });
 
 test('the pick-from list offers only people who have signed in to the chat', async () => {

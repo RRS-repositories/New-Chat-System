@@ -1,17 +1,17 @@
 import { Router } from 'express';
-import { requireManagement, requireManagementOrIT } from '../middleware/auth.js';
+import { requireManagementOrIT } from '../middleware/auth.js';
 import { createAdminController } from '../controllers/admin.controller.js';
 
-/** Mounted at /api/chat/admin. Management only, except the people list and setting a password, which IT may do too. */
+/** Mounted at /api/chat/admin. Management and IT (the owner, 12 Oct 2026: IT run the chat day to day). */
 export function createAdminRoutes(deps) {
   const admin = createAdminController(deps);
   const r = Router();
   r.get('/users', requireManagementOrIT, admin.listUsers);
   r.put('/users/:userId/password', requireManagementOrIT, admin.setPassword);
-  // Management and IT switch people off and on (like setting a password); the rest is Management only.
   r.post('/users/:userId/deactivate', requireManagementOrIT, admin.deactivate);
   r.post('/users/:userId/reactivate', requireManagementOrIT, admin.reactivate);
-  r.use(requireManagement);
+  // Who may contact whom: Management and IT too, since 12 Oct 2026.
+  r.use(requireManagementOrIT);
   r.get('/restrictions', admin.listRestrictions);
   r.get('/restrictions/user/:userId', admin.listRestrictionsForUser);
   r.post('/restrictions', admin.addRestriction);
