@@ -2,12 +2,17 @@
 //
 // The Content Security Policy tells the browser what this page is allowed to load and run:
 // only our own scripts, our own API and live connection, images and media from us or made in
-// the page (blob:, data:), and only the CRM (and the chat itself) may put the chat inside a
-// frame. Calls need the microphone and screen capture, so those are allowed for this site
+// the page (blob:, data:), and only the CRM, the Sales CRM (and the chat itself) may put the
+// chat inside a frame. Calls need the microphone and screen capture, so those are allowed for this site
 // only; the camera and location are switched off.
 
-/** The pages allowed to show the chat in a frame: the chat itself and the CRM. */
-export const DEFAULT_FRAME_ANCESTORS = ['https://crm.rowanroseclaims.co.uk', 'https://rowanroseclaims.co.uk'];
+/** The pages allowed to show the chat in a frame: the chat itself, the CRM and the Sales CRM. */
+export const DEFAULT_FRAME_ANCESTORS = [
+  'https://crm.rowanroseclaims.co.uk',
+  'https://rowanroseclaims.co.uk',
+  'https://sales.rowanroseclaims.co.uk',
+  'https://opsales.rowanroseclaims.co.uk',
+];
 
 const cspFor = (frameAncestors) =>
   [
@@ -26,7 +31,7 @@ const cspFor = (frameAncestors) =>
   ].join('; ');
 
 /**
- * The headers middleware for the given frame ancestors (the CRM's addresses by default). There
+ * The headers middleware for the given frame ancestors (the CRM's and Sales CRM's addresses by default). There
  * is no X-Frame-Options: it cannot name another site, and every browser the firm uses reads
  * the frame-ancestors rule instead.
  */
