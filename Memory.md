@@ -166,6 +166,18 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 12 Oct 2026 — Phase 8 step 1: a way in for the CRM's automatic messages
+The owner: "move automated messages in chat 2". Step 1 of the Phase 8 plan is built: `POST /api/chat/bot/post`,
+outside the session gate, with its own key in `x-chat-bot-key` (`CHAT_BOT_KEY`) and its own account
+(`CHAT_BOT_USER_ID`). It takes a channel **by name** — not an id, since ids change and the CRM's ~150 call sites
+can only sensibly carry a name — matched ignoring case, spaces, hyphens and underscores, or an `email` for a direct
+message. A card becomes text (bold title, body, fields as lines); this chat has no coloured attachments and
+inventing one would mean a screen change for 13 call sites. A name that matches nothing is refused, never
+re-pointed at another channel. `GET /api/chat/bot/target` checks a name without posting. Unset key or unset
+account = the route answers 503, so it is closed until switched on. 16 tests; both guards checked by
+reintroducing the bug. Nothing in the CRM calls it yet — that is step 2.
+
+
 ### 12 Oct 2026 — chat2 was serving no styling at all
 The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styles/index.css` had the
 `.embed-wait` rule **above** its eleven `@import` lines, added by `6b80071` (embedded mode). CSS ignores an

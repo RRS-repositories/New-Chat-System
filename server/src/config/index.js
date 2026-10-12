@@ -24,6 +24,9 @@ export function loadConfig(env = process.env) {
       .map((s) => s.trim())
       .filter(Boolean),
     crmInternalUrl: (env.CRM_INTERNAL_URL || 'http://127.0.0.1:5000').replace(/\/$/, ''),
+    // Automatic messages from the CRM (Phase 8). Both unset = the bot route is closed.
+    botKey: env.CHAT_BOT_KEY || '',
+    botUserId: parseInt(env.CHAT_BOT_USER_ID || '0', 10) || 0,
     // The pages allowed to show the chat in a frame (the CRM). Empty: only the chat itself.
     frameAncestors:
       env.CHAT_FRAME_ANCESTORS === undefined

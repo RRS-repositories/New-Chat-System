@@ -16,6 +16,8 @@ import { createAuthRoutes } from './routes/auth.routes.js';
 import { createPrefRoutes, createChannelPrefRoutes } from './routes/prefs.routes.js';
 import { createPushRoutes } from './routes/push.routes.js';
 import { createCallRoutes } from './routes/calls.routes.js';
+import { createBotRoutes } from './routes/bot.routes.js';
+import { requireBotKey } from './middleware/botKey.js';
 import { createPresence } from './services/presence/registry.js';
 import { createNotifier } from './services/notifications/notifier.js';
 
@@ -48,6 +50,13 @@ export function createApp({
     enforceIp: config.enforceIpRestriction,
   });
   app.use('/api/chat/auth', createAuthRoutes({ crmInternalUrl: config.crmInternalUrl, fetchImpl }));
+  // The CRM's automatic messages. Mounted before the session gate on purpose: a
+  // program has no session, it carries a key. Closed unless CHAT_BOT_KEY is set.
+  app.use(
+    '/api/chat/bot',
+    requireBotKey({ key: config.botKey }),
+    createBotRoutes({ db, emit, notifier, botUserId: config.botUserId }),
+  );
   // Auth is scoped to the prefixes that exist, so an unknown /api/chat path
   // is a 404 rather than a 401 that hides whether the route exists.
   app.use(
