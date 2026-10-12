@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { requireAuth } from './middleware/auth.js';
 import { perUserLimiter } from './middleware/rate-limit.js';
-import { securityHeaders } from './middleware/securityHeaders.js';
+import { createSecurityHeaders } from './middleware/securityHeaders.js';
 import { createChannelRoutes } from './routes/channels.routes.js';
 import { createMessageRoutes } from './routes/messages.routes.js';
 import { createBrowseRoutes } from './routes/browse.routes.js';
@@ -34,7 +34,7 @@ export function createApp({
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
-  app.use(securityHeaders);
+  app.use(createSecurityHeaders(config.frameAncestors ?? undefined));
   if (config.corsOrigins.length) app.use(cors({ origin: config.corsOrigins, credentials: false }));
   app.use(express.json({ limit: '64kb' }));
 

@@ -24,6 +24,14 @@ export function loadConfig(env = process.env) {
       .map((s) => s.trim())
       .filter(Boolean),
     crmInternalUrl: (env.CRM_INTERNAL_URL || 'http://127.0.0.1:5000').replace(/\/$/, ''),
+    // The pages allowed to show the chat in a frame (the CRM). Empty: only the chat itself.
+    frameAncestors:
+      env.CHAT_FRAME_ANCESTORS === undefined
+        ? null
+        : String(env.CHAT_FRAME_ANCESTORS)
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
     uploadsDir: env.CHAT_UPLOADS_DIR || '/data/chat-uploads',
     // The chat.beta gate defaults ON: unset or 'true' -> true, only 'false' turns it off.
     requireBeta: env.CHAT_REQUIRE_BETA !== 'false',

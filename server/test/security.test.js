@@ -11,7 +11,7 @@ import { ALLOWED_MIME } from '../src/services/files/storage.js';
 import { checkUploads } from '../src/services/files/upload.service.js';
 import { sessionUser, IP_REFUSED_MESSAGE } from '../src/services/session.service.js';
 import { requireAuth, socketAuth } from '../src/middleware/auth.js';
-import { securityHeaders, CONTENT_SECURITY_POLICY } from '../src/middleware/securityHeaders.js';
+import { securityHeaders, createSecurityHeaders, CONTENT_SECURITY_POLICY } from '../src/middleware/securityHeaders.js';
 import { loadConfig } from '../src/config/index.js';
 import { createApp } from '../src/app.js';
 import { createTestDb } from './pg-helper.js';
@@ -260,7 +260,11 @@ test('every response carries the security headers', async () => {
   app.get('/x', (_req, res) => res.json({ ok: true }));
   const res = await request(app).get('/x');
   assert.equal(res.headers['x-content-type-options'], 'nosniff');
-  assert.equal(res.headers['x-frame-options'], 'DENY');
+  assert.equal(
+    res.headers['x-frame-options'],
+    undefined,
+    'frame-ancestors says who may frame us; X-Frame-Options cannot',
+  );
   assert.equal(res.headers['referrer-policy'], 'strict-origin-when-cross-origin');
   assert.match(res.headers['strict-transport-security'], /max-age=31536000/);
   assert.match(res.headers['permissions-policy'], /camera=\(\)/);
@@ -276,7 +280,20 @@ test('the content policy allows only what the chat uses', () => {
   assert.match(csp, /connect-src 'self' ws: wss:/, 'the live connection');
   assert.match(csp, /img-src 'self' blob: data:/, 'attachments are shown from blobs');
   assert.match(csp, /media-src 'self' blob:/, 'call audio and shared screens');
-  assert.match(csp, /frame-ancestors 'none'/);
+  assert.match(
+    csp,
+    /frame-ancestors 'self' https:\/\/crm\.rowanroseclaims\.co\.uk https:\/\/rowanroseclaims\.co\.uk(;|$)/,
+    'only the CRM may show the chat in a frame',
+  );
+  const own = createSecurityHeaders([]);
+  const bare = express();
+  bare.use(own);
+  bare.get('/x', (_req, res) => res.json({ ok: true }));
+  return request(bare)
+    .get('/x')
+    .then((r) =>
+      assert.match(r.headers['content-security-policy'], /frame-ancestors 'self'(;|$)/, 'no ancestors: self only'),
+    );
   assert.match(csp, /object-src 'none'/);
   assert.doesNotMatch(csp, /unsafe-eval/);
 });
@@ -291,7 +308,7 @@ test('the whole app sends the headers, on API answers and on the page', async ()
     assert.equal(health.headers['x-powered-by'], undefined);
     const api = await request(app).get('/api/chat/users/me');
     assert.equal(api.status, 401);
-    assert.equal(api.headers['x-frame-options'], 'DENY');
+    assert.equal(api.headers['x-frame-options'], undefined);
   } finally {
     await close();
   }

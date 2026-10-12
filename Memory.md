@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 12 Oct 2026 — the chat inside the CRM; Mattermost out of the CRM
+The owner: "add the new chat system here and remove mattermost" (the CRM's Chat tab). The chat now runs in embedded mode when framed: it asks the page around it for the session, takes it only from the CRM's addresses, swaps a stale stored session for the one the CRM sends, reports the waiting count up, and asks for a fresh token when one is refused. The server's frame-ancestors now names the CRM (no X-Frame-Options). CRM pull request: Chat tab at `/chat` (iframe of chat2, session by message, nav count from the iframe or a 30-second poll), `/mattermost` redirects there, the Mattermost panel, bubble, account card and sound settings removed from the CRM screens. The CRM's ~150 automatic Mattermost messages are untouched (Phase 8).
+
 ### 12 Oct 2026 — people boxes search by email too
 The owner asked whether CRM registrations reach chat2 (they do: same `users` table; a person can sign in once approved and active in the CRM, and is offered to others once they have signed in to the chat) and for search by email. New message, Create a channel, Add people and Add to call now match on the name or the email, and show the email under the name. Deployed.
 

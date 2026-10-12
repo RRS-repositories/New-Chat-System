@@ -1,4 +1,13 @@
 /* Styles, one file per area. The order matters: later files win when two rules are equal. */
+.embed-wait {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  color: var(--mut);
+  font:
+    500 14px/1.4 system-ui,
+    sans-serif;
+}
 @import './tokens.css';
 @import './theme.css';
 @import './base.css';

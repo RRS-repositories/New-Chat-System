@@ -1,5 +1,6 @@
 import { setFaviconBadge } from '../../utils/favicon.ts';
 import { tabBadge, tabTitle } from '../../utils/tabTitle.ts';
+import { MSG, isEmbedded, postToParent } from '../../utils/embed.ts';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { APP_TITLE } from '../../config/constants.ts';
@@ -45,6 +46,8 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null }: Prop
     const badge = tabBadge(state.channels);
     document.title = tabTitle(badge, APP_TITLE);
     setFaviconBadge(badge);
+    // Inside the CRM the count goes to its Chat nav item too.
+    if (isEmbedded()) postToParent(MSG.badge, { count: badge.count });
   }, [state.channels]);
 
   // Ctrl+K (or Command+K) opens search from anywhere.
