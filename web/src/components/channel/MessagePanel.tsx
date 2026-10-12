@@ -237,6 +237,7 @@ export function MessagePanel({
           <TypingIndicator names={typing} />
           <MessageInput
             ref={inputRef}
+            focusKey={channelId}
             members={members}
             sendOnEnter={state.prefs.sendOnEnter}
             placeholder={composerPlaceholder(channel)}

@@ -21,6 +21,8 @@ type Props = {
   onSend: (c: string) => Promise<void>;
   onTyping: () => void;
   disabled?: boolean;
+  /** When this changes (a conversation was opened) the cursor goes into the box, so typing can start at once. */
+  focusKey?: string;
   replyTo?: Message | null;
   onCancelReply?: () => void;
   members?: { id: number; fullName: string }[];
@@ -38,6 +40,7 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
     onSend,
     onTyping,
     disabled,
+    focusKey,
     replyTo,
     onCancelReply,
     members = [],
@@ -59,6 +62,13 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
   const fileInput = useRef<HTMLInputElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  // Opening a conversation puts the cursor in the box (the owner's rule, 12 Oct 2026). Not on a
+  // phone or tablet, where that would throw the keyboard up over the messages.
+  useEffect(() => {
+    if (!focusKey) return;
+    const touch = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    if (!touch) ta.current?.focus();
+  }, [focusKey]);
   useEffect(() => {
     if (replyTo) ta.current?.focus();
   }, [replyTo]);

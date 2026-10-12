@@ -56,6 +56,25 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
   const ann = await signIn(browser, 'a@x', 'Ann');
   const meg = await signIn(browser, 'm@x', 'Meg');
 
+  await step('opening a conversation puts the cursor in the message box, ready to type', async () => {
+    const focused = (page) =>
+      page.waitForFunction(
+        () => document.activeElement === document.querySelector('.panel > .input-bar textarea'),
+        null,
+        {
+          timeout: 5000,
+        },
+      );
+    // Meg opens a direct message with Ann from New message: the cursor lands in the box.
+    await meg.page.click('button[aria-label="New message"]');
+    await meg.page.locator('.pick-row', { hasText: 'Ann Agent' }).click();
+    await meg.page.locator('.chan-title', { hasText: 'Ann Agent' }).waitFor({ timeout: 8000 });
+    await focused(meg.page);
+    // Back to General: the same.
+    await meg.page.locator('.chan-row', { hasText: 'General' }).first().click();
+    await meg.page.locator('.chan-title', { hasText: 'General' }).waitFor({ timeout: 8000 });
+    await focused(meg.page);
+  });
   await step('a message sent by one person appears for the other without a reload', async () => {
     await send(meg.page, 'hello from Meg');
     await ann.page.locator('.msg', { hasText: 'hello from Meg' }).waitFor({ timeout: 8000 });
