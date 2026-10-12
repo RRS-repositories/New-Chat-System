@@ -3,6 +3,7 @@ import { MessageSquare, MoreHorizontal, Pencil, Pin, PinOff, Reply, Smile, Trash
 import type { Message } from '../../types/index.ts';
 import { Floating } from '../common/Floating.tsx';
 import { EmojiPicker } from './EmojiPicker.tsx';
+import { quickEmojis, recordEmojiUse } from '../../utils/quickEmojis.ts';
 
 type Props = {
   m: Message;
@@ -34,12 +35,30 @@ export function MessageActions({
   const [menuOpen, setMenuOpen] = useState(false);
   const reactButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
+  // The three reactions this person uses most, one tap away; a pick anywhere counts towards them.
+  const quick = quickEmojis();
+  const react = (emoji: string) => {
+    recordEmojiUse(emoji);
+    onReact(emoji);
+  };
   return (
     <div className={`hact${picking || menuOpen ? ' open' : ''}`} role="toolbar" aria-label="Message actions">
-      <button ref={reactButton} aria-label="React" title="React" onClick={() => setPicking(!picking)}>
+      {quick.map((emoji) => (
+        <button
+          key={emoji}
+          className="hq"
+          aria-label={`React ${emoji}`}
+          title={`React ${emoji}`}
+          data-testid="quick-react"
+          onClick={() => react(emoji)}
+        >
+          {emoji}
+        </button>
+      ))}
+      <button ref={reactButton} aria-label="React" title="More reactions" onClick={() => setPicking(!picking)}>
         <Smile size={15} />
       </button>
-      {picking && <EmojiPicker anchor={reactButton} onPick={onReact} onClose={() => setPicking(false)} />}
+      {picking && <EmojiPicker anchor={reactButton} onPick={react} onClose={() => setPicking(false)} />}
       <button aria-label="Reply" title="Reply" onClick={onReply}>
         <Reply size={15} />
       </button>

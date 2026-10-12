@@ -1,6 +1,17 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { BellOff, ChevronDown, Hash, Lock, MoreHorizontal, PenLine, Phone, Plus } from 'lucide-react';
 import { useCall } from '../../context/callContext.ts';
+import {
+  applyOrder,
+  loadDmsRecent,
+  loadOrder,
+  moveId,
+  recentDms,
+  saveDmsRecent,
+  saveOrder,
+  type Order,
+  type Section,
+} from '../../utils/sidebarOrder.ts';
 import { Floating } from '../common/Floating.tsx';
 import { STORAGE_KEYS } from '../../config/constants.ts';
 import type { Channel } from '../../types/index.ts';
@@ -48,9 +59,47 @@ export function ChannelList({
 }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const addButton = useRef<HTMLButtonElement | null>(null);
-  const favourites = channels.filter((c) => c.favourite);
-  const rooms = channels.filter((c) => c.type !== 'dm' && !c.favourite);
-  const dms = channels.filter((c) => c.type === 'dm' && !c.favourite);
+  // The rows in the order this person dragged them into (kept in the browser).
+  const [order, setOrder] = useState<Order>(loadOrder);
+  const favourites = applyOrder(
+    channels.filter((c) => c.favourite),
+    order.favourites,
+  );
+  const rooms = applyOrder(
+    channels.filter((c) => c.type !== 'dm' && !c.favourite),
+    order.rooms,
+  );
+  const allDms = applyOrder(
+    channels.filter((c) => c.type === 'dm' && !c.favourite),
+    order.dms,
+  );
+  // Direct messages: everyone, or only the recent ones (unread, open, favourite, or active lately).
+  const [dmsRecent, setDmsRecent] = useState<boolean>(loadDmsRecent);
+  const dms = dmsRecent ? recentDms(allDms, currentId) : allDms;
+  const hiddenDms = allDms.length - dms.length;
+  const toggleRecent = () => {
+    saveDmsRecent(!dmsRecent);
+    setDmsRecent(!dmsRecent);
+  };
+  // Dragging a row: on drop it lands below the target when moved down, above it when moved up.
+  const dragging = useRef<{ section: Section; id: string } | null>(null);
+  const dropOn = (section: Section, list: Channel[], targetId: string) => {
+    const d = dragging.current;
+    dragging.current = null;
+    if (!d || d.section !== section) return;
+    const next = {
+      ...order,
+      [section]: moveId(
+        list.map((c) => c.id),
+        d.id,
+        targetId,
+      ),
+    };
+    saveOrder(next);
+    setOrder(next);
+  };
+  const sectionOf = (c: Channel): Section => (c.favourite ? 'favourites' : c.type === 'dm' ? 'dms' : 'rooms');
+  const listOf = (s: Section) => (s === 'favourites' ? favourites : s === 'rooms' ? rooms : allDms);
   // Which conversations have a call ringing or going on: a phone icon on their row.
   const { activeByChannel } = useCall();
   const [menuFor, setMenuFor] = useState<Channel | null>(null);
@@ -144,6 +193,24 @@ export function ChannelList({
       key={c.id}
       className={`s-row${menuFor?.id === c.id ? ' menu-open' : ''}`}
       onContextMenu={(e) => openMenu(c, e)}
+      draggable
+      data-testid="chan-draggable"
+      onDragStart={(e) => {
+        dragging.current = { section: sectionOf(c), id: c.id };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', c.id);
+      }}
+      onDragOver={(e) => {
+        if (dragging.current?.section === sectionOf(c)) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        const s = sectionOf(c);
+        dropOn(s, listOf(s), c.id);
+      }}
+      onDragEnd={() => {
+        dragging.current = null;
+      }}
     >
       <button
         className={`s-item chan-row${c.id === currentId ? ' active' : ''}${c.unreadCount ? ' unread' : ''}`}
@@ -204,10 +271,35 @@ export function ChannelList({
           {shown(rooms, 'rooms').map(roomRow)}
         </div>
       )}
-      {dms.length > 0 && (
+      {allDms.length > 0 && (
         <div className="chan-group">
-          {title('dms', 'Direct messages', dms, addDm)}
+          {title(
+            'dms',
+            'Direct messages',
+            dms,
+            <>
+              <button
+                className={`s-add s-text${dmsRecent ? ' on' : ''}`}
+                aria-pressed={dmsRecent}
+                title={
+                  dmsRecent
+                    ? 'Showing recent conversations only. Click to show everyone.'
+                    : 'Show recent conversations only'
+                }
+                data-testid="dms-recent"
+                onClick={toggleRecent}
+              >
+                {dmsRecent ? 'Recent' : 'All'}
+              </button>
+              {addDm}
+            </>,
+          )}
           {shown(dms, 'dms').map(dmRow)}
+          {dmsRecent && hiddenDms > 0 && !collapsed.dms && (
+            <button className="s-item s-more" data-testid="dms-show-all" onClick={toggleRecent}>
+              Show all · {hiddenDms} more
+            </button>
+          )}
         </div>
       )}
       {menuFor && <ChannelMenu channel={menuFor} anchor={menuAnchor} onClose={() => setMenuFor(null)} />}

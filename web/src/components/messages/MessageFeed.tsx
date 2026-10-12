@@ -98,10 +98,16 @@ export const MessageFeed = memo(function MessageFeed({
   // and then stays put while the person reads (it does not chase messages that arrive afterwards).
   const [newFromId, setNewFromId] = useState<string | null>(null);
   const newDecided = useRef(false);
+  // Opened with unread messages: the page lands on the NEW line when it would otherwise be out of
+  // sight above, and a "N new" pill offers the way down until the bottom is reached.
+  const landOnNew = useRef(false);
+  const [landed, setLanded] = useState(false);
   useEffect(() => {
     if (newDecided.current || !items.length || unreadAtOpen <= 0) return;
     newDecided.current = true;
-    setNewFromId(firstNewMessageId(items, selfId, unreadAtOpen));
+    const id = firstNewMessageId(items, selfId, unreadAtOpen);
+    setNewFromId(id);
+    landOnNew.current = !!id;
   }, [items, selfId, unreadAtOpen]);
 
   // The list is about to change and the page still shows the old one: note where a surviving message is.
@@ -115,6 +121,22 @@ export const MessageFeed = memo(function MessageFeed({
   useLayoutEffect(() => {
     const el = box.current;
     if (!el || highlightId) return;
+    if (landOnNew.current && newFromId) {
+      landOnNew.current = false;
+      const line = el.querySelector<HTMLElement>('[data-testid="new-divider"]');
+      el.scrollTop = el.scrollHeight;
+      if (line) {
+        const top = line.getBoundingClientRect().top - el.getBoundingClientRect().top;
+        if (top < 0) {
+          // The NEW line is above what is shown: start there instead of at the bottom.
+          el.scrollTop = Math.max(0, el.scrollTop + top - 56);
+          setAtBottom(false);
+          setLanded(true);
+          return;
+        }
+      }
+      return;
+    }
     if (pinned) {
       el.scrollTop = el.scrollHeight;
       return;
@@ -160,7 +182,10 @@ export const MessageFeed = memo(function MessageFeed({
     const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const bottom = fromBottom < AT_BOTTOM_PX;
     setAtBottom(bottom);
-    if (bottom && !windowed) setFresh(false);
+    if (bottom && !windowed) {
+      setFresh(false);
+      setLanded(false);
+    }
     if (loading.current) return;
     if (el.scrollTop < NEAR_EDGE_PX && hasOlder) await loadOnce(onLoadOlder);
     else if (fromBottom < NEAR_EDGE_PX && windowed && onLoadNewer) await loadOnce(onLoadNewer);
@@ -232,18 +257,25 @@ export const MessageFeed = memo(function MessageFeed({
           Jump to latest <ChevronDown size={14} />
         </button>
       ) : (
-        fresh &&
+        (fresh || landed) &&
         !pinned && (
           <button
             className="new-pill"
+            data-testid="new-pill"
             onClick={() => {
               const el = box.current;
               if (el) el.scrollTop = el.scrollHeight;
               setAtBottom(true);
               setFresh(false);
+              setLanded(false);
             }}
           >
-            New messages <ChevronDown size={14} />
+            <ChevronDown size={14} />
+            {(() => {
+              const idx = newFromId ? items.findIndex((m) => m.id === newFromId) : -1;
+              const n = idx >= 0 ? items.length - idx : 0;
+              return n > 0 ? `${n} new` : 'New messages';
+            })()}
           </button>
         )
       )}

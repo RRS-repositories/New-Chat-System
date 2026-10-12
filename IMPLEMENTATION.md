@@ -450,6 +450,12 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Whiteboard.** One board per call. **Only the host draws** (changed 5 Oct 2026 on the owner's word; the server refuses anyone else); everyone in the call sees it. Strokes are lists of points given as fractions of the board, so they land in the same place on every screen. The board is larger than the screen: the host moves it with Ctrl + drag, the hand tool or the scroll wheel, and zooms from 25% to 400% with Ctrl + scroll or the − and + buttons; everyone else's view follows the host's (they can look around themselves until the host next moves). Strokes are sent in batches about ten times a second, relayed by the server, and kept in memory (2,000 at most) with the host's view, so a late joiner sees the board as it is. Undo takes back the host's own latest stroke; clear wipes the board and puts the view back. Nothing is stored; the board is gone when the call ends.
 
+**Landing on the first unread.** A conversation opened with unread messages lands on its NEW line when that line would otherwise be above the visible part, and a "N new" pill at the bottom of the feed counts what is below until the bottom is reached (`MessageFeed`).
+
+**Quick reactions.** The hover bar on every message starts with three one-tap reactions: the ones this person uses most on this device (`web/src/utils/quickEmojis.ts`, counts in the browser), the usual three filling in.
+
+**The sidebar as arranged.** Rows can be dragged within Favourites, Channels and Direct messages; the order is kept in the browser (`web/src/utils/sidebarOrder.ts`). The Direct messages header has an All / Recent switch: Recent shows unread, open, favourite, or active in the last 14 days, with a "Show all · N more" row.
+
 **A ring is a pop-up.** The incoming-call card sits in the bottom-right corner and the rest of the chat stays usable behind it (no backdrop, no blur); the row of the channel or person with a call ringing or going on shows a blinking phone icon (`activeByChannel` from the call context). The owner's rule, 12 Oct 2026: a call must never take the screen away from someone in the middle of something.
 
 **Recording.** Host only. Made in the host's browser: every voice is mixed into one track (plus the shared screen, if one is being shared when recording starts) and written as WebM. Everyone sees a REC pill and is told, including people who join meanwhile. When recording stops, or the host leaves or is cut off, the file is uploaded into the call's conversation as "Call recording" (`metadata.kind = call_recording`). Limits: closing the host's tab loses it; 20 MB at most (about 80 minutes of voice), then it stops and saves by itself.
@@ -629,6 +635,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: links, formatting, channel rename, leave and archive | `node server/dev/e2e/browser-features.cjs` | 12 |
 | Real browser: a pasted spreadsheet or web table becomes a table in the message | `node server/dev/e2e/browser-table.cjs` | 4 |
 | Real browser: the chat inside the CRM (own sign-in, remembered, waiting count, sign out, frame header) | `node server/dev/e2e/browser-embed.cjs` | 6 |
+| Real browser: quick reactions, sidebar drag order, All / Recent direct messages, landing on the first unread | `node server/dev/e2e/browser-ux.cjs` | 5 |
 | Real browser: the new design (themes, panels, messages) **(Phase 9)** | `node server/dev/e2e/browser-redesign.cjs` | 17 |
 | Real browser: profile photos **(Phase 9)** | `node server/dev/e2e/browser-avatars.cjs` | 6 |
 | Real browser: the call screen, reactions, hands, stand-in host **(Phase 9)** | `node server/dev/e2e/browser-callscreen.cjs` | 11 |

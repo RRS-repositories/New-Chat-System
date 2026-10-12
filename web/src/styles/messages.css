@@ -201,6 +201,16 @@
 .hact.open {
   display: flex;
 }
+/* The three quick reactions at the start of the bar */
+.hact > button.hq {
+  font-size: 15px;
+  line-height: 1;
+}
+.hact > button.hq + button:not(.hq) {
+  margin-left: 3px;
+  border-left: 1px solid var(--line);
+  border-radius: 0 9px 9px 0;
+}
 .hact > button,
 .hact .picker-anchor > button,
 .hact .menu-wrap > button {

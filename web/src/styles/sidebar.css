@@ -447,8 +447,29 @@
 }
 .s-sec-row:hover .s-add,
 .s-add:focus-visible,
-.s-add[aria-expanded='true'] {
+.s-add[aria-expanded='true'],
+.s-add.on {
   opacity: 1;
+}
+/* The "All / Recent" switch on the Direct messages header */
+.s-add.s-text {
+  width: auto;
+  padding: 0 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.s-more {
+  opacity: 0.75;
+  font-size: 12px;
+}
+/* A row being dragged to a new place */
+.s-row[draggable='true'] {
+  cursor: grab;
+}
+.s-row[draggable='true']:active {
+  cursor: grabbing;
 }
 .s-add:hover {
   background: rgba(255, 255, 255, 0.1);
