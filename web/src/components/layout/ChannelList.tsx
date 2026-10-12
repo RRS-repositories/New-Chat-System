@@ -1,5 +1,6 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { BellOff, ChevronDown, Hash, Lock, MoreHorizontal, PenLine, Plus } from 'lucide-react';
+import { BellOff, ChevronDown, Hash, Lock, MoreHorizontal, PenLine, Phone, Plus } from 'lucide-react';
+import { useCall } from '../../context/callContext.ts';
 import { Floating } from '../common/Floating.tsx';
 import { STORAGE_KEYS } from '../../config/constants.ts';
 import type { Channel } from '../../types/index.ts';
@@ -50,6 +51,8 @@ export function ChannelList({
   const favourites = channels.filter((c) => c.favourite);
   const rooms = channels.filter((c) => c.type !== 'dm' && !c.favourite);
   const dms = channels.filter((c) => c.type === 'dm' && !c.favourite);
+  // Which conversations have a call ringing or going on: a phone icon on their row.
+  const { activeByChannel } = useCall();
   const [menuFor, setMenuFor] = useState<Channel | null>(null);
   const menuAnchor = useRef<HTMLElement | null>(null);
   const openMenu = (c: Channel, e: MouseEvent<HTMLElement>) => {
@@ -149,6 +152,9 @@ export function ChannelList({
         {icon}
         <span className="chan-name">{label}</span>
         {extra}
+        {activeByChannel[c.id] && (
+          <Phone size={12} className="call-icon" aria-label="Call in progress" data-testid="row-call" />
+        )}
         {c.notifyPref === 'nothing' && <BellOff size={12} className="muted-icon" aria-label="Muted" />}
         {c.mentionCount > 0 ? (
           <span className="badge mention" title="Mentions">

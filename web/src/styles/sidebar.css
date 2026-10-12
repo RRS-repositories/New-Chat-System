@@ -372,6 +372,21 @@
 .s-row {
   position: relative;
 }
+/* A call ringing or going on in this conversation */
+.s-item .call-icon {
+  flex-shrink: 0;
+  color: var(--green);
+  animation: callblink 1.2s ease-in-out infinite;
+}
+@keyframes callblink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
 .s-row .row-more {
   position: absolute;
   right: 8px;

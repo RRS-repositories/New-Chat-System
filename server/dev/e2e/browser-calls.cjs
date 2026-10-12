@@ -91,6 +91,18 @@ const waitAudio = async (page, n, what) => {
     await ann.page.waitForSelector(tid('incoming-call'), { timeout: 15000 });
     await bob.page.waitForSelector(tid('incoming-call'), { timeout: 15000 });
   });
+  await step(
+    'the ring is a corner pop-up: Ann can still use the chat behind it; the channel row shows a phone',
+    async () => {
+      await ann.page.locator('[data-testid="row-call"]').first().waitFor({ timeout: 8000 });
+      const box = await ann.page.locator(tid('incoming-call')).boundingBox();
+      const view = ann.page.viewportSize();
+      if (!box || box.x + box.width < view.width - 200 || box.y + box.height < view.height - 200)
+        throw new Error(`the card is not in the corner: ${JSON.stringify(box)}`);
+      // A click on the message box behind the card still lands.
+      await ann.page.locator('.panel > .input-bar textarea').click({ timeout: 5000 });
+    },
+  );
   await step('Ann accepts: one-to-one audio flows both ways', async () => {
     await ann.page.click(tid('incoming-accept'));
     await ann.page.waitForSelector(tid('call-panel'), { timeout: 15000 });

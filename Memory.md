@@ -214,6 +214,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 12 Oct 2026 — a ring is a pop-up; phone icon on the row
+The owner saw a channel call ring take over the whole screen (dimmed, blurred) and said a call must be a pop-up or its own place so nobody mid-task is disturbed, and that the channel or person with the call should carry a phone icon in the sidebar. Now the incoming-call card is a small card in the bottom-right corner with the chat usable behind it, and the row of a conversation with a call ringing or going on shows a blinking phone. Deployed.
+
 ### 12 Oct 2026 — restrictions for IT too
 The owner (IT) could not find "who may contact whom": it was Management only. Now Management and IT: the access table on a person's page, the All restrictions tab, and the routes behind them. Deployed.
 

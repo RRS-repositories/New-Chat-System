@@ -78,7 +78,6 @@ function Card({ inc, onACall }: { inc: IncomingCall; onACall: boolean }) {
       <div
         className="inc-card"
         role="alertdialog"
-        aria-modal="true"
         aria-labelledby="incoming-title"
         aria-describedby="incoming-where"
         data-testid="incoming-call"
