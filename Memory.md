@@ -166,6 +166,26 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 12 Oct 2026 — Phase 8 step 2: the CRM now sends its automatic messages to both systems
+All 22 senders in the CRM are wired, about 150 call sites, across five pull requests (#989, #990, #995,
+#996, #997, #998). Each sender gained one line rather than each call site being rewritten; the email worker's
+31 inline posts changed by a single token (`fetch` → `fetchWebhookAndMirror`). `lib/chat-mirror.js` maps each
+Mattermost channel — by id, by name, or by the name of the webhook setting when a sender names no channel at
+all — onto the twelve departments; an unmapped channel sends NOTHING rather than guessing. Cards are rendered
+to text. CommonJS callers go through `lib/chat-mirror.cjs`, shell jobs through `scripts/chat-post.sh`. In every
+sender the mirror comes BEFORE the "is Mattermost configured" check, so it survives Mattermost being switched
+off; there is a test per sender, each verified by putting the bug back.
+
+Deployed to /opt/crm (f6cbade8) on 12 Oct and switched on: `CHAT_MIRROR_ENABLED=true`, key matching
+`/opt/chat/.env`. Automatic messages now arrive in Mattermost AND in chat2 as **Sarah Bot** (user 520, an
+account with no usable password). Nothing was taken away from Mattermost.
+
+NOT DONE, and Mattermost cannot be switched off until it is: sign-in, presence sync and the FOS hub bridge
+still depend on Mattermost. The survey always listed those as a separate job from the messages.
+
+Next: step 3 — compare the two systems channel by channel for a week, then stop the Mattermost half.
+
+
 ### 12 Oct 2026 — the web app could not build: a prop that was never declared
 `main.tsx` has passed a `note` to `LoginPage` since `6b80071` (embedded mode), but `LoginPage` never declared it,
 so `tsc --noEmit` failed and `deploy.sh` stopped before building. It went unnoticed because the deploy before it

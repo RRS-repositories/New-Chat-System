@@ -138,7 +138,7 @@ The owner chose these on 1 October 2026 and asked that the chat stay light howev
 
 ---
 
-## Phase 8 — The CRM's automatic messages in the chat ⏳ (approved 1 October 2026; needs the owner's decisions before work starts)
+## Phase 8 — The CRM's automatic messages in the chat ▶ (steps 1 and 2 built and live 12 October 2026; step 3 — compare, then stop the Mattermost half — outstanding)
 
 **Goal:** every automatic message the CRM posts to Mattermost goes to this chat instead, so Mattermost can be switched off.
 
