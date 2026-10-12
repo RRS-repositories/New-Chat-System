@@ -6,6 +6,7 @@ import {
   countMembers,
   createChannel,
   ensureDefaultMembership,
+  overseerIds,
   getChannel,
   listChannelsForUser,
   listMembers,
@@ -69,8 +70,12 @@ export function createChannelController({ db, emit, uploadsDir = '' }) {
         createdBy: req.user.id,
         memberIds: members,
       });
-      joinRooms([req.user.id, ...members], channel.id);
-      for (const userId of members) emit.toUser(userId, 'member_added', { channel_id: channel.id, user_id: userId });
+      // Management and IT were put in as well (unless it is a group conversation): tell them too.
+      const overseers =
+        type === 'group_dm' ? [] : (await overseerIds(db)).filter((id) => id !== req.user.id && !members.includes(id));
+      joinRooms([req.user.id, ...members, ...overseers], channel.id);
+      for (const userId of [...members, ...overseers])
+        emit.toUser(userId, 'member_added', { channel_id: channel.id, user_id: userId });
       res.status(201).json({ success: true, channel });
     }),
 

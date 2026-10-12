@@ -22,9 +22,7 @@ export function createBotController({ db, emit, notifier = null, botUserId }) {
       const content = cleanMessageContent(renderCard(card, text));
       if (!content) throw httpError(400, 'empty', 'An automatic message needs some text');
 
-      const target = email
-        ? await resolveDmByEmail(db, bot.id, email)
-        : await resolveChannelByName(db, channel);
+      const target = email ? await resolveDmByEmail(db, bot.id, email) : await resolveChannelByName(db, channel);
 
       // A direct message already has both people in it; a channel may not have the bot.
       if (!email) await ensureBotInChannel(db, target.id, bot.id);

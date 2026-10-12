@@ -200,6 +200,15 @@ export async function createChannel(db, { name, displayName, type, purpose = '',
      ON CONFLICT DO NOTHING`,
     [row.id, createdBy, ids],
   );
+  // Management and IT are in every channel (not group conversations).
+  if (type !== 'group_dm')
+    await db.query(
+      `INSERT INTO chat.channel_members (channel_id, user_id, role)
+       SELECT $1, u.id, 'member' FROM public.users u
+        WHERE u.role::text = ANY($2) AND u.is_active IS NOT FALSE AND u.is_approved = TRUE
+       ON CONFLICT DO NOTHING`,
+      [row.id, OVERSEER_ROLES],
+    );
   return mapChannel(row);
 }
 
@@ -247,12 +256,32 @@ export async function addMembers(db, channelId, userIds, addedBy) {
 }
 
 /** Everyone belongs to #general: idempotent join, run on each channel list. */
+/** Management and IT are in every channel (the owner's rule, 12 Oct 2026): public and private, never direct messages. */
+export const OVERSEER_ROLES = ['Management', 'IT'];
+
+/** The ids of every active, approved Management or IT person. */
+export async function overseerIds(db) {
+  const { rows } = await db.query(
+    `SELECT id FROM public.users WHERE role::text = ANY($1) AND is_active IS NOT FALSE AND is_approved = TRUE`,
+    [OVERSEER_ROLES],
+  );
+  return rows.map((r) => Number(r.id)).filter((n) => Number.isFinite(n) && n > 0);
+}
+
+/**
+ * Everyone is in General; Management and IT are in every public and private channel. Run when a
+ * person's channel list is fetched, so the rule holds for channels that existed before they did.
+ */
 export async function ensureDefaultMembership(db, userId) {
   await db.query(
     `INSERT INTO chat.channel_members (channel_id, user_id, role)
-     SELECT c.id, $1, 'member' FROM chat.channels c WHERE c.name = 'general' AND c.type = 'public' AND c.archived_at IS NULL
+     SELECT c.id, $1, 'member' FROM chat.channels c
+      WHERE c.archived_at IS NULL
+        AND ((c.name = 'general' AND c.type = 'public')
+             OR (c.type IN ('public', 'private')
+                 AND EXISTS (SELECT 1 FROM public.users u WHERE u.id = $1 AND u.role::text = ANY($2))))
      ON CONFLICT DO NOTHING`,
-    [userId],
+    [userId, OVERSEER_ROLES],
   );
 }
 

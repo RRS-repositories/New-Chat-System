@@ -17,7 +17,10 @@ const fail = (code, message, status = 400) => {
 };
 
 /** "PAYMENTS DEPT", "payments_dept" and "Payments  Dept" all reduce to the same thing. */
-const squash = (s) => String(s || '').toLowerCase().replace(/[\s_-]+/g, '');
+const squash = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
 
 /** The channel a name refers to. Archived channels and direct messages are never a target. */
 export async function resolveChannelByName(db, name) {
@@ -27,16 +30,21 @@ export async function resolveChannelByName(db, name) {
     `SELECT id, display_name, name FROM chat.channels
       WHERE archived_at IS NULL AND type IN ('public','private')`,
   );
-  const hit =
-    rows.find((r) => squash(r.display_name) === wanted) || rows.find((r) => squash(r.name) === wanted);
+  const hit = rows.find((r) => squash(r.display_name) === wanted) || rows.find((r) => squash(r.name) === wanted);
   if (!hit)
-    throw fail('no_such_channel', `No channel called "${name}". Automatic messages are never posted to a channel that does not exist.`, 404);
+    throw fail(
+      'no_such_channel',
+      `No channel called "${name}". Automatic messages are never posted to a channel that does not exist.`,
+      404,
+    );
   return hit;
 }
 
 /** The direct-message channel between the bot and the person with this email. */
 export async function resolveDmByEmail(db, botUserId, email) {
-  const address = String(email || '').trim().toLowerCase();
+  const address = String(email || '')
+    .trim()
+    .toLowerCase();
   if (!address) throw fail('no_target', 'Give a channel or an email');
   const {
     rows: [person],

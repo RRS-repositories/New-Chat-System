@@ -9,7 +9,9 @@ import crypto from 'node:crypto';
 export function requireBotKey({ key }) {
   return (req, res, next) => {
     if (!key)
-      return res.status(503).json({ success: false, code: 'bot_not_configured', message: 'Bot posting is not switched on' });
+      return res
+        .status(503)
+        .json({ success: false, code: 'bot_not_configured', message: 'Bot posting is not switched on' });
     const given = String(req.headers['x-chat-bot-key'] || '');
     // Compare every time over the same length, so a wrong key cannot be found
     // one character at a time from how long the answer takes.

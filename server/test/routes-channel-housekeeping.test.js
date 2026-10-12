@@ -127,8 +127,11 @@ test('when the last person leaves a private channel it is archived, not left as 
   const id = await room();
   ok(await as(3).del(`/channels/${id}/members/3`));
   ok(await as(2).del(`/channels/${id}/members/2`));
+  // Management are in every channel, so Meg is still there and it is not an orphan yet.
+  assert.ok(!(await db.query(`SELECT archived_at FROM chat.channels WHERE id = $1`, [id])).rows[0].archived_at);
+  ok(await as(1).del(`/channels/${id}/members/1`));
   const { rows } = await db.query(`SELECT archived_at FROM chat.channels WHERE id = $1`, [id]);
-  assert.ok(rows[0].archived_at, 'archived');
+  assert.ok(rows[0].archived_at, 'archived once nobody at all is left');
 });
 
 test('a public channel that everyone has left stays, so people can join it again', async () => {
