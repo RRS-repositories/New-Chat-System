@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { ChatUser } from '../../types/index.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { personLine, personMatches } from '../../utils/people.ts';
 
 type Props = { channelId: string; channelName: string; onClose: () => void };
 
@@ -29,7 +30,7 @@ export function AddMembersDialog({ channelId, channelName, onClose }: Props) {
   const outside = useMemo(() => {
     const inIt = new Set(members.map((m) => m.id));
     const words = query.trim().toLowerCase();
-    return (users || []).filter((u) => !inIt.has(u.id) && (!words || u.fullName.toLowerCase().includes(words)));
+    return (users || []).filter((u) => !inIt.has(u.id) && personMatches(u, words));
   }, [users, members, query]);
 
   async function add() {
@@ -69,7 +70,9 @@ export function AddMembersDialog({ channelId, channelName, onClose }: Props) {
           <div className="pick-list" data-testid="add-members-list">
             {users === null && <p className="muted pad">Loading…</p>}
             {users !== null && !outside.length && (
-              <p className="muted pad">{query ? 'Nobody by that name' : 'Everyone is already in this channel'}</p>
+              <p className="muted pad">
+                {query ? 'Nobody by that name or email' : 'Everyone is already in this channel'}
+              </p>
             )}
             {outside.map((u) => (
               <label key={u.id} className="pick-row pick-check">
@@ -83,7 +86,7 @@ export function AddMembersDialog({ channelId, channelName, onClose }: Props) {
                 <UserAvatar userId={u.id} name={u.fullName} size="md" />
                 <span className="pi">
                   <b>{u.fullName}</b>
-                  <span>{u.role}</span>
+                  <span>{personLine(u)}</span>
                 </span>
               </label>
             ))}

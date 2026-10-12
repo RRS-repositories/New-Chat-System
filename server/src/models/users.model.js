@@ -48,7 +48,7 @@ export async function loadSessionUser(db, { userId, iat }) {
  */
 export async function listActiveUsers(db, { exceptUserId }) {
   const { rows } = await db.query(
-    `SELECT u.id, u.full_name, u.role, ${AVATAR_COLUMNS('u.id')}
+    `SELECT u.id, u.full_name, u.email, u.role, ${AVATAR_COLUMNS('u.id')}
        FROM public.users u WHERE u.is_approved = TRUE AND u.is_active IS NOT FALSE AND u.id <> $1
         AND EXISTS (SELECT 1 FROM chat.user_presence p WHERE p.user_id = u.id) ORDER BY u.full_name`,
     [exceptUserId],
@@ -56,6 +56,7 @@ export async function listActiveUsers(db, { exceptUserId }) {
   return rows.map((u) => ({
     id: u.id,
     fullName: u.full_name || '',
+    email: u.email || '',
     role: u.role,
     avatarUrl: avatarUrl(u.id, u.avatar_updated_at),
   }));

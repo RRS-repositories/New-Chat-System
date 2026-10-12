@@ -458,7 +458,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 ### 9.13 Who is offered, adding people, passwords, and the Mattermost copy (6 Oct 2026)
 
-**Only people who have signed in.** Wherever a person is picked (new message, new channel, add people, add to call), the list holds only people who have signed in to the chat at least once: those with a row in `chat.user_presence`, written when they first connect. Admin → People shows when each person last used the chat, or "Never signed in".
+**Only people who have signed in.** Wherever a person is picked (new message, new channel, add people, add to call), the box matches on the name or the email (`web/src/utils/people.ts`; the list from `GET /users` carries the email, shown under the name), and the list holds only people who have signed in to the chat at least once: those with a row in `chat.user_presence`, written when they first connect. Admin → People shows when each person last used the chat, or "Never signed in".
 
 **Add people.** A channel's details panel has an Add people row (anyone in the channel may; private channels still apply the sharing restrictions). `POST /channels/:id/members`.
 

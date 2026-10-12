@@ -4,6 +4,7 @@ import type { UserOption } from '../../types/index.ts';
 import { presenceOf } from '../../utils/presence.ts';
 import { Floating } from '../common/Floating.tsx';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { personMatches } from '../../utils/people.ts';
 
 /** A call holds this many people, counting those being rung (kept in step with callMaxParticipants on the server). */
 export const CALL_LIMIT = 50;
@@ -38,7 +39,7 @@ export function AddPeople({ anchor, takenIds, onPick, onClose }: Props) {
   const full = takenIds.length >= CALL_LIMIT;
   const outside = useMemo(() => (people || []).filter((p) => !takenIds.includes(p.id)), [people, takenIds]);
   const words = filter.trim().toLowerCase();
-  const shown = words ? outside.filter((p) => p.fullName.toLowerCase().includes(words)) : outside;
+  const shown = words ? outside.filter((p) => personMatches(p, words)) : outside;
 
   // The box is placed once, when it appears: wait for the list so its height is the real one.
   if (!people && !failed) return null;

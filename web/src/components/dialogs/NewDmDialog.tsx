@@ -4,6 +4,7 @@ import { useChat } from '../../context/chatContext.ts';
 import type { ChatUser } from '../../types/index.ts';
 import { presenceOf } from '../../utils/presence.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { personLine, personMatches } from '../../utils/people.ts';
 export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpened: (channelId: string) => void }) {
   const { actions, state } = useChat();
   const [users, setUsers] = useState<ChatUser[]>([]);
@@ -15,7 +16,7 @@ export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpen
       .then(setUsers)
       .catch(() => setUsers([]));
   }, [actions]);
-  const shown = users.filter((u) => u.fullName.toLowerCase().includes(q.toLowerCase()));
+  const shown = users.filter((u) => personMatches(u, q));
   const [busy, setBusy] = useState(false);
   // A refused DM (403 restricted: "You cannot message this person") is shown
   // inline below the list, like any other failure.
@@ -44,7 +45,7 @@ export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpen
         </div>
         <label className="field">
           <span>To</span>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people" autoFocus />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or email" autoFocus />
         </label>
         <div className="pick-list">
           {shown.map((u) => (
@@ -52,7 +53,7 @@ export function NewDmDialog({ onClose, onOpened }: { onClose: () => void; onOpen
               <UserAvatar userId={u.id} name={u.fullName} size="md" presence={presenceOf(state.presence, u.id)} />
               <span className="pi">
                 <b>{u.fullName}</b>
-                <span>{u.role}</span>
+                <span>{personLine(u)}</span>
               </span>
             </button>
           ))}

@@ -113,7 +113,7 @@ export type RestrictionInput = {
   reason?: string;
   bothWays?: boolean;
 };
-export type UserOption = { id: number; fullName: string; role: string };
+export type UserOption = { id: number; fullName: string; email?: string; role: string };
 /** A person as listed by GET /api/chat/admin/users (Management only). */
 export type AdminUser = {
   id: number;

@@ -166,6 +166,9 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 12 Oct 2026 — people boxes search by email too
+The owner asked whether CRM registrations reach chat2 (they do: same `users` table; a person can sign in once approved and active in the CRM, and is offered to others once they have signed in to the chat) and for search by email. New message, Create a channel, Add people and Add to call now match on the name or the email, and show the email under the name. Deployed.
+
 ### 8 Oct 2026 — "Mark as read" instead of "Mark as unread"
 The owner: nobody needs Mark as unread; Mark as read is the useful one. The sidebar ⋯ menu item now clears a conversation's badge (and mentions) without opening it, on every device. The server's mark-unread route stays but nothing uses it. Deployed.
 

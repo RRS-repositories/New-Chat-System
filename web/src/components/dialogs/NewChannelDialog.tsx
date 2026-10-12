@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { ChatUser } from '../../types/index.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { personLine, personMatches } from '../../utils/people.ts';
 export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const { actions } = useChat();
   const [name, setName] = useState('');
@@ -69,7 +70,7 @@ export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; 
           />
           <div className="pick-list">
             {users
-              .filter((u) => !query.trim() || u.fullName.toLowerCase().includes(query.trim().toLowerCase()))
+              .filter((u) => personMatches(u, query))
               .map((u) => (
                 <label key={u.id} className="pick-row pick-check">
                   <input
@@ -80,13 +81,11 @@ export function NewChannelDialog({ onClose, onCreated }: { onClose: () => void; 
                   <UserAvatar userId={u.id} name={u.fullName} size="md" />
                   <span className="pi">
                     <b>{u.fullName}</b>
-                    <span>{u.role}</span>
+                    <span>{personLine(u)}</span>
                   </span>
                 </label>
               ))}
-            {!!query.trim() && !users.some((u) => u.fullName.toLowerCase().includes(query.trim().toLowerCase())) && (
-              <p className="muted pad">No one found</p>
-            )}
+            {!!query.trim() && !users.some((u) => personMatches(u, query)) && <p className="muted pad">No one found</p>}
           </div>
         </div>
         {error && <p className="error">{error}</p>}

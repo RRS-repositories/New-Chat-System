@@ -54,6 +54,11 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
     const offered = await names(meg.page, '.pick-row');
     if (!offered.includes('Ann Agent')) throw new Error(`Ann (signed in) is not offered: ${offered}`);
     if (offered.includes('Bob Sales')) throw new Error('Bob, who never signed in, is offered');
+    // Typing part of an email finds the person too.
+    await meg.page.fill('[role=dialog][aria-label="New message"] input', 'a@x');
+    const byEmail = await names(meg.page, '.pick-row');
+    if (byEmail.join() !== 'Ann Agent') throw new Error(`search by email offered: ${byEmail}`);
+    await meg.page.fill('[role=dialog][aria-label="New message"] input', '');
     await meg.page.locator('[role=dialog][aria-label="New message"] [aria-label="Close"]').click();
     await meg.page.waitForSelector('[role=dialog][aria-label="New message"]', { state: 'detached' });
   });
