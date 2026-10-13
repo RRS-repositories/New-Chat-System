@@ -1,4 +1,4 @@
-import { Hash, Info, Lock, Menu, Phone, Pin, Users } from 'lucide-react';
+import { FileText, Hash, Info, Lock, Menu, Phone, Pin, Search, Users } from 'lucide-react';
 import type { Channel, ChannelNotifyPref } from '../../types/index.ts';
 import type { PresenceState } from '../../utils/presence.ts';
 import { Avatar } from '../common/Avatar.tsx';
@@ -11,9 +11,13 @@ type Props = {
   connected: boolean;
   pinCount?: number;
   /** Which side panel is open, to light its button. */
-  openPanel?: 'pins' | 'details' | null;
+  openPanel?: 'pins' | 'details' | 'documents' | null;
   onOpenPins?: () => void;
   onOpenDetails?: () => void;
+  /** Search the earlier messages of THIS conversation. */
+  onOpenSearch?: () => void;
+  /** The files shared in this conversation. */
+  onOpenDocuments?: () => void;
   dmPresence?: PresenceState;
   dmStatus?: { text: string; emoji: string };
   dmAvatar?: string | null;
@@ -34,6 +38,8 @@ export function ChannelHeader({
   openPanel = null,
   onOpenPins,
   onOpenDetails,
+  onOpenSearch,
+  onOpenDocuments,
   dmPresence,
   dmStatus,
   dmAvatar,
@@ -76,6 +82,28 @@ export function ChannelHeader({
         <div className="r2">{connected ? subtitle : <span className="offline">Reconnecting…</span>}</div>
       </div>
       <span className="m-acts head-actions">
+        {channel && onOpenSearch && (
+          <button
+            className="hbtn"
+            data-testid="channel-search"
+            aria-label="Search this conversation"
+            title="Search this conversation"
+            onClick={onOpenSearch}
+          >
+            <Search size={18} />
+          </button>
+        )}
+        {channel && onOpenDocuments && (
+          <button
+            className={`hbtn${openPanel === 'documents' ? ' on' : ''}`}
+            data-testid="channel-documents"
+            aria-label="Documents in this conversation"
+            title="Documents"
+            onClick={onOpenDocuments}
+          >
+            <FileText size={18} />
+          </button>
+        )}
         {channel && onStartCall && (
           <button
             className="hbtn"

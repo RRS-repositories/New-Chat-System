@@ -22,17 +22,22 @@ export function SearchPanel({
   onJump,
   onOpenChannel,
   onClose,
+  scopeToChannel = false,
 }: {
   currentChannelId: string | null;
   onJump: (channelId: string, messageId: string) => void;
   onOpenChannel: (channelId: string) => void;
   onClose: () => void;
+  /** Opened from a conversation's own Search button: start with that conversation only. */
+  scopeToChannel?: boolean;
 }) {
   const { actions, state } = useChat();
   const [users, setUsers] = useState<ChatUser[]>([]);
   const [opening, setOpening] = useState(false);
   const [q, setQ] = useState('');
-  const [here, setHere] = useState(false);
+  // Opened from the conversation's header, this starts narrowed to that conversation; the
+  // person can still widen it with the tick box. Ctrl+K opens it across everything.
+  const [here, setHere] = useState(scopeToChannel && Boolean(currentChannelId));
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [page, setPage] = useState(1);
   const [more, setMore] = useState(false);

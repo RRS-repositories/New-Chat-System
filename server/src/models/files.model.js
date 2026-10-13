@@ -35,56 +35,6 @@ export async function getFile(db, fileId) {
   return mapFile(r) || null;
 }
 
-/**
- * Every file the person can see, newest first, across all their channels.
- *
- * The owner asked for "a document button where all documents sent is seen at a single
- * place" (13 Oct 2026). Per-channel listing already existed; this is the same thing
- * without the channel boundary.
- *
- * MEMBERSHIP IS THE WHOLE POINT. A file is returned only when the asker is a member of
- * the channel it was posted in — the same rule the channel listing relies on, applied
- * here in SQL because there is no single channel to check first. Without it this one
- * endpoint would hand every file in the firm to anybody signed in.
- *
- * Deleted messages take their files with them, as the per-channel listing does.
- */
-export async function listAllFilesForUser(db, userId, { before = null, limit = 30, q = null } = {}) {
-  const lim = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 100);
-  const params = [userId, lim];
-  let where = `m.deleted_at IS NULL
-      AND EXISTS (SELECT 1 FROM chat.channel_members cm
-                   WHERE cm.channel_id = f.channel_id AND cm.user_id = $1)`;
-  const i = typeof before === 'string' ? before.indexOf('|') : -1;
-  if (i > 0) {
-    params.push(before.slice(0, i), before.slice(i + 1));
-    where += ` AND (f.created_at, f.id) < ($${params.length - 1}::timestamptz, $${params.length})`;
-  }
-  if (typeof q === 'string' && q.trim()) {
-    params.push(`%${q.trim()}%`);
-    where += ` AND f.file_name ILIKE $${params.length}`;
-  }
-  const { rows } = await db.query(
-    `SELECT f.*, f.created_at::text AS created_at_raw, u.full_name AS user_name,
-            c.display_name AS channel_name, c.type AS channel_type
-       FROM chat.files f
-       JOIN chat.messages m ON m.id = f.message_id
-       JOIN public.users u ON u.id = f.user_id
-       JOIN chat.channels c ON c.id = f.channel_id
-      WHERE ${where}
-      ORDER BY f.created_at DESC, f.id DESC
-      LIMIT $2`,
-    params,
-  );
-  const files = rows.map((r) => ({
-    ...mapFile(r),
-    userName: r.user_name,
-    channelName: r.channel_type === 'dm' ? 'Direct message' : r.channel_name,
-  }));
-  const last = rows[rows.length - 1];
-  return { files, nextCursor: rows.length === lim && last ? `${last.created_at_raw}|${last.id}` : null };
-}
-
 export async function listChannelFiles(db, channelId, { before = null, limit = 30 } = {}) {
   const lim = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 100);
   const params = [channelId, lim];

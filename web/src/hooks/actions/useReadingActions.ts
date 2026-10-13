@@ -159,10 +159,6 @@ export function useReadingActions({ chatApi, dispatch, stateRef, setCurrentChann
     (channelId: string, before: string | null = null) => chatApi.channelFiles(channelId, before),
     [chatApi],
   );
-  const loadAllFiles = useCallback(
-    (before: string | null = null, q = '') => chatApi.allFiles(before, q),
-    [chatApi],
-  );
   const search = useCallback(
     (query: string, channelId: string | null = null, page = 1) => chatApi.search(query, channelId, page),
     [chatApi],
@@ -182,7 +178,6 @@ export function useReadingActions({ chatApi, dispatch, stateRef, setCurrentChann
     clearHighlight,
     fetchBlob,
     loadChannelFiles,
-    loadAllFiles,
     search,
   };
 }

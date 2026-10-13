@@ -63,6 +63,7 @@ export function App({ api, socket, user, getToken, onSignOut, onAuthError }: Pro
               <Route path="/channels/:channelId/thread/:messageId" element={<ChatPage />} />
               <Route path="/channels/:channelId/details" element={<ChatPage details />} />
               <Route path="/channels/:channelId/pins" element={<ChatPage pins />} />
+              <Route path="/channels/:channelId/documents" element={<ChatPage documents />} />
               <Route
                 path="/admin"
                 element={

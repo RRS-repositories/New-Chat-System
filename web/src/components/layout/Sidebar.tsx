@@ -1,4 +1,4 @@
-import { FileText, MessageCircle, PenLine, Search, Settings } from 'lucide-react';
+import { MessageCircle, PenLine, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { APP_TITLE, ORG_NAME } from '../../config/constants.ts';
 import type { Channel, UserStatus } from '../../types/index.ts';
@@ -19,17 +19,14 @@ type Props = {
   onNewChannel: () => void;
   onNewDm: () => void;
   onBrowse: () => void;
-  onSearch: () => void;
-  onDocuments: () => void;
   onSettings: () => void;
 };
 
-const isApple = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
 const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 'Away', offline: 'Offline' };
 
-/** The left panel: the brand, search, your channels and people, the actions, and your own card (which opens Settings). */
+/** The left panel: the brand, your channels and people, the actions, and your own card (which opens Settings). */
 export function Sidebar(props: Props) {
-  const { channels, currentId, presence, userId, userName, ownPresence, ownStatus, onSelect, onSearch, onDocuments } = props;
+  const { channels, currentId, presence, userId, userName, ownPresence, ownStatus, onSelect } = props;
   const statusLine = [ownStatus?.emoji, ownStatus?.text].filter(Boolean).join(' ');
   return (
     <div className="sidebar-inner">
@@ -43,17 +40,6 @@ export function Sidebar(props: Props) {
         </span>
         <button className="s-ic" aria-label="New message" title="New message" onClick={props.onNewDm}>
           <PenLine size={17} />
-        </button>
-      </div>
-      <div className="s-search">
-        <button aria-label="Search messages" title="Search" onClick={onSearch}>
-          <Search size={14} />
-          <span>Search</span>
-          <span className="kbd">{isApple ? '⌘K' : 'Ctrl K'}</span>
-        </button>
-        <button aria-label="All documents" title="Every document in one place" onClick={onDocuments}>
-          <FileText size={14} />
-          <span>Documents</span>
         </button>
       </div>
       <ChannelList

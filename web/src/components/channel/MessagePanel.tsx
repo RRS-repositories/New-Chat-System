@@ -88,6 +88,8 @@ export function MessagePanel({
   onOpenThread,
   onOpenDetails,
   onOpenPins,
+  onOpenSearch,
+  onOpenDocuments,
   openPanel = null,
 }: {
   channelId: string | null;
@@ -95,8 +97,10 @@ export function MessagePanel({
   onOpenThread?: (m: Message) => void;
   onOpenDetails?: () => void;
   onOpenPins?: () => void;
+  onOpenSearch?: () => void;
+  onOpenDocuments?: () => void;
   /** Which side panel is open beside the conversation, to light its header button. */
-  openPanel?: 'pins' | 'details' | null;
+  openPanel?: 'pins' | 'details' | 'documents' | null;
 }) {
   const { state, user, actions } = useChat();
   const calls = useCall();
@@ -198,6 +202,8 @@ export function MessagePanel({
         openPanel={openPanel}
         onOpenPins={onOpenPins}
         onOpenDetails={onOpenDetails}
+        onOpenSearch={onOpenSearch}
+        onOpenDocuments={onOpenDocuments}
         dmAvatar={dmAvatar}
         dmPresence={channel?.type === 'dm' ? presenceOf(state.presence, channel.dmUserId) : undefined}
         dmStatus={channel?.dmUserId != null ? state.presence.statuses[channel.dmUserId] : undefined}

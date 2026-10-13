@@ -6,7 +6,6 @@ export function createFileRoutes({ limiter, ...deps }) {
   const files = createFileController(deps);
   const r = Router();
   r.post('/channels/:id/upload', limiter, files.receive, files.upload);
-  r.get('/files', files.listAll); // every channel at once — before the per-channel route
   r.get('/channels/:id/files', files.listForChannel);
   r.get('/files/:id/download', files.download);
   r.get('/files/:id/thumb', files.thumbnail);
