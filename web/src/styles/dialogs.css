@@ -134,3 +134,49 @@ button.pick-row:hover:not(:disabled) {
     padding-top: 6vh;
   }
 }
+
+/* Documents — every file in one place. Shares the search panel's shell
+   (.sov / .sbox / .srow), so only the list itself needs styling. */
+.docs-list {
+  overflow-y: auto;
+  max-height: 60vh;
+  padding: 4px 0 8px;
+}
+.docs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.docs-row:hover,
+.docs-row:focus-visible {
+  background: var(--hov, rgba(127, 127, 127, 0.12));
+}
+.docs-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+/* The channel, sender, date and size. Allowed to be clipped: the file name is
+   what someone is looking for, and this must not push it off the row. */
+.docs-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--mut);
+}
+@media (max-width: 560px) {
+  .docs-meta { display: none; }
+}

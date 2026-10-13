@@ -166,6 +166,19 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 13 Oct 2026 — Documents: every file in one place
+The owner asked for "a document button where all documents sent is seen at a single place". New `GET /api/chat/files`
+(`listAllFilesForUser`) returns every file from the channels the asker is a MEMBER of, newest first, paged on
+`(created_at, id)` so two uploads in the same moment cannot hide each other, with an optional name search passed as a
+parameter. Membership is enforced inside the query — there is no single channel to check first, and without it that one
+endpoint would hand every file in the firm to anybody signed in; a test reintroduces the bug to prove the guard.
+A direct message is labelled "Direct message", never the other person's name. The screen is `DocumentsPanel.tsx`,
+opened from a Documents button beside Search in the sidebar, sharing the search panel's shell so it looks the same.
+11 server tests, 529 in total, web type check and build clean.
+
+SEARCH ALREADY EXISTED and was not rebuilt: sidebar button, or Ctrl K / ⌘K (`SearchPanel.tsx`, Phases 5 and 7).
+
+
 ### 12 Oct 2026 — Phase 8 step 2: the CRM now sends its automatic messages to both systems
 All 22 senders in the CRM are wired, about 150 call sites, across five pull requests (#989, #990, #995,
 #996, #997, #998). Each sender gained one line rather than each call site being rewritten; the email worker's

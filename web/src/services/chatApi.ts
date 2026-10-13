@@ -126,6 +126,14 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       if (!res.ok) throw new Error(data.message || 'Upload failed');
       return data.message;
     },
+    /** Every document the person can see, across all their channels. */
+    allFiles: (before: string | null = null, q = '') =>
+      api.get<FilePage>(
+        `/api/chat/files?${new URLSearchParams({
+          ...(before ? { before } : {}),
+          ...(q.trim() ? { q: q.trim() } : {}),
+        }).toString()}`,
+      ),
     channelFiles: (channelId: string, before: string | null = null) =>
       api.get<FilePage>(`/api/chat/channels/${channelId}/files${before ? `?before=${id(before)}` : ''}`),
     /** Downloads a file or thumbnail (they need the session token, so a plain link will not do). */

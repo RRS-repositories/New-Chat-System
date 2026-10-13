@@ -2,7 +2,7 @@ import path from 'node:path';
 import { createReadStream } from 'node:fs';
 import multer from 'multer';
 import { httpError, sendError, wrap } from '../middleware/errors.js';
-import { getFile, listChannelFiles } from '../models/files.model.js';
+import { getFile, listAllFilesForUser, listChannelFiles } from '../models/files.model.js';
 import { assertMember } from '../services/channels.service.js';
 import { assertCanPost, announceMessage } from '../services/messages.service.js';
 import { MAX_FILE_BYTES } from '../services/files/storage.js';
@@ -76,6 +76,17 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
       res.setHeader('Content-Type', 'image/jpeg');
       res.setHeader('Cache-Control', 'private, max-age=86400');
       stream(res, file.thumbnailPath);
+    }),
+
+    /** Every file the person can see, across all their channels. Membership is enforced
+     *  in the query itself: there is no single channel to check first. */
+    listAll: wrap(async (req, res) => {
+      const page = await listAllFilesForUser(db, req.user.id, {
+        before: req.query.before || null,
+        limit: req.query.limit || 30,
+        q: req.query.q || null,
+      });
+      res.json({ success: true, ...page });
     }),
 
     listForChannel: wrap(async (req, res) => {

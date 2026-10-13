@@ -1,4 +1,4 @@
-import { MessageCircle, PenLine, Search, Settings } from 'lucide-react';
+import { FileText, MessageCircle, PenLine, Search, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { APP_TITLE, ORG_NAME } from '../../config/constants.ts';
 import type { Channel, UserStatus } from '../../types/index.ts';
@@ -20,6 +20,7 @@ type Props = {
   onNewDm: () => void;
   onBrowse: () => void;
   onSearch: () => void;
+  onDocuments: () => void;
   onSettings: () => void;
 };
 
@@ -28,7 +29,7 @@ const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 
 
 /** The left panel: the brand, search, your channels and people, the actions, and your own card (which opens Settings). */
 export function Sidebar(props: Props) {
-  const { channels, currentId, presence, userId, userName, ownPresence, ownStatus, onSelect, onSearch } = props;
+  const { channels, currentId, presence, userId, userName, ownPresence, ownStatus, onSelect, onSearch, onDocuments } = props;
   const statusLine = [ownStatus?.emoji, ownStatus?.text].filter(Boolean).join(' ');
   return (
     <div className="sidebar-inner">
@@ -49,6 +50,10 @@ export function Sidebar(props: Props) {
           <Search size={14} />
           <span>Search</span>
           <span className="kbd">{isApple ? '⌘K' : 'Ctrl K'}</span>
+        </button>
+        <button aria-label="All documents" title="Every document in one place" onClick={onDocuments}>
+          <FileText size={14} />
+          <span>Documents</span>
         </button>
       </div>
       <ChannelList

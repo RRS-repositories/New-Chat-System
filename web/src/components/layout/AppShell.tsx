@@ -10,6 +10,7 @@ import { useGoToChannel } from '../../hooks/useGoToChannel.ts';
 import type { SidebarState } from '../../hooks/useSidebar.ts';
 import { presenceOf } from '../../utils/presence.ts';
 import { SearchPanel } from '../channel/SearchPanel.tsx';
+import { DocumentsPanel } from '../channel/DocumentsPanel.tsx';
 import { NotEnabled } from '../common/NotEnabled.tsx';
 import { BrowseChannelsDialog } from '../dialogs/BrowseChannelsDialog.tsx';
 import { NewChannelDialog } from '../dialogs/NewChannelDialog.tsx';
@@ -18,7 +19,7 @@ import { SettingsDialog } from '../dialogs/SettingsDialog.tsx';
 import { ChatLayout } from './ChatLayout.tsx';
 import { Sidebar } from './Sidebar.tsx';
 
-type Dialog = 'channel' | 'dm' | 'browse' | 'search' | 'settings' | null;
+type Dialog = 'channel' | 'dm' | 'browse' | 'search' | 'documents' | 'settings' | null;
 
 type Props = {
   sidebar: SidebarState;
@@ -66,7 +67,7 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null }: Prop
 
   const openFromSidebar = (next: Exclude<Dialog, null>) => {
     setDialog(next);
-    if (next === 'settings' || next === 'search') sidebar.closeSidebar();
+    if (next === 'settings' || next === 'search' || next === 'documents') sidebar.closeSidebar();
   };
   const jumpToMessage = (channelId: string, messageId: string) => {
     sidebar.closeSidebar();
@@ -95,6 +96,7 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null }: Prop
             onNewDm={() => openFromSidebar('dm')}
             onBrowse={() => openFromSidebar('browse')}
             onSearch={() => openFromSidebar('search')}
+            onDocuments={() => openFromSidebar('documents')}
             onSettings={() => openFromSidebar('settings')}
           />
         }
@@ -103,6 +105,7 @@ export function AppShell({ sidebar, main, panel, currentChannelId = null }: Prop
       {dialog === 'dm' && <NewDmDialog onClose={closeDialog} onOpened={goToChannel} />}
       {dialog === 'browse' && <BrowseChannelsDialog onClose={closeDialog} onJoined={goToChannel} />}
       {dialog === 'settings' && <SettingsDialog onClose={closeDialog} />}
+      {dialog === 'documents' && <DocumentsPanel onClose={closeDialog} />}
       {dialog === 'search' && (
         <SearchPanel
           currentChannelId={currentChannelId}

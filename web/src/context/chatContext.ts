@@ -61,6 +61,8 @@ export type ChatActions = {
   clearHighlight: () => void;
   highlight: (messageId: string) => void;
   loadChannelFiles: (channelId: string, before?: string | null) => Promise<FilePage>;
+  /** Every document the person can see, across all their channels. */
+  loadAllFiles: (before?: string | null, q?: string) => Promise<FilePage>;
   /** A browser URL for a file or thumbnail. Thumbnails are cached; anything else the caller releases. */
   fetchBlob: (path: string) => Promise<string>;
   /** The people the signed-in person can pick from (never includes themselves). */
