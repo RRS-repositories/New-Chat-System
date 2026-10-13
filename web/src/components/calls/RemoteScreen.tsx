@@ -41,10 +41,36 @@ type Props = {
  * window" moves it to its own browser window (drag it to a second monitor, maximise it). The
  * window shows the same live stream — nothing extra is sent or received.
  */
+/** How long without a new frame counts as a stalled picture. */
+const STALL_MS = 4000;
+
 export function RemoteScreen({ track, name, own = false }: Props) {
   const videoRef = useTrackStream<HTMLVideoElement>(track);
   const windowRef = useRef<Window | null>(null);
   const [inWindow, setInWindow] = useState(false);
+  // No new frame for a while (the sharer's connection is struggling): say so over the last frame,
+  // rather than leaving a frozen picture that looks live.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (own) return;
+    const video = videoRef.current;
+    if (!video || typeof (video as any).getVideoPlaybackQuality !== 'function') return;
+    let frames = -1;
+    let since = Date.now();
+    const timer = setInterval(() => {
+      try {
+        const now = (video as any).getVideoPlaybackQuality().totalVideoFrames as number;
+        if (now !== frames) {
+          frames = now;
+          since = Date.now();
+          setStalled(false);
+        } else if (Date.now() - since >= STALL_MS) setStalled(true);
+      } catch {
+        /* not supported */
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [track, own, videoRef]);
 
   const closeWindow = () => {
     const open = windowRef.current;
@@ -148,6 +174,11 @@ export function RemoteScreen({ track, name, own = false }: Props) {
           aria-label={own ? 'Your shared screen' : `${name}'s screen`}
           onDoubleClick={own ? undefined : fullScreen}
         />
+        {stalled && (
+          <div className="c-stall" role="status" data-testid="call-screen-stalled">
+            Picture paused — waiting for {name}’s connection
+          </div>
+        )}
       </div>
     </figure>
   );

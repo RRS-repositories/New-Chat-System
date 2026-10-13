@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CallManager, CallError, MIC_MESSAGE, type Signal } from '../src/services/callManager.ts';
+import {
+  CallManager,
+  sharePerPeerBps,
+  SHARE_MAX_FPS,
+  CallError,
+  MIC_MESSAGE,
+  type Signal,
+} from '../src/services/callManager.ts';
 
 // ---- fakes ---------------------------------------------------------------
 class FakeTrack {
@@ -36,11 +43,18 @@ class FakeStream {
 type Desc = { type: string; sdp?: string; video?: boolean };
 class FakeSender {
   track: FakeTrack | null;
+  params: any = { encodings: [{}] };
   constructor(track: FakeTrack | null) {
     this.track = track;
   }
   async replaceTrack(t: FakeTrack | null) {
     this.track = t;
+  }
+  getParameters() {
+    return this.params;
+  }
+  async setParameters(p: any) {
+    this.params = p;
   }
 }
 class FakeTransceiver {
@@ -921,4 +935,38 @@ test('breakout groups: my microphone goes only to the people in my room, and com
     negotiations,
     'nothing was added to the connections: the track was only swapped',
   );
+});
+
+test('the shared screen is capped per copy so the copies share one upload budget; the cap follows the head count', async () => {
+  assert.equal(sharePerPeerBps(1), 1_500_000, 'one viewer: the most a copy may use');
+  assert.equal(sharePerPeerBps(4), 1_500_000);
+  assert.equal(sharePerPeerBps(6), 1_000_000);
+  assert.equal(sharePerPeerBps(12), 500_000);
+  assert.equal(sharePerPeerBps(40), 250_000, 'never below the floor');
+  const h = setup({ me: 5 });
+  await h.mgr.connect(async () => ({ participants: people(2, 5, 7), iceServers: ICE }));
+  await flush();
+  await answerAll(h.peers);
+  assert.equal((await h.mgr.startShare()).ok, true);
+  await flush();
+  await answerAll(h.peers);
+  await flush();
+  for (const id of [2, 7]) {
+    const enc = h.peerOf(id).videoTransceivers()[0]!.sender.params.encodings[0];
+    assert.equal(enc.maxBitrate, sharePerPeerBps(2), `cap for ${id} with two viewers`);
+    assert.equal(enc.maxFramerate, SHARE_MAX_FPS);
+  }
+  // A third person joins while I share: every copy is capped again for three.
+  h.mgr.markOwnJoin();
+  h.mgr.addParticipant(8, 'U8');
+  h.mgr.handleSignal(8, { type: 'description', description: { type: 'offer', sdp: 'x' } });
+  await flush();
+  await flush();
+  for (const id of [2, 7, 8])
+    assert.equal(h.peerOf(id).videoTransceivers()[0]!.sender.params.encodings[0].maxBitrate, sharePerPeerBps(3));
+  // One leaves: back to two.
+  h.mgr.removeParticipant(8);
+  await flush();
+  for (const id of [2, 7])
+    assert.equal(h.peerOf(id).videoTransceivers()[0]!.sender.params.encodings[0].maxBitrate, sharePerPeerBps(2));
 });

@@ -539,6 +539,21 @@
   min-height: 0;
   position: relative;
 }
+/* The picture has not moved for a while: said over the last frame */
+.c-stall {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(7, 9, 22, 0.78);
+  border: 1px solid var(--dk-line);
+  color: var(--dk-text);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
 /* The shared content keeps its own colours: it is someone's real screen. */
 .c-scrbody video,
 .selfpv .ph video {

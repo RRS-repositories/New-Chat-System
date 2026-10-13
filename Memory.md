@@ -214,6 +214,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 13 Oct 2026 — frozen or blank shared screens in big calls
+A colleague reported shared screens freezing or going blank in calls. Not reproducible from here, but the cause is structural: a mesh call sends one uncapped 30 fps copy of the screen to every viewer (12 copies at ~2.5 Mbps in a 13-person call), which saturates the sharer's upload; packet loss then freezes or blanks viewers. Done: capture capped at 1080p / 15 fps with the text-sharp hint; each copy capped by a shared 6 Mbps budget (250 kbps–1.5 Mbps a copy, recomputed as people join or leave); viewers see "Picture paused — waiting for X's connection" when no frame arrives for 4 s. The mesh remains the limit past ~15 people: an SFU is the next step if it recurs. Deployed.
+
 ### 12 Oct 2026 — Remove a member; allow or block per channel
 The owner asked for a Remove button on channel members and for channels on a person's access page. Channel details now has Remove on each member (owner, admin, Management or IT); the person's admin page has a Channels table with an Allowed tick per channel: unticking takes them out at once and keeps them out (join and add refused) until ticked again; General cannot be blocked. Database file `chat_008_channel_access.sql`, applied on the server before the deploy. Deployed.
 

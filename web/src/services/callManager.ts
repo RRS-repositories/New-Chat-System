@@ -45,8 +45,30 @@ export interface SenderLike {
 export interface TransceiverLike {
   direction: string;
   stopped?: boolean;
-  sender: { track?: TrackLike | null; replaceTrack(track: TrackLike | null): Promise<void> };
+  sender: {
+    track?: TrackLike | null;
+    replaceTrack(track: TrackLike | null): Promise<void>;
+    getParameters?(): any;
+    setParameters?(p: any): Promise<void>;
+  };
   receiver: { track: TrackLike | null };
+}
+
+/**
+ * The upload a shared screen may use in total, split between the people it goes to (a mesh call
+ * sends one copy each). Caps, not targets: a smaller picture simply uses less.
+ */
+export const SHARE_UPLOAD_BUDGET_BPS = 6_000_000;
+export const SHARE_PER_PEER_MIN_BPS = 250_000;
+export const SHARE_PER_PEER_MAX_BPS = 1_500_000;
+export const SHARE_MAX_FPS = 15;
+/** The bitrate one copy of the shared screen may use when it goes to `peers` people. */
+export function sharePerPeerBps(peers: number): number {
+  if (peers <= 0) return SHARE_PER_PEER_MAX_BPS;
+  return Math.max(
+    SHARE_PER_PEER_MIN_BPS,
+    Math.min(SHARE_PER_PEER_MAX_BPS, Math.floor(SHARE_UPLOAD_BUDGET_BPS / peers)),
+  );
 }
 export interface PeerLike {
   signalingState: string;
@@ -317,6 +339,7 @@ export class CallManager {
     if (!p) return;
     this.closePeer(p);
     this.peers.delete(userId);
+    this.capShare();
     this.changed();
   }
 
@@ -469,6 +492,7 @@ export class CallManager {
       this.screen = { stream, track };
       track.onended = () => this.stopShare(); // the browser's own "Stop sharing" button
       for (const p of this.peers.values()) this.addScreenTo(p);
+      this.capShare();
       this.changed();
       return { ok: true };
     } finally {
@@ -628,6 +652,34 @@ export class CallManager {
     this.changed();
   }
 
+  /**
+   * Caps what each copy of my screen may use, so the copies together stay within the upload budget
+   * however many people are in the call. Applied when the share starts and whenever the number of
+   * people changes. A browser without setParameters is simply left to its defaults.
+   */
+  private capShare() {
+    if (!this.screen) return;
+    const sharing = [...this.peers.values()].filter((p) => p.screenTx && p.pc);
+    const bps = sharePerPeerBps(sharing.length);
+    for (const p of sharing) {
+      const sender = p.screenTx!.sender;
+      if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') continue;
+      try {
+        const params = sender.getParameters() || {};
+        const encodings = Array.isArray(params.encodings) && params.encodings.length ? params.encodings : [{}];
+        for (const e of encodings) {
+          e.maxBitrate = bps;
+          e.maxFramerate = SHARE_MAX_FPS;
+        }
+        params.encodings = encodings;
+        params.degradationPreference = 'balanced';
+        sender.setParameters(params).catch((e: unknown) => this.log(`cap share to ${p.userId}`, e));
+      } catch (e) {
+        this.log(`cap share to ${p.userId}`, e);
+      }
+    }
+  }
+
   /** Sends my screen to this peer on its one video transceiver (reused, or created the first time). */
   private addScreenTo(p: Peer) {
     const s = this.screen;
@@ -642,6 +694,8 @@ export class CallManager {
       } else {
         p.screenTx = pc.addTransceiver(s.track, { direction: 'sendrecv', streams: [s.stream] });
       }
+      // One more copy goes out: everyone's cap is worked out again.
+      queueMicrotask(() => this.capShare());
     } catch (e) {
       this.log(`share screen with ${p.userId}`, e);
     }
