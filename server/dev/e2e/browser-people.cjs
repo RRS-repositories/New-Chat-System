@@ -125,18 +125,19 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
         { timeout: 8000 },
       );
       await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ state: 'detached', timeout: 10000 });
-      // Allowed again: she can be added back.
+      // Ticked again: she is put straight back into the channel.
       await rota.locator('input').click();
       await meg.page.waitForFunction(
         () => {
           const row = [...document.querySelectorAll('[data-testid="channel-access"]')].find((r) =>
             r.textContent.includes('Rota'),
           );
-          return row && row.querySelector('input').checked;
+          return row && row.querySelector('input').checked && row.querySelectorAll('td')[2].textContent === 'Yes';
         },
         null,
         { timeout: 8000 },
       );
+      await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ timeout: 10000 });
     },
   );
 

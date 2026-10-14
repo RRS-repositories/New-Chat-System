@@ -74,9 +74,16 @@ test('blocking removes the person now, tells them, and refuses joining and being
     audit.rows.map((a) => a.action),
     ['channel.block'],
   );
+  events.length = 0;
   const ok = await as(6).put(`/admin/users/3/channels/${sales.id}`, { allowed: true });
   assert.equal(ok.status, 200);
-  assert.equal((await as(3).post(`/channels/${sales.id}/join`)).status, 200, 'Bob can join again');
+  assert.ok((await listed(3)).includes(sales.id), 'a tick puts Bob back in the channel');
+  assert.equal(ok.body.channels.find((c) => c.id === sales.id).member, true);
+  assert.ok(
+    events.some((e) => e.to === 'user' && e.id === 3 && e.ev === 'member_added'),
+    'and he is told',
+  );
+  assert.equal((await as(3).post(`/channels/${sales.id}/join`)).status, 200, 'joining again is harmless');
 });
 
 test('a blocked Management or IT person is not put back by the every-channel rule; General cannot be blocked', async () => {

@@ -59,11 +59,16 @@ export function createAdminController({
       const channelId = String(req.params.channelId || '');
       if (!UUID.test(channelId)) throw httpError(400, 'bad_channel', 'Bad channel id');
       const allowed = req.body?.allowed === true;
-      const { removed } = await setChannelAccess(db, { userId, channelId, allowed, actorId: req.user.id });
+      const { removed, added } = await setChannelAccess(db, { userId, channelId, allowed, actorId: req.user.id });
       if (removed) {
         emit.leaveRoom?.(userId, channelId);
         emit.toChannel?.(channelId, 'member_removed', { channel_id: channelId, user_id: userId });
         emit.toUser(userId, 'member_removed', { channel_id: channelId, user_id: userId });
+      }
+      if (added) {
+        emit.joinRoom?.(userId, channelId);
+        emit.toChannel?.(channelId, 'member_added', { channel_id: channelId, user_ids: [userId] });
+        emit.toUser(userId, 'member_added', { channel_id: channelId, user_id: userId });
       }
       res.json({ success: true, channels: await listChannelAccess(db, userId) });
     }),

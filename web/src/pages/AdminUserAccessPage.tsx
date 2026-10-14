@@ -95,7 +95,7 @@ export function AdminUserAccessPage() {
     if (
       !allow &&
       !window.confirm(
-        `Block ${name} from #${c.displayName}? They are taken out of it now and cannot join or be added until allowed again.`,
+        `Block ${name} from #${c.displayName}? They are taken out of it now and cannot join or be added until you tick it again.`,
       )
     )
       return;
@@ -278,8 +278,8 @@ export function AdminUserAccessPage() {
           <div className="admin-table-wrap" data-testid="channel-access-table">
             <h3 className="admin-sub">Channels</h3>
             <p className="muted">
-              Ticked means {name} may be in the channel. Untick to block: they are taken out of it now and cannot join
-              or be added until you tick it again. Everyone stays in General.
+              Ticked means {name} is in the channel: ticking puts them in it now. Untick to block: they are taken out of
+              it now and cannot join or be added until you tick it again. Everyone stays in General.
             </p>
             <table className="admin-table">
               <thead>
@@ -287,7 +287,7 @@ export function AdminUserAccessPage() {
                   <th>Channel</th>
                   <th>Type</th>
                   <th>In it</th>
-                  <th>Allowed</th>
+                  <th>In the channel</th>
                 </tr>
               </thead>
               <tbody>

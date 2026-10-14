@@ -43,8 +43,9 @@ export async function blockedUserIds(db, { channelId, userIds }) {
 }
 
 /**
- * Allows or blocks a person for one channel. Blocking removes them from the channel at once.
- * Returns whether they were a member just before (so the caller can tell them and the channel).
+ * Allows or blocks a person for one channel. Blocking removes them from the channel at once;
+ * allowing puts them in it (the owner, 14 Oct 2026: the tick means "in the channel", not merely
+ * "may be"). Returns whether they were removed, or added, so the caller can tell them and the channel.
  */
 export async function setChannelAccess(db, { userId, channelId, allowed, actorId }) {
   const {
@@ -58,11 +59,16 @@ export async function setChannelAccess(db, { userId, channelId, allowed, actorId
     throw fail('default_channel', 'Everyone stays in General', 403);
   if (allowed) {
     await db.query(`DELETE FROM chat.channel_blocks WHERE user_id = $1 AND channel_id = $2`, [userId, channelId]);
+    const { rowCount } = await db.query(
+      `INSERT INTO chat.channel_members (channel_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING`,
+      [channelId, userId],
+    );
+    const added = (rowCount || 0) > 0;
     await db.query(
       `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'channel.allow', 'channel', $2, $3)`,
-      [actorId, channelId, JSON.stringify({ userId, channel: channel.display_name })],
+      [actorId, channelId, JSON.stringify({ userId, channel: channel.display_name, added })],
     );
-    return { removed: false };
+    return { removed: false, added };
   }
   await db.query(
     `INSERT INTO chat.channel_blocks (user_id, channel_id, blocked_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
@@ -76,5 +82,5 @@ export async function setChannelAccess(db, { userId, channelId, allowed, actorId
     `INSERT INTO chat.audit_log (actor_id, action, target_type, target_id, detail) VALUES ($1, 'channel.block', 'channel', $2, $3)`,
     [actorId, channelId, JSON.stringify({ userId, channel: channel.display_name, removed: (rowCount || 0) > 0 })],
   );
-  return { removed: (rowCount || 0) > 0 };
+  return { removed: (rowCount || 0) > 0, added: false };
 }
