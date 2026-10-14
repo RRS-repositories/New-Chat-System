@@ -178,5 +178,7 @@ button.pick-row:hover:not(:disabled) {
   color: var(--mut);
 }
 @media (max-width: 560px) {
-  .docs-meta { display: none; }
+  .docs-meta {
+    display: none;
+  }
 }

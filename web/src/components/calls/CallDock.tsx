@@ -12,6 +12,7 @@ import {
   Smile,
   UserPlus,
 } from 'lucide-react';
+import { withShortcut } from '../../utils/callShortcuts.ts';
 
 /** The emoji offered as call reactions. */
 export const CALL_REACTIONS = ['💜', '👍', '🎉', '👏', '😂', '😮', '🤔', '✅'];
@@ -47,15 +48,18 @@ type ButtonProps = {
   disabled?: boolean;
   onClick?: () => void;
   buttonRef?: (el: HTMLButtonElement | null) => void;
+  /** The hover hint, e.g. the keyboard shortcut. */
+  title?: string;
 };
 
-function DockButton({ label, icon, tone = '', testId, pressed, disabled, onClick, buttonRef }: ButtonProps) {
+function DockButton({ label, icon, tone = '', testId, pressed, disabled, onClick, buttonRef, title }: ButtonProps) {
   return (
     <button
       ref={buttonRef}
       className={`cc${tone ? ` ${tone}` : ''}`}
       data-testid={testId}
       aria-label={label}
+      title={title}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
@@ -93,6 +97,7 @@ export function CallDock(props: Props) {
       <div className="c-dockin">
         <DockButton
           label={muted ? 'Unmute' : 'Mute'}
+          title={withShortcut(muted ? 'Unmute' : 'Mute', 'mute')}
           icon={muted ? <MicOff size={21} /> : <Mic size={21} />}
           tone={muted ? 'off' : ''}
           testId="call-mute"
@@ -113,6 +118,7 @@ export function CallDock(props: Props) {
         {canShare && (
           <DockButton
             label={sharing ? 'Stop sharing' : 'Share screen'}
+            title={withShortcut(sharing ? 'Stop sharing' : 'Share screen', 'share')}
             icon={sharing ? <MonitorOff size={21} /> : <MonitorUp size={21} />}
             tone={sharing ? 'lit' : ''}
             testId="call-share"

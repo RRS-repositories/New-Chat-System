@@ -6,6 +6,7 @@ import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
 import { useCall } from '../../context/callContext.ts';
 import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
+import { callShortcut, withShortcut } from '../../utils/callShortcuts.ts';
 import { useCallClock } from '../../hooks/useCallClock.ts';
 import { useSpeaking, type VoiceSource } from '../../hooks/useSpeaking.ts';
 import { initials } from '../../utils/format.ts';
@@ -118,6 +119,36 @@ export function CallScreen() {
           : `This call is being recorded${who ? ` by ${who}` : ''}.`,
     });
   }, [recordingBy]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keyboard shortcuts while in a call: Ctrl+D mute, Ctrl+Shift+S share, Ctrl+Shift+H hand.
+  const inCall = call.phase === 'in-call';
+  const shortcutDeps = useRef({
+    toggleMute,
+    toggleShare,
+    toggleHand,
+    muted: snapshot.muted,
+    sharing: snapshot.sharing,
+  });
+  shortcutDeps.current = { toggleMute, toggleShare, toggleHand, muted: snapshot.muted, sharing: snapshot.sharing };
+  useEffect(() => {
+    if (!inCall) return;
+    const onKey = (e: KeyboardEvent) => {
+      const action = callShortcut(e);
+      if (!action) return;
+      e.preventDefault();
+      const d = shortcutDeps.current;
+      if (action === 'mute') {
+        d.toggleMute();
+        toast({ text: d.muted ? 'Unmuted (Ctrl+D)' : 'Muted (Ctrl+D)' });
+      } else if (action === 'share') {
+        void d.toggleShare();
+      } else if (action === 'hand') {
+        d.toggleHand();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [inCall]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new call always opens full size.
   useEffect(() => {
@@ -277,6 +308,7 @@ export function CallScreen() {
             className={snapshot.muted ? 'off' : ''}
             data-testid="call-mute"
             aria-label={snapshot.muted ? 'Unmute' : 'Mute'}
+            title={withShortcut(snapshot.muted ? 'Unmute' : 'Mute', 'mute')}
             aria-pressed={snapshot.muted}
             disabled={call.phase !== 'in-call'}
             onClick={toggleMute}

@@ -54,8 +54,7 @@ export function ChatPage({
   if (channelId && messageId) panel = <ThreadPanel rootId={messageId} channelId={channelId} onClose={backToChannel} />;
   else if (channelId && details)
     panel = <ChannelDetailsPanel channelId={channelId} onClose={backToChannel} onGone={() => navigate(paths.home)} />;
-  else if (channelId && documents)
-    panel = <ChannelDocumentsPanel channelId={channelId} onClose={backToChannel} />;
+  else if (channelId && documents) panel = <ChannelDocumentsPanel channelId={channelId} onClose={backToChannel} />;
   else if (channelId && pins)
     panel = (
       <PinsPanel
@@ -78,42 +77,42 @@ export function ChatPage({
 
   return (
     <>
-    <AppShell
-      sidebar={sidebar}
-      currentChannelId={channelId}
-      panel={panel}
-      main={
-        <MessagePanel
-          channelId={channelId}
-          onOpenSidebar={sidebar.openSidebar}
-          onOpenThread={(m) => navigate(paths.thread(m.channelId, m.threadId || m.id))}
-          openPanel={details ? 'details' : pins ? 'pins' : documents ? 'documents' : null}
-          onOpenDetails={() =>
-            channelId && navigate(details ? paths.channel(channelId) : paths.channelDetails(channelId))
-          }
-          onOpenPins={() => channelId && navigate(pins ? paths.channel(channelId) : paths.channelPins(channelId))}
-          onOpenSearch={channelId ? () => setSearching(true) : undefined}
-          onOpenDocuments={() =>
-            channelId && navigate(documents ? paths.channel(channelId) : paths.channelDocuments(channelId))
-          }
-        />
-      }
-    />
-    {searching && channelId && (
-      <SearchPanel
+      <AppShell
+        sidebar={sidebar}
         currentChannelId={channelId}
-        scopeToChannel
-        onClose={() => setSearching(false)}
-        onJump={(toChannel, messageId) => {
-          setSearching(false);
-          jumpToMessage(toChannel, messageId);
-        }}
-        onOpenChannel={(id) => {
-          setSearching(false);
-          goToChannel(id);
-        }}
+        panel={panel}
+        main={
+          <MessagePanel
+            channelId={channelId}
+            onOpenSidebar={sidebar.openSidebar}
+            onOpenThread={(m) => navigate(paths.thread(m.channelId, m.threadId || m.id))}
+            openPanel={details ? 'details' : pins ? 'pins' : documents ? 'documents' : null}
+            onOpenDetails={() =>
+              channelId && navigate(details ? paths.channel(channelId) : paths.channelDetails(channelId))
+            }
+            onOpenPins={() => channelId && navigate(pins ? paths.channel(channelId) : paths.channelPins(channelId))}
+            onOpenSearch={channelId ? () => setSearching(true) : undefined}
+            onOpenDocuments={() =>
+              channelId && navigate(documents ? paths.channel(channelId) : paths.channelDocuments(channelId))
+            }
+          />
+        }
       />
-    )}
+      {searching && channelId && (
+        <SearchPanel
+          currentChannelId={channelId}
+          scopeToChannel
+          onClose={() => setSearching(false)}
+          onJump={(toChannel, messageId) => {
+            setSearching(false);
+            jumpToMessage(toChannel, messageId);
+          }}
+          onOpenChannel={(id) => {
+            setSearching(false);
+            goToChannel(id);
+          }}
+        />
+      )}
     </>
   );
 }

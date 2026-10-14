@@ -154,6 +154,12 @@ const waitAudio = async (page, n, what) => {
       });
     }
   });
+  await step('Ctrl+D mutes and unmutes from the keyboard', async () => {
+    await ann.page.keyboard.press('Control+d');
+    await ann.page.locator('[data-testid="call-mute"][aria-pressed="true"]').first().waitFor({ timeout: 5000 });
+    await ann.page.keyboard.press('Control+d');
+    await ann.page.locator('[data-testid="call-mute"][aria-pressed="false"]').first().waitFor({ timeout: 5000 });
+  });
   await step('mute: the microphone track is switched off and back on', async () => {
     await ann.page.click(tid('call-mute'));
     await ann.page.waitForFunction(

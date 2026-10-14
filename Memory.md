@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 14 Oct 2026 — call shortcuts
+The owner asked for shortcuts in calls, e.g. Ctrl+D = mute. Done: Ctrl+D mute/unmute (with a toast), Ctrl+Shift+S share/stop, Ctrl+Shift+H raise/lower hand; shown in the buttons' hover hints; deliberately no shortcut for leaving. Deployed.
+
 ### 14 Oct 2026 — sending a message goes to the newest
 The owner: when scrolled up and you send a message, you should land on the newest message. Done: every send scrolls the feed to the bottom (and out of far-back history). Deployed.
 
