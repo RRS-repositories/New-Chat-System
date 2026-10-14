@@ -282,7 +282,7 @@ test('the content policy allows only what the chat uses', () => {
   assert.match(csp, /media-src 'self' blob:/, 'call audio and shared screens');
   assert.match(
     csp,
-    /frame-ancestors 'self' https:\/\/crm\.rowanroseclaims\.co\.uk https:\/\/rowanroseclaims\.co\.uk https:\/\/sales\.rowanroseclaims\.co\.uk https:\/\/opsales\.rowanroseclaims\.co\.uk(;|$)/,
+    /frame-ancestors 'self' https:\/\/crm\.rowanroseclaims\.co\.uk https:\/\/rowanroseclaims\.co\.uk https:\/\/www\.rowanroseclaims\.co\.uk https:\/\/sales\.rowanroseclaims\.co\.uk https:\/\/opsales\.rowanroseclaims\.co\.uk http:\/\/192\.168\.1\.58 http:\/\/192\.168\.1\.59(;|$)/,
     'only the CRM and the Sales CRM may show the chat in a frame',
   );
   const own = createSecurityHeaders([]);

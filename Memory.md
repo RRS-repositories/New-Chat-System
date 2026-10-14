@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 14 Oct 2026 — Chat 2 blocked for people on www.
+The CRM is served on crm., rowanroseclaims.co.uk AND www.rowanroseclaims.co.uk (plus the office addresses 192.168.1.58 / .59). Chat2's frame-ancestors named only the first two (and the Sales CRM), so anyone on www. saw Chrome's blocked-frame page in Chat 2 (26 blocked loads in the morning). All the CRM's addresses are allowed now. Deployed.
+
 ### 13 Oct 2026 — frozen or blank shared screens in big calls
 A colleague reported shared screens freezing or going blank in calls. Not reproducible from here, but the cause is structural: a mesh call sends one uncapped 30 fps copy of the screen to every viewer (12 copies at ~2.5 Mbps in a 13-person call), which saturates the sharer's upload; packet loss then freezes or blanks viewers. Done: capture capped at 1080p / 15 fps with the text-sharp hint; each copy capped by a shared 6 Mbps budget (250 kbps–1.5 Mbps a copy, recomputed as people join or leave); viewers see "Picture paused — waiting for X's connection" when no frame arrives for 4 s. The mesh remains the limit past ~15 people: an SFU is the next step if it recurs. Deployed.
 

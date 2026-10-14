@@ -10,8 +10,11 @@
 export const DEFAULT_FRAME_ANCESTORS = [
   'https://crm.rowanroseclaims.co.uk',
   'https://rowanroseclaims.co.uk',
+  'https://www.rowanroseclaims.co.uk', // the CRM answers on www. too (14 Oct 2026: a blocked frame for everyone using it)
   'https://sales.rowanroseclaims.co.uk',
   'https://opsales.rowanroseclaims.co.uk',
+  'http://192.168.1.58', // the CRM on the office network, by address
+  'http://192.168.1.59', // the Sales CRM on the office network, by address
 ];
 
 const cspFor = (frameAncestors) =>
