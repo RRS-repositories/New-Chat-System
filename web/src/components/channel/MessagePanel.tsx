@@ -105,6 +105,8 @@ export function MessagePanel({
   const { state, user, actions } = useChat();
   const calls = useCall();
   const [dragging, setDragging] = useState(false);
+  // Each message this person sends takes them to the newest message.
+  const [sentCount, setSentCount] = useState(0);
   const inputRef = useRef<MessageInputHandle>(null);
   const onDragOver = (e: DragEvent) => {
     if (e.dataTransfer.types.includes('Files')) {
@@ -223,6 +225,7 @@ export function MessagePanel({
             onLoadNewer={loadNewer}
             onTrim={trim}
             unreadAtOpen={unread.current.count}
+            sentCount={sentCount}
             empty={empty}
             selfId={user.id}
             canModerate={canModerate}
@@ -261,11 +264,12 @@ export function MessagePanel({
                 : null
             }
             onCancelReply={() => actions.reply(null)}
-            onSend={(c) =>
-              actions.send(channelId, c, {
+            onSend={async (c) => {
+              await actions.send(channelId, c, {
                 replyToId: state.replyTarget?.channelId === channelId ? state.replyTarget.id : null,
-              })
-            }
+              });
+              setSentCount((n) => n + 1);
+            }}
             onTyping={() => actions.typing(channelId)}
           />
         </>

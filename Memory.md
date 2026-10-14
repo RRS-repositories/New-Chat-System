@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 14 Oct 2026 — sending a message goes to the newest
+The owner: when scrolled up and you send a message, you should land on the newest message. Done: every send scrolls the feed to the bottom (and out of far-back history). Deployed.
+
 ### 14 Oct 2026 — "Microphone access is needed" inside the CRM (Priyanshu's recording)
 Priyanshu could not dial from Chat 2 inside the CRM; on cellular (chat2 opened directly) it worked. Cause: the CRM's `Permissions-Policy: microphone=(self)` denies the microphone to the chat2 frame however the iframe's `allow` is set (proven in a headless browser: self-only → mic false in a cross-origin frame; naming the frame's origin → true). Fix is in the CRM (CRM pull request: microphone, display-capture and autoplay delegated to chat2.rowanroseclaims.co.uk); the Sales CRM would need the same. Also: a cross-origin frame can never ask for notification permission, so inside the CRM the nudge now says to open chat2 in its own tab once and press Allow.
 

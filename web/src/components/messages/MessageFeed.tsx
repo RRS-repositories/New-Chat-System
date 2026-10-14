@@ -19,6 +19,8 @@ type Props = {
   onTrim?: () => void;
   /** How many messages were unread when the channel was opened: the NEW line goes above the first of them. */
   unreadAtOpen?: number;
+  /** Goes up by one each time this person sends a message: the feed then goes to the newest message. */
+  sentCount?: number;
   /** Shown when the conversation has no messages yet. */
   empty?: ReactNode;
   selfId: number;
@@ -73,6 +75,7 @@ export const MessageFeed = memo(function MessageFeed({
   onLoadLatest,
   onTrim,
   unreadAtOpen = 0,
+  sentCount = 0,
   empty,
   selfId,
   canModerate,
@@ -197,9 +200,6 @@ export const MessageFeed = memo(function MessageFeed({
     else if (fromBottom < NEAR_EDGE_PX && windowed && onLoadNewer) await loadOnce(onLoadNewer);
   }
 
-  if (!items.length) return <div className="feed">{empty ?? <p className="muted pad">No messages yet</p>}</div>;
-
-  let previousDay = '';
   const goLatest = () => {
     if (windowed && onLoadLatest) {
       void onLoadLatest().then(() => {
@@ -217,6 +217,18 @@ export const MessageFeed = memo(function MessageFeed({
     setLanded(false);
     setFarUp(false);
   };
+  // Sending a message takes the person to the newest message (the owner's rule, 14 Oct 2026),
+  // however far up they were reading, and out of a far-back window of history.
+  const lastSent = useRef(sentCount);
+  useEffect(() => {
+    if (sentCount === lastSent.current) return;
+    lastSent.current = sentCount;
+    goLatest();
+  }, [sentCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!items.length) return <div className="feed">{empty ?? <p className="muted pad">No messages yet</p>}</div>;
+
+  let previousDay = '';
   return (
     <div className="feed-wrap">
       {(farUp || windowed) && (

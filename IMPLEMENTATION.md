@@ -450,6 +450,8 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Whiteboard.** One board per call. **Only the host draws** (changed 5 Oct 2026 on the owner's word; the server refuses anyone else); everyone in the call sees it. Strokes are lists of points given as fractions of the board, so they land in the same place on every screen. The board is larger than the screen: the host moves it with Ctrl + drag, the hand tool or the scroll wheel, and zooms from 25% to 400% with Ctrl + scroll or the − and + buttons; everyone else's view follows the host's (they can look around themselves until the host next moves). Strokes are sent in batches about ten times a second, relayed by the server, and kept in memory (2,000 at most) with the host's view, so a late joiner sees the board as it is. Undo takes back the host's own latest stroke; clear wipes the board and puts the view back. Nothing is stored; the board is gone when the call ends.
 
+**Sending takes you to the newest message.** Whatever the person was reading, sending a message scrolls the feed to the bottom (and loads the newest page if they were in far-back history); `sentCount` from `MessagePanel` to `MessageFeed`.
+
 **Reading older messages.** Scrolled more than about a screen above the newest message (or in a far-back window of history), a bar at the top of the feed says "You're reading older messages" with a "Go to latest" button; it goes when the bottom is reached.
 
 **Landing on the first unread.** A conversation opened with unread messages lands on its NEW line when that line would otherwise be above the visible part, and a "N new" pill at the bottom of the feed counts what is below until the bottom is reached (`MessageFeed`).

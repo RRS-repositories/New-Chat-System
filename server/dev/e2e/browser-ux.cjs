@@ -155,6 +155,18 @@ const send = async (page, text) => {
       el.scrollTop = el.scrollHeight;
     });
     await bar.waitFor({ state: 'detached', timeout: 5000 });
+    // Reading far up and sending a message: the feed goes to the newest message by itself.
+    await ann.page.locator('.feed').evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    await bar.waitFor({ timeout: 5000 });
+    await send(ann.page, 'sent from way up');
+    await bar.waitFor({ state: 'detached', timeout: 8000 });
+    await ann.page.locator('.msg', { hasText: 'sent from way up' }).waitFor({ timeout: 8000 });
+    const atBottom = await ann.page
+      .locator('.feed')
+      .evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight < 60);
+    if (!atBottom) throw new Error('not at the bottom after sending');
   });
 
   await browser.close();
