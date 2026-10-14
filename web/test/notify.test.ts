@@ -134,7 +134,7 @@ test('urlBase64ToUint8Array decodes a VAPID key', () => {
 
 test('away after 5 min without input, or 5 min not looked at', () => {
   const now = 10 * AWAY_AFTER_MS;
-  assert.equal(AWAY_AFTER_MS, 5 * 60 * 1000);
+  assert.equal(AWAY_AFTER_MS, 10 * 60 * 1000);
   assert.equal(computeAway({ now, lastInputAt: now - 1000, notLookingSince: null }), false);
   assert.equal(computeAway({ now, lastInputAt: now - AWAY_AFTER_MS, notLookingSince: null }), true);
   assert.equal(computeAway({ now, lastInputAt: now - 1000, notLookingSince: now - AWAY_AFTER_MS }), true);

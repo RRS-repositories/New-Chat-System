@@ -53,7 +53,9 @@ export function loadConfig(env = process.env) {
     callMaxParticipants: 50, // raised from 8 on the owner's word, 6 Oct 2026 (mesh audio: expect strain well before this)
     callDisconnectGraceMs: 10_000,
     callAskAgainMs: 60_000, // after the host refuses a removed person, how long before they may ask again
-    presenceOfflineGraceMs: 5000,
+    // How long after a person's last connection closes before they show as offline. A minute, so a
+    // network blip, a laptop lid or a reload never flickers them offline (the owner asked for looseness, 14 Oct 2026).
+    presenceOfflineGraceMs: parseInt(env.PRESENCE_OFFLINE_GRACE_MS || '60000', 10),
     // Daily digest of unread mentions — off unless explicitly enabled.
     digestEnabled: env.CHAT_DIGEST_ENABLED === 'true',
     digestHourUtc: 8,

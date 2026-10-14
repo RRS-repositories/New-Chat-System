@@ -557,7 +557,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 | Wait before a refused person may ask the host again **(Phase 5)** | 60 seconds |
 | Words used from one search **(Phase 5)** | 8 |
 | Reconnect grace in a call | 10 seconds |
-| Offline grace for presence | 5 seconds |
+| Offline grace for presence | 60 seconds (`PRESENCE_OFFLINE_GRACE_MS`) |
 | Away after | 5 minutes without input |
 | Typing indicator | sent every 3 s at most, shown 5 s |
 | Session re-check on a live connection | every 60 seconds |
@@ -590,7 +590,7 @@ Read in one place, `server/src/config/index.js`, from `/opt/chat/.env` on the se
 | `CHAT_TURN_URLS`, `CHAT_TURN_SECRET` | Our coturn relay and its shared secret. | relay off if empty |
 | `CHAT_DIGEST_ENABLED`, `SMTP_*`, `MAIL_FROM`, `MAIL_FROM_NAME` | Daily mention digest. | off |
 
-Fixed in code: ring time 30 s, 50 people per call, call reconnect grace 10 s, wait before asking the host again 60 s, presence grace 5 s, digest hour 08:00 UTC, TURN credential 12 h.
+Fixed in code: ring time 30 s, 50 people per call, call reconnect grace 10 s, wait before asking the host again 60 s, presence grace 60 s (env), away after 10 min, online list re-read every 60 s, digest hour 08:00 UTC, TURN credential 12 h.
 
 ---
 

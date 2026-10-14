@@ -6,6 +6,8 @@ import type { Action } from '../context/chatReducer.ts';
 import { backFromAway, computeAway, createSnapshotReplay } from '../utils/presence.ts';
 
 const INPUT_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'] as const;
+/** How often the online list is read again regardless of events. */
+export const SNAPSHOT_REFRESH_MS = 60_000;
 
 /**
  * Presence: snapshot on every (re)connect, then user_* events. Also reports our
@@ -95,10 +97,31 @@ export function usePresence({
     for (const [ev, fn] of handlers) socket.on(ev, fn);
     for (const ev of INPUT_EVENTS) window.addEventListener(ev, active, { capture: true, passive: true });
     const t = setInterval(check, 30_000);
+    // Looseness: whatever live events were missed (a throttled background tab, a dropped
+    // connection), the list is read again every minute, so nobody stays wrongly offline for long.
+    const refresh = setInterval(() => {
+      if (socket.connected) load();
+    }, SNAPSHOT_REFRESH_MS);
+    // Looked at again, or the network is back: reconnect if the connection died, and read the list.
+    const wake = () => {
+      if (document.hidden) return;
+      if (!socket.connected) {
+        try {
+          socket.connect();
+        } catch {
+          /* socket.io reconnects by itself as well */
+        }
+      } else load();
+    };
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('online', wake);
     if (socket.connected) load();
     return () => {
       live = false;
       clearInterval(t);
+      clearInterval(refresh);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('online', wake);
       comeBack.current = () => {};
       for (const [ev, fn] of handlers) socket.off(ev, fn);
       for (const ev of INPUT_EVENTS) window.removeEventListener(ev, active, { capture: true });

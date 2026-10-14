@@ -8,7 +8,8 @@ export type Presence = {
 };
 export type PresenceState = 'online' | 'away' | 'offline';
 
-export const AWAY_AFTER_MS = 5 * 60 * 1000;
+/** Away after this long without input or attention: ten minutes (five felt too eager, 14 Oct 2026). */
+export const AWAY_AFTER_MS = 10 * 60 * 1000;
 
 export function presenceOf(p: Presence, userId: number | null | undefined): PresenceState {
   if (userId == null || !p.online[userId]) return 'offline';

@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 14 Oct 2026 — online status, loosened
+The owner: people who are online often show as offline; keep some looseness. Three changes on the chat: the server keeps a person online for 60 s after their last connection closes (was 5 s), so blips, lid-closes and reloads do not flicker them offline; the browser re-reads the online list every minute and whenever the tab is looked at again or the network comes back (and reconnects a dead connection then); away comes after 10 min, not 5. The fourth and biggest cause is the CRM: Chat 2 lived only on the Chat 2 page, so anyone using the chat through the CRM went offline the moment they opened another CRM page. CRM pull request: the Chat 2 frame stays mounted (hidden) on every CRM page, so presence, the waiting count and calls carry on. Deployed (chat) / awaiting merge (CRM).
+
 ### 14 Oct 2026 — call shortcuts
 The owner asked for shortcuts in calls, e.g. Ctrl+D = mute. Done: Ctrl+D mute/unmute (with a toast), Ctrl+Shift+S share/stop, Ctrl+Shift+H raise/lower hand; shown in the buttons' hover hints; deliberately no shortcut for leaving. Deployed.
 
