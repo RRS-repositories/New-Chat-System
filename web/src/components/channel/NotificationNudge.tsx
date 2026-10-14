@@ -3,6 +3,7 @@ import { Bell, BellOff } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
 import { allowDesktop, desktopSupported, enablePush, loadPushKey, pushSupported } from '../../services/push.ts';
+import { isEmbedded } from '../../utils/embed.ts';
 
 type State = 'default' | 'denied' | 'granted' | 'unsupported';
 const current = (): State => (desktopSupported() ? Notification.permission : 'unsupported');
@@ -50,8 +51,20 @@ export function NotificationNudge() {
       <div className="notify-nudge blocked" role="alert" data-testid="notify-nudge-blocked">
         <BellOff size={15} aria-hidden="true" />
         <span>
-          <b>Notifications are blocked for this site.</b> Everyone here needs them on: click the lock (or tune) icon at
-          the left of the address bar, set Notifications to Allow, then reload.
+          {isEmbedded() ? (
+            <>
+              <b>Notifications cannot be switched on from inside the CRM.</b> Open{' '}
+              <a href={window.location.origin} target="_blank" rel="noopener noreferrer">
+                {window.location.host}
+              </a>{' '}
+              in its own tab once, press Allow when it asks, then come back here: the browser remembers it.
+            </>
+          ) : (
+            <>
+              <b>Notifications are blocked for this site.</b> Everyone here needs them on: click the lock (or tune) icon
+              at the left of the address bar, set Notifications to Allow, then reload.
+            </>
+          )}
         </span>
       </div>
     );

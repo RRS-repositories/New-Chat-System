@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 14 Oct 2026 — "Microphone access is needed" inside the CRM (Priyanshu's recording)
+Priyanshu could not dial from Chat 2 inside the CRM; on cellular (chat2 opened directly) it worked. Cause: the CRM's `Permissions-Policy: microphone=(self)` denies the microphone to the chat2 frame however the iframe's `allow` is set (proven in a headless browser: self-only → mic false in a cross-origin frame; naming the frame's origin → true). Fix is in the CRM (CRM pull request: microphone, display-capture and autoplay delegated to chat2.rowanroseclaims.co.uk); the Sales CRM would need the same. Also: a cross-origin frame can never ask for notification permission, so inside the CRM the nudge now says to open chat2 in its own tab once and press Allow.
+
 ### 14 Oct 2026 — Chat 2 blocked for people on www.
 The CRM is served on crm., rowanroseclaims.co.uk AND www.rowanroseclaims.co.uk (plus the office addresses 192.168.1.58 / .59). Chat2's frame-ancestors named only the first two (and the Sales CRM), so anyone on www. saw Chrome's blocked-frame page in Chat 2 (26 blocked loads in the morning). All the CRM's addresses are allowed now. Deployed.
 
