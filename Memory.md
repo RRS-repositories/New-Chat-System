@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 15 Oct 2026 — sidebar filter box; mark a whole section read
+The owner asked for a search bar on the left panel for people and channels, and a mark-as-read for Channels, Favourites or Direct messages as a whole. Done: a filter box under the brand (type to narrow, Enter opens the best match), and a ✓✓ on each section header while it has unread rows. Deployed.
+
 ### 15 Oct 2026 — minimise while calling
 The owner: the caller is stuck on the "Calling…" screen until they cancel or the other side answers. A Minimise button on that screen now drops it to the small call bar (which says "Calling…"), so the caller can carry on chatting while it rings. Deployed.
 

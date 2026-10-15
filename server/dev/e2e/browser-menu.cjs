@@ -112,6 +112,47 @@ const openMenu = async (page, name) => {
   });
 
   await step(
+    'the filter box narrows the sidebar to matching channels and people; Enter opens the best match',
+    async () => {
+      await meg.page.locator('.chan-row', { hasText: 'General' }).first().click();
+      await meg.page.fill(tid('sidebar-filter'), 'rot');
+      const names = await meg.page.locator('.chan-row .chan-name').allInnerTexts();
+      if (names.length !== 1 || !/Rota/i.test(names[0])) throw new Error(`filtered rows: ${names}`);
+      await meg.page.press(tid('sidebar-filter'), 'Enter');
+      await meg.page.locator('.chan-title', { hasText: 'Rota' }).waitFor({ timeout: 8000 });
+      if ((await meg.page.inputValue(tid('sidebar-filter'))) !== '') throw new Error('the box did not clear');
+      if ((await meg.page.locator('.chan-row').count()) < 2) throw new Error('the lists did not come back');
+    },
+  );
+
+  await step('"Mark all read" on a section header clears every unread row in it', async () => {
+    await meg.page.locator('.chan-row', { hasText: 'General' }).first().click();
+    await meg.page.locator('.chan-title', { hasText: 'General' }).waitFor({ timeout: 8000 });
+    await ann.page.locator('.chan-row', { hasText: 'Rota' }).first().click();
+    await ann.page.locator('.chan-title', { hasText: 'Rota' }).waitFor({ timeout: 8000 });
+    await ann.page.waitForTimeout(1100); // one message a second
+    await ann.page.fill('.panel > .input-bar textarea', 'one more for the pile');
+    await ann.page.keyboard.press('Enter');
+    await ann.page.locator('.msg', { hasText: 'one more for the pile' }).waitFor({ timeout: 8000 });
+    await rowOf(meg.page, 'Rota')
+      .locator('.badge')
+      .waitFor({ timeout: 8000 })
+      .catch(() => {
+        throw new Error('no unread badge appeared on Rota for Meg');
+      });
+    const buttons = meg.page.locator('[data-testid^="read-all-"]');
+    if (!(await buttons.count())) throw new Error('no mark-all-read button on any section');
+    await buttons.first().click();
+    await rowOf(meg.page, 'Rota')
+      .locator('.badge')
+      .waitFor({ state: 'detached', timeout: 8000 })
+      .catch(() => {
+        throw new Error('the badge stayed after mark all read');
+      });
+    if (await buttons.count()) throw new Error('a mark-all-read button stayed after everything was read');
+  });
+
+  await step(
     'mute shows the bell on the row and the menu offers Unmute; copy link puts the address on the clipboard',
     async () => {
       await openMenu(meg.page, 'Rota');

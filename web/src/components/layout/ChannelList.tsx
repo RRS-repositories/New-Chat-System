@@ -1,5 +1,7 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { BellOff, ChevronDown, Hash, Lock, MoreHorizontal, PenLine, Phone, Plus } from 'lucide-react';
+import { BellOff, CheckCheck, ChevronDown, Hash, Lock, MoreHorizontal, PenLine, Phone, Plus } from 'lucide-react';
+import { useChat } from '../../context/chatContext.ts';
+import { unreadRows } from '../../utils/sidebarFilter.ts';
 import { useCall } from '../../context/callContext.ts';
 import {
   applyOrder,
@@ -45,6 +47,8 @@ type Props = {
   onNewChannel?: () => void;
   onBrowse?: () => void;
   onNewDm?: () => void;
+  /** The sidebar's filter box has text: every section opens and every direct message shows. */
+  filtering?: boolean;
 };
 
 /** The foldable lists in the sidebar: favourites (when any), channels, then direct messages. Each row has a menu. */
@@ -56,7 +60,13 @@ export function ChannelList({
   onNewChannel,
   onBrowse,
   onNewDm,
+  filtering = false,
 }: Props) {
+  // "Mark all read" on a section header: every unread row in it is marked read.
+  const { actions } = useChat();
+  const markAllRead = (list: Channel[]) => {
+    for (const c of unreadRows(list, currentId)) actions.markRead(c.id);
+  };
   const [addOpen, setAddOpen] = useState(false);
   const addButton = useRef<HTMLButtonElement | null>(null);
   // The rows in the order this person dragged them into (kept in the browser).
@@ -75,7 +85,7 @@ export function ChannelList({
   );
   // Direct messages: everyone, or only the recent ones (unread, open, favourite, or active lately).
   const [dmsRecent, setDmsRecent] = useState<boolean>(loadDmsRecent);
-  const dms = dmsRecent ? recentDms(allDms, currentId) : allDms;
+  const dms = dmsRecent && !filtering ? recentDms(allDms, currentId) : allDms;
   const hiddenDms = allDms.length - dms.length;
   const toggleRecent = () => {
     saveDmsRecent(!dmsRecent);
@@ -123,6 +133,7 @@ export function ChannelList({
     });
   const title = (k: keyof Collapsed, label: string, list: Channel[], add?: ReactNode) => {
     const unread = unreadTotal(list, currentId);
+    const pending = unreadRows(list, currentId).length;
     return (
       <div className="s-sec-row">
         <button className="s-sec chan-group-title" aria-expanded={!collapsed[k]} onClick={() => toggle(k)}>
@@ -134,6 +145,17 @@ export function ChannelList({
             collapsed[k] && <span className="cnt quiet">{list.length}</span>
           )}
         </button>
+        {pending > 0 && (
+          <button
+            className="s-add on"
+            aria-label={`Mark all ${label.toLowerCase()} as read`}
+            title={`Mark all ${label.toLowerCase()} as read (${pending})`}
+            data-testid={`read-all-${k}`}
+            onClick={() => markAllRead(list)}
+          >
+            <CheckCheck size={13} />
+          </button>
+        )}
         {add}
       </div>
     );
@@ -187,7 +209,7 @@ export function ChannelList({
     </button>
   );
   const shown = (list: Channel[], k: keyof Collapsed) =>
-    collapsed[k] ? list.filter((c) => visibleWhenCollapsed(c, currentId)) : list;
+    collapsed[k] && !filtering ? list.filter((c) => visibleWhenCollapsed(c, currentId)) : list;
   const row = (c: Channel, label: string, icon: ReactNode, extra?: ReactNode) => (
     <div
       key={c.id}

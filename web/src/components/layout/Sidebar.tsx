@@ -1,5 +1,6 @@
-import { MessageCircle, PenLine, Settings } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { MessageCircle, PenLine, Search, Settings, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { bestRow, filterRows } from '../../utils/sidebarFilter.ts';
 import { APP_TITLE, ORG_NAME } from '../../config/constants.ts';
 import type { Channel, UserStatus } from '../../types/index.ts';
 import type { Presence, PresenceState } from '../../utils/presence.ts';
@@ -28,6 +29,16 @@ const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 
 export function Sidebar(props: Props) {
   const { channels, currentId, presence, userId, userName, ownPresence, ownStatus, onSelect } = props;
   const statusLine = [ownStatus?.emoji, ownStatus?.text].filter(Boolean).join(' ');
+  // The filter box: typing narrows the lists to matching channels and people; Enter opens the best match.
+  const [filter, setFilter] = useState('');
+  const filtering = filter.trim() !== '';
+  const shown = filtering ? filterRows(channels, filter) : channels;
+  const openBest = () => {
+    const best = bestRow(channels, filter);
+    if (!best) return;
+    setFilter('');
+    onSelect(best);
+  };
   return (
     <div className="sidebar-inner">
       <div className="s-brand sidebar-head">
@@ -42,10 +53,37 @@ export function Sidebar(props: Props) {
           <PenLine size={17} />
         </button>
       </div>
+      <div className="s-filter" data-testid="sidebar-filter-box">
+        <Search size={14} aria-hidden="true" />
+        <input
+          type="search"
+          value={filter}
+          placeholder="Find a channel or person"
+          aria-label="Find a channel or person"
+          data-testid="sidebar-filter"
+          autoComplete="off"
+          onChange={(e) => setFilter(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              openBest();
+            } else if (e.key === 'Escape') setFilter('');
+          }}
+        />
+        {filtering && (
+          <button className="s-filter-x" aria-label="Clear" onClick={() => setFilter('')}>
+            <X size={13} />
+          </button>
+        )}
+      </div>
       <ChannelList
-        channels={channels}
+        channels={shown}
+        filtering={filtering}
         currentId={currentId}
-        onSelect={onSelect}
+        onSelect={(c) => {
+          setFilter('');
+          onSelect(c);
+        }}
         presence={presence}
         onNewChannel={props.onNewChannel}
         onBrowse={props.onBrowse}

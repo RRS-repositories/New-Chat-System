@@ -390,6 +390,51 @@
 }
 
 /* Section headers carry their own "+" (new channel / browse; new message) */
+/* The filter box under the brand: find a channel or person */
+.s-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 12px 8px;
+  padding: 0 10px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #aeb4db;
+}
+.s-filter:focus-within {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+}
+.s-filter input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+.s-filter input::placeholder {
+  color: #8b92bf;
+}
+.s-filter input::-webkit-search-cancel-button {
+  display: none;
+}
+.s-filter-x {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: #aeb4db;
+}
+.s-filter-x:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
 .s-sec-row {
   display: flex;
   align-items: center;

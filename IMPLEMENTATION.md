@@ -458,6 +458,8 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Quick reactions.** The hover bar on every message starts with three one-tap reactions: the ones this person uses most on this device (`web/src/utils/quickEmojis.ts`, counts in the browser), the usual three filling in.
 
+**Finding a conversation, and marking a section read (15 Oct 2026).** A filter box under the brand narrows the sidebar to channels and people whose name matches as you type (every section opens, Recent is set aside); Enter opens the best match and clears the box; Escape clears it. Each section header (Favourites, Channels, Direct messages) shows a ✓✓ button while anything in it is unread: it marks every unread row in that section read. `web/src/utils/sidebarFilter.ts`.
+
 **The sidebar as arranged.** Rows can be dragged within Favourites, Channels and Direct messages; the order is kept in the browser (`web/src/utils/sidebarOrder.ts`). The Direct messages header has an All / Recent switch: Recent shows unread, open, favourite, or active in the last 14 days, with a "Show all · N more" row.
 
 **A ring is a pop-up.** The incoming-call card sits in the bottom-right corner and the rest of the chat stays usable behind it (no backdrop, no blur); the row of the channel or person with a call ringing or going on shows a blinking phone icon (`activeByChannel` from the call context). The owner's rule, 12 Oct 2026: a call must never take the screen away from someone in the middle of something.
