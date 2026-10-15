@@ -137,7 +137,7 @@ export function createNotifier({ db, presence, config, webpush } = {}) {
       .filter((m) => !connected(m.userId))
       .map((m) => m.userId);
 
-  async function onIncomingCall({ channel, fromName, userIds }) {
+  async function onIncomingCall({ call, channel, fromName, userIds }) {
     const to = await callRecipients(channel, userIds);
     const w = where(channel);
     await send(
@@ -148,12 +148,14 @@ export function createNotifier({ db, presence, config, webpush } = {}) {
         body: w ? `${fromName} is calling in ${w}` : `${fromName} is calling you`,
         channelId: channel.id,
         tag: channel.id,
+        // The call id lets the notification carry Accept / Decline and be closed by the missed-call notice.
+        ...(call?.id ? { callId: call.id } : {}),
       },
       { TTL: CALL_TTL, urgency: 'high' },
     );
   }
 
-  async function onMissedCall({ channel, fromName, userIds }) {
+  async function onMissedCall({ call, channel, fromName, userIds }) {
     const to = await callRecipients(channel, userIds);
     const w = where(channel);
     await send(
@@ -164,6 +166,7 @@ export function createNotifier({ db, presence, config, webpush } = {}) {
         body: w ? `${fromName} called in ${w}` : `${fromName} called you`,
         channelId: channel.id,
         tag: channel.id,
+        ...(call?.id ? { callId: call.id } : {}),
       },
       { TTL: MISSED_TTL, urgency: 'normal' },
     );

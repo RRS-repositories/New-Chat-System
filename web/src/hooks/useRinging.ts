@@ -1,7 +1,7 @@
 import { useEffect, type MutableRefObject } from 'react';
 import type { CallUiState } from '../context/callState.ts';
 import type { Preferences } from '../types/index.ts';
-import { isLookedAt, showDesktopNotification } from '../utils/notify.ts';
+import { closeCallNotification, isLookedAt, showCallNotification } from '../utils/notify.ts';
 import { startRingtone, stopRingtone } from '../utils/ringtone.ts';
 
 const RINGTONE_MS = 30_000;
@@ -22,14 +22,15 @@ export function useRinging(deps: {
     if (!ringingCallId) return;
     const incoming = callRef.current.incoming;
     if (prefsRef.current.soundEnabled) startRingtone(RINGTONE_MS);
-    if (incoming && !isLookedAt({ hidden: document.hidden, focused: document.hasFocus() })) {
-      const where = incoming.channelType === 'dm' ? ' you' : ` in #${incoming.channelName}`;
-      void showDesktopNotification('Incoming call', `${incoming.fromName} is calling${where}`, incoming.channelId);
-    }
+    // Not being looked at (another tab, another app): a notification with Accept and Decline, kept
+    // until answered. Someone looking at the chat already sees the card.
+    if (incoming && !isLookedAt({ hidden: document.hidden, focused: document.hasFocus() }))
+      void showCallNotification(incoming);
     const cap = setTimeout(() => onGiveUp(ringingCallId), RING_CAP_MS);
     return () => {
       clearTimeout(cap);
       stopRingtone();
+      void closeCallNotification(ringingCallId);
     };
   }, [ringingCallId]); // eslint-disable-line react-hooks/exhaustive-deps
 }

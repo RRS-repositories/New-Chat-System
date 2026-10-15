@@ -42,6 +42,8 @@ const config = {
     DB_USER: 'local',
     DB_PASSWORD: 'local',
     CHAT_REQUIRE_BETA: process.env.CHAT_REQUIRE_BETA || 'false',
+    // The browser checks watch someone go offline within seconds; the live server waits a minute.
+    PRESENCE_OFFLINE_GRACE_MS: process.env.PRESENCE_OFFLINE_GRACE_MS || '5000',
     CHAT_VAPID_PUBLIC: vapid.publicKey,
     CHAT_VAPID_PRIVATE: vapid.privateKey,
     CHAT_STUN_URLS: process.env.CHAT_STUN_URLS ?? '', // same machine: host candidates are enough

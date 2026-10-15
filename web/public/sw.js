@@ -26,19 +26,38 @@ self.addEventListener('push', (event) => {
   const str = (v) => (typeof v === 'string' && v ? v : '');
   const title = str(p.title) || 'Chat';
   const tag = str(p.tag) || str(p.channelId);
+  const kind = str(p.kind) || 'message';
+  const callId = str(p.callId);
   const opts = {
     body: str(p.body),
     icon: '/icon-192.png',
     badge: '/icon-96.png',
-    data: { channelId: str(p.channelId) || null, kind: str(p.kind) || 'message' },
+    data: { channelId: str(p.channelId) || null, kind: kind, callId: callId || null },
   };
   if (tag) {
     opts.tag = tag;
     opts.renotify = true;
   } // renotify without a tag is an error
+  // An incoming call: Accept and Decline buttons, kept on screen until answered, with its own tag so
+  // the "missed call" that may follow closes it.
+  if (kind === 'call' && callId) {
+    opts.tag = 'call-' + callId;
+    opts.renotify = true;
+    opts.requireInteraction = true;
+    opts.vibrate = [300, 150, 300, 150, 300];
+    opts.actions = [
+      { action: 'accept', title: 'Accept' },
+      { action: 'decline', title: 'Decline' },
+    ];
+  }
+  const closeRing = () =>
+    callId && kind !== 'call'
+      ? self.registration.getNotifications({ tag: 'call-' + callId }).then((list) => list.forEach((n) => n.close()))
+      : Promise.resolve();
   // Always hand waitUntil a promise, whatever happens, or the browser may show its own generic notice.
   event.waitUntil(
     Promise.resolve()
+      .then(closeRing)
       .then(scopeClients)
       .then(({ inScope }) => {
         // Someone is looking at the chat right now: the page notifies itself.
@@ -58,6 +77,8 @@ self.addEventListener('notificationclick', (event) => {
   }
   const data = n.data && typeof n.data === 'object' ? n.data : {};
   const channelId = typeof data.channelId === 'string' && data.channelId ? data.channelId : null;
+  const callId = data.kind === 'call' && typeof data.callId === 'string' && data.callId ? data.callId : null;
+  const action = event.action === 'accept' || event.action === 'decline' ? event.action : 'open';
   event.waitUntil(
     Promise.resolve()
       .then(scopeClients)
@@ -70,9 +91,18 @@ self.addEventListener('notificationclick', (event) => {
           } catch (e) {
             /* focus not allowed: still open the channel */
           }
-          if (channelId) target.postMessage({ type: 'chat-sw:open', channelId });
+          if (callId) target.postMessage({ type: 'chat-sw:call', callId, channelId, action });
+          else if (channelId) target.postMessage({ type: 'chat-sw:open', channelId });
           return undefined;
         }
+        if (callId)
+          return self.clients.openWindow(
+            (channelId ? '/channels/' + encodeURIComponent(channelId) : '/') +
+              '?call=' +
+              encodeURIComponent(callId) +
+              '&do=' +
+              action,
+          );
         return self.clients.openWindow(channelId ? '/channels/' + encodeURIComponent(channelId) : '/');
       }),
   );

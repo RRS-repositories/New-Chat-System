@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { shouldNotify, notificationContent, isLookedAt, parseSwOpen, SW_OPEN } from '../src/utils/notify.ts';
 import { urlBase64ToUint8Array } from '../src/services/push.ts';
 import { computeAway, presenceOf, AWAY_AFTER_MS } from '../src/utils/presence.ts';
+import { callNotificationOptions, callFromAddress, parseSwCall, callTag } from '../src/utils/notify.ts';
 
 const ME = 9;
 const msg = (extra: any = {}) =>
@@ -147,4 +148,45 @@ test('presenceOf: online, away or offline', () => {
   assert.equal(presenceOf(p, 2), 'away');
   assert.equal(presenceOf(p, 3), 'offline');
   assert.equal(presenceOf(p, null), 'offline');
+});
+
+test('an incoming-call notification: who and where, Accept and Decline, kept until answered, tagged by call', () => {
+  const { title, options } = callNotificationOptions({
+    callId: 'c1',
+    channelId: 'ch1',
+    channelName: 'Sales',
+    channelType: 'private',
+    fromName: 'Ayush Tiwari',
+  });
+  assert.equal(title, 'Incoming call');
+  assert.equal(options.body, 'Ayush Tiwari is calling in #Sales');
+  assert.equal(options.tag, callTag('c1'));
+  assert.equal(options.requireInteraction, true);
+  assert.deepEqual(
+    (options.actions as any[]).map((a) => a.action),
+    ['accept', 'decline'],
+  );
+  assert.deepEqual(options.data, { kind: 'call', callId: 'c1', channelId: 'ch1' });
+  const dm = callNotificationOptions({
+    callId: 'c2',
+    channelId: 'd',
+    channelName: 'x',
+    channelType: 'dm',
+    fromName: 'Meg',
+  });
+  assert.equal(dm.options.body, 'Meg is calling you');
+});
+
+test('a clicked call notification: the call and the button; anything else is not one', () => {
+  assert.deepEqual(parseSwCall({ type: 'chat-sw:call', callId: 'c1', channelId: 'ch1', action: 'accept' }), {
+    callId: 'c1',
+    channelId: 'ch1',
+    action: 'accept',
+  });
+  assert.equal(parseSwCall({ type: 'chat-sw:call', callId: 'c1', action: 'weird' })?.action, 'open');
+  assert.equal(parseSwCall({ type: 'chat-sw:open', channelId: 'ch1' }), null);
+  assert.equal(parseSwCall({ type: 'chat-sw:call' }), null);
+  assert.deepEqual(callFromAddress('?call=c1&do=accept'), { callId: 'c1', action: 'accept' });
+  assert.deepEqual(callFromAddress('?call=c1'), { callId: 'c1', action: 'open' });
+  assert.equal(callFromAddress('?x=1'), null);
 });

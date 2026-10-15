@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 15 Oct 2026 — calls reach people in another tab or app; louder ring; microphone asked up front
+The owner: people in another tab or another app do not get the call box, and the ring is too quiet. Done: the ring is a loud telephone ring (two tones, two bursts every 2 s, near full volume — the old two beeps at gain 0.08 were inaudible); a ring not being looked at shows a notification with Accept / Decline that stays until answered, from the page's service worker or from the server's push, and the buttons act on the call (even when the chat tab was closed: it opens the channel and answers); the missed-call push closes it. Like notifications, the microphone is now asked for once up front (MicNudge) so accepting never stalls on a prompt. Deployed.
+
 ### 14 Oct 2026 — a channel tick puts the person in
 The owner blocked Pearl from all channels, ticked two, and did not see her in them: a tick only lifted the block. Now ticking a channel on a person's page puts them straight into it (and tells them and the channel); the column is "In the channel". Deployed.
 

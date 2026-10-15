@@ -83,3 +83,105 @@ export async function showDesktopNotification(title: string, body: string, chann
     /* notifications are best effort */
   }
 }
+
+// ---- Incoming calls: a notification with Accept and Decline, kept until answered ----------------
+
+export const CALL_ACTION_EVENT = 'chat:call-action';
+export const SW_CALL = 'chat-sw:call';
+export type CallAction = 'accept' | 'decline' | 'open';
+
+/** The tag a call's notification carries, so it can be closed when the ring ends. */
+export const callTag = (callId: string) => `call-${callId}`;
+
+/** What the notification for an incoming call says and offers. Pure. */
+export function callNotificationOptions(inc: {
+  callId: string;
+  channelId: string;
+  channelName: string;
+  channelType: string;
+  fromName: string;
+}): { title: string; options: Record<string, unknown> } {
+  const where = inc.channelType === 'dm' ? ' you' : ` in #${inc.channelName}`;
+  return {
+    title: 'Incoming call',
+    options: {
+      body: `${inc.fromName} is calling${where}`,
+      tag: callTag(inc.callId),
+      renotify: true,
+      requireInteraction: true,
+      icon: NOTIFICATION_ICON,
+      vibrate: [300, 150, 300, 150, 300],
+      data: { kind: 'call', callId: inc.callId, channelId: inc.channelId },
+      actions: [
+        { action: 'accept', title: 'Accept' },
+        { action: 'decline', title: 'Decline' },
+      ],
+    },
+  };
+}
+
+/** The service worker's message for a call notification that was clicked: which call, which button. */
+export function parseSwCall(data: any): { callId: string; channelId: string | null; action: CallAction } | null {
+  if (!data || typeof data !== 'object' || data.type !== SW_CALL) return null;
+  if (typeof data.callId !== 'string' || !data.callId) return null;
+  const action: CallAction = data.action === 'accept' || data.action === 'decline' ? data.action : 'open';
+  return {
+    callId: data.callId,
+    channelId: typeof data.channelId === 'string' && data.channelId ? data.channelId : null,
+    action,
+  };
+}
+
+/** The call to act on when the chat was opened from a notification: `?call=<id>&do=accept|decline`. */
+export function callFromAddress(search: string): { callId: string; action: CallAction } | null {
+  try {
+    const q = new URLSearchParams(search);
+    const callId = q.get('call');
+    if (!callId) return null;
+    const d = q.get('do');
+    return { callId, action: d === 'accept' || d === 'decline' ? d : 'open' };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Shows the incoming-call notification: through the service worker (with Accept and Decline
+ * buttons, works from another app), else from the page (click = come to the chat). Stays until
+ * answered or closed. Silent on any failure.
+ */
+export async function showCallNotification(inc: Parameters<typeof callNotificationOptions>[0]): Promise<void> {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const { title, options } = callNotificationOptions(inc);
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+    if (reg) {
+      await reg.showNotification(title, options as NotificationOptions);
+      return;
+    }
+    const { actions: _actions, ...plain } = options;
+    const shown = new Notification(title, plain as NotificationOptions);
+    shown.onclick = () => {
+      window.focus();
+      window.dispatchEvent(
+        new CustomEvent(CALL_ACTION_EVENT, {
+          detail: { callId: inc.callId, channelId: inc.channelId, action: 'open' },
+        }),
+      );
+      shown.close();
+    };
+  } catch {
+    /* best effort */
+  }
+}
+
+/** Closes the notification for a call (it was answered, declined or stopped ringing). */
+export async function closeCallNotification(callId: string): Promise<void> {
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+    if (!reg) return;
+    for (const n of await reg.getNotifications({ tag: callTag(callId) })) n.close();
+  } catch {
+    /* best effort */
+  }
+}

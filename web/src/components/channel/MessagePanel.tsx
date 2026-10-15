@@ -24,7 +24,7 @@ import { MessageFeed } from '../messages/MessageFeed.tsx';
 import { MessageInput } from '../messages/MessageInput.tsx';
 import { TypingIndicator } from '../messages/TypingIndicator.tsx';
 import { CallBanner } from '../calls/CallBanner.tsx';
-import { NotificationNudge } from './NotificationNudge.tsx';
+import { MicNudge, NotificationNudge } from './NotificationNudge.tsx';
 import { useCall } from '../../context/callContext.ts';
 
 export function useCanModerate(channelId: string | null): boolean {
@@ -214,6 +214,7 @@ export function MessagePanel({
         callDisabled={calls.busy}
       />
       <NotificationNudge />
+      <MicNudge />
       <CallBanner channelId={channelId} />
       {channelId ? (
         <>

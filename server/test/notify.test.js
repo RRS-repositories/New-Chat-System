@@ -263,6 +263,7 @@ test('payload: incoming call in a channel and in a DM (TTL 30, urgency high)', a
       body: 'Meg Manager is calling in #General',
       channelId: general,
       tag: general,
+      callId: 'c1',
     }),
   );
   assert.equal(webpush.sends[0].options.TTL, 30);
@@ -282,6 +283,7 @@ test('payload: incoming call in a channel and in a DM (TTL 30, urgency high)', a
       body: 'Meg Manager is calling you',
       channelId: dm,
       tag: dm,
+      callId: 'c1',
     }),
   );
 });
@@ -302,6 +304,7 @@ test('payload: missed call in a channel and in a DM', async () => {
       body: 'Meg Manager called in #General',
       channelId: general,
       tag: general,
+      callId: 'c1',
     }),
   );
   assert.equal(webpush.sends[0].options.TTL, 86400);
@@ -321,6 +324,7 @@ test('payload: missed call in a channel and in a DM', async () => {
       body: 'Meg Manager called you',
       channelId: dm,
       tag: dm,
+      callId: 'c1',
     }),
   );
 });

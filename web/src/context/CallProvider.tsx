@@ -17,6 +17,7 @@ import type { CallInvite, CallJoinResponse, JoinRequest } from '../types/index.t
 import { NO_BREAKOUT, roomOf, type Breakout, type BreakoutGroup } from '../utils/breakout.ts';
 import { callErrorText } from '../utils/callErrors.ts';
 import { stopRingtone } from '../utils/ringtone.ts';
+import { CALL_ACTION_EVENT, callFromAddress, type CallAction } from '../utils/notify.ts';
 import { CallContext, type ActiveCall, type CallContextValue, type CallReaction } from './callContext.ts';
 import { callReducer, initialCallState, type IncomingCall } from './callState.ts';
 import { useChat } from './chatContext.ts';
@@ -508,6 +509,60 @@ export function CallProvider({ socket, getToken, children }: Props) {
 
   const ringingCallId = call.phase === 'ringing-in' ? (call.incoming?.callId ?? null) : null;
   useRinging({ ringingCallId, callRef: ui, prefsRef, onGiveUp: (id) => dispatch({ type: 'dismissed', callId: id }) });
+
+  // Accept or Decline pressed on a notification (another tab or app), or the chat opened from one
+  // (?call=&do=): act now if the call is ringing or going on here, else as soon as its ring arrives.
+  const pendingAction = useRef<{ callId: string; action: CallAction; at: number } | null>(
+    (() => {
+      const fromAddress = typeof window !== 'undefined' ? callFromAddress(window.location.search) : null;
+      if (fromAddress && typeof window !== 'undefined' && window.history?.replaceState) {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('call');
+          url.searchParams.delete('do');
+          window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+        } catch {
+          /* leave the address as it is */
+        }
+      }
+      return fromAddress && fromAddress.action !== 'open' ? { ...fromAddress, at: Date.now() } : null;
+    })(),
+  );
+  const applyPending = useCallback(() => {
+    const p = pendingAction.current;
+    if (!p) return;
+    if (Date.now() - p.at > 90_000) {
+      pendingAction.current = null;
+      return;
+    }
+    const inc = ui.current.incoming;
+    if (ui.current.phase === 'ringing-in' && inc && inc.callId === p.callId) {
+      pendingAction.current = null;
+      if (p.action === 'accept') void acceptCall(inc);
+      else declineCall(inc.callId);
+      return;
+    }
+    if (p.action === 'accept') {
+      const live = Object.entries(activeByChannel).find(([, c]) => c.callId === p.callId);
+      if (live) {
+        pendingAction.current = null;
+        void joinCall(live[1].callId, live[0]);
+      }
+    }
+  }, [acceptCall, declineCall, joinCall, activeByChannel, ui]);
+  useEffect(() => {
+    applyPending();
+  }, [call.phase, call.incoming?.callId, activeByChannel, applyPending]);
+  useEffect(() => {
+    const onAction = (e: Event) => {
+      const d = (e as CustomEvent<{ callId: string; action: CallAction }>).detail;
+      if (!d || !d.callId || d.action === 'open') return;
+      pendingAction.current = { callId: d.callId, action: d.action, at: Date.now() };
+      applyPending();
+    };
+    window.addEventListener(CALL_ACTION_EVENT, onAction);
+    return () => window.removeEventListener(CALL_ACTION_EVENT, onAction);
+  }, [applyPending]);
 
   // A call waiting behind this one gives up by itself if its "ended" event never arrives.
   const waitingCallId = call.waiting?.callId ?? null;

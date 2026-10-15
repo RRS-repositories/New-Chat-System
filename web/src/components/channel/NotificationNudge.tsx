@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, Mic, MicOff } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
 import { allowDesktop, desktopSupported, enablePush, loadPushKey, pushSupported } from '../../services/push.ts';
@@ -82,6 +82,82 @@ export function NotificationNudge() {
         onClick={() => void turnOn()}
       >
         Turn on
+      </button>
+    </div>
+  );
+}
+
+type MicState = 'prompt' | 'denied' | 'granted' | 'unknown';
+
+/** What the browser says about the microphone for this site, where it can be asked (Chrome and Edge). */
+async function micState(): Promise<MicState> {
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) return 'unknown';
+    const q = (navigator as any).permissions?.query;
+    if (typeof q !== 'function') return 'unknown';
+    const st = await (navigator as any).permissions.query({ name: 'microphone' });
+    return st.state === 'granted' ? 'granted' : st.state === 'denied' ? 'denied' : 'prompt';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * Calls need the microphone, and the browser asks for it the first time a call is answered — which
+ * is the worst moment to miss a prompt. So, like notifications, it is asked for once up front (the
+ * owner, 15 Oct 2026). The line goes as soon as the browser has it.
+ */
+export function MicNudge() {
+  const toast = useToast();
+  const [state, setState] = useState<MicState>('unknown');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const refresh = () => void micState().then((s) => live && setState(s));
+    refresh();
+    window.addEventListener('focus', refresh);
+    const timer = setInterval(refresh, 5000);
+    return () => {
+      live = false;
+      window.removeEventListener('focus', refresh);
+      clearInterval(timer);
+    };
+  }, []);
+  if (state === 'granted' || state === 'unknown') return null;
+
+  async function allow() {
+    setBusy(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      for (const t of stream.getTracks()) t.stop();
+      toast({ text: 'Microphone allowed: calls will connect straight away' });
+      setState('granted');
+    } catch {
+      setState(await micState());
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (state === 'denied')
+    return (
+      <div className="notify-nudge blocked" role="alert" data-testid="mic-nudge-blocked">
+        <MicOff size={15} aria-hidden="true" />
+        <span>
+          <b>The microphone is blocked for this site</b>, so calls cannot be answered. Click the lock (or tune) icon at
+          the left of the address bar, set Microphone to Allow, then reload.
+        </span>
+      </div>
+    );
+  return (
+    <div className="notify-nudge" role="alert" data-testid="mic-nudge">
+      <Mic size={15} aria-hidden="true" />
+      <span>
+        <b>Allow your microphone once</b>, so a call connects the moment you accept it. Press Allow, then Allow in the
+        browser.
+      </span>
+      <button className="btn-accent btn-small" disabled={busy} data-testid="mic-nudge-on" onClick={() => void allow()}>
+        Allow
       </button>
     </div>
   );
