@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { LogOut, X } from 'lucide-react';
+import { LogOut, Play, X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import { useSignOut } from '../../context/SignOutContext.ts';
 import type { NotifyLevel } from '../../types/index.ts';
@@ -14,6 +14,7 @@ import {
   type PushState,
 } from '../../services/push.ts';
 import { loadCompact, setCompact } from '../../utils/density.ts';
+import { RINGTONES, loadRingtone, previewRingtone, saveRingtone, stopRingtone } from '../../utils/ringtone.ts';
 import { AppearanceSettings } from './AppearanceSettings.tsx';
 import { ProfilePhotoSettings } from './ProfilePhotoSettings.tsx';
 
@@ -24,6 +25,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const prefs = state.prefs;
   const [error, setError] = useState<string | null>(null);
   const [compact, setCompactOn] = useState(loadCompact);
+  const [ringtone, setRingtone] = useState(loadRingtone);
+  // A preview stops with the dialog.
+  useEffect(() => () => stopRingtone(), []);
   const [statusEmoji, setStatusEmoji] = useState(prefs.statusEmoji);
   const [statusText, setStatusText] = useState(prefs.statusText);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -133,6 +137,44 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             onChange={(e) => change({ soundEnabled: e.target.checked })}
           />
         </label>
+        <div className="ringtones" data-testid="ringtones">
+          <div className="tx">
+            <b>Ringtone</b>
+            <span>What you hear when a call comes in, on this device. Press play to hear one.</span>
+          </div>
+          {RINGTONES.map((r) => (
+            <label key={r.id} className={`ringtone-row${ringtone === r.id ? ' on' : ''}`}>
+              <input
+                type="radio"
+                name="ringtone"
+                value={r.id}
+                checked={ringtone === r.id}
+                data-testid={`ringtone-${r.id}`}
+                onChange={() => {
+                  saveRingtone(r.id);
+                  setRingtone(r.id);
+                  previewRingtone(r.id);
+                }}
+              />
+              <span className="tx">
+                <b>{r.name}</b>
+                <span>{r.description}</span>
+              </span>
+              <button
+                type="button"
+                className="btn-ghost btn-small"
+                aria-label={`Play ${r.name}`}
+                title="Play"
+                onClick={(e) => {
+                  e.preventDefault();
+                  previewRingtone(r.id);
+                }}
+              >
+                <Play size={13} /> Play
+              </button>
+            </label>
+          ))}
+        </div>
         <label className="togrow check-row">
           <span className="tx">
             <b>Compact messages</b>

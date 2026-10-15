@@ -30,6 +30,49 @@
   flex: 1;
   font-weight: 800;
 }
+/* The ringtone picker in Settings */
+.ringtones {
+  padding: 10px 18px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.ringtones > .tx {
+  display: block;
+  margin-bottom: 8px;
+}
+.ringtones > .tx > b {
+  display: block;
+  font-size: 13.5px;
+}
+.ringtones > .tx > span {
+  display: block;
+  font-size: 12px;
+  color: var(--mut);
+}
+.ringtone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.ringtone-row:hover,
+.ringtone-row.on {
+  background: var(--paper-3);
+}
+.ringtone-row .tx {
+  flex: 1;
+  min-width: 0;
+}
+.ringtone-row .tx b {
+  display: block;
+  font-size: 13px;
+}
+.ringtone-row .tx span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--mut);
+}
 .modal-acts {
   display: flex;
   justify-content: flex-end;
