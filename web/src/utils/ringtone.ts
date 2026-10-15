@@ -1,5 +1,5 @@
 /**
- * Incoming-call ringtones: the classic two-tone ring made with WebAudio, and three recorded rings
+ * Incoming-call ringtones: the classic two-tone ring made with WebAudio, and two recorded rings
  * (royalty-free, `web/public/sounds/`, normalised loud). One is chosen per device, from a dropdown
  * in Settings, with a volume (full by default). Rings until stopRingtone() or `maxMs` (the server
  * gives up ringing after 30 s).
@@ -24,12 +24,6 @@ export const RINGTONES: Ringtone[] = [
     name: 'Phone ringing',
     description: 'A recorded modern telephone',
     file: '/sounds/phone-ringing.mp3',
-  },
-  {
-    id: 'rotary-phone',
-    name: 'Rotary phone',
-    description: 'A recorded old rotary telephone bell',
-    file: '/sounds/rotary-phone.mp3',
   },
   {
     id: 'telephone-electronic',
