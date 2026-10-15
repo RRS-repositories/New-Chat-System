@@ -295,6 +295,25 @@ const waitAudio = async (page, n, what) => {
     },
   );
 
+  await step('ringing someone one-to-one: the caller can minimise the Calling… screen and carry on', async () => {
+    await meg.page.waitForFunction((sel) => !document.querySelector(sel), tid('call-panel'), { timeout: 15000 });
+    await meg.page.click('button[aria-label="New message"]');
+    await meg.page.locator('.pick-row', { hasText: 'Ann Agent' }).click();
+    await meg.page.locator('.chan-title', { hasText: 'Ann Agent' }).waitFor({ timeout: 8000 });
+    await meg.page.click(tid('call-start'));
+    await meg.page.locator(tid('call-ringing-out')).waitFor({ timeout: 15000 });
+    await meg.page.click(tid('call-ring-minimise'));
+    const bar = meg.page.locator('[data-testid="call-panel"][data-minimised="true"]');
+    await bar.waitFor({ timeout: 5000 });
+    if (!/Calling/.test(await bar.innerText())) throw new Error('the minimised bar does not say Calling…');
+    await meg.page.locator('.panel > .input-bar textarea').click({ timeout: 5000 });
+    await meg.page.click(tid('call-expand'));
+    await meg.page.locator(tid('call-ringing-out')).waitFor({ timeout: 5000 });
+    await meg.page.click(tid('call-cancel'));
+    await meg.page.waitForFunction((sel) => !document.querySelector(sel), tid('call-ringing-out'), { timeout: 10000 });
+    await ann.page.waitForFunction((sel) => !document.querySelector(sel), tid('incoming-call'), { timeout: 10000 });
+  });
+
   // No microphone permission: a clear message, and no call is created or joined.
   const cy = await person(browser, 'c@x', 'Cy', { mic: false });
   await step('microphone blocked: clear message and nothing half-joined', async () => {

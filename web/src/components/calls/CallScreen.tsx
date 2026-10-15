@@ -300,7 +300,7 @@ export function CallScreen() {
             <b>{title}</b>
             <span>
               <span className="c-live" />
-              <span>{clock || 'Connecting…'}</span>
+              <span>{calling ? 'Calling…' : clock || 'Connecting…'}</span>
               {recording && <span className="mini-rec"> · REC</span>}
             </span>
           </span>
@@ -540,6 +540,18 @@ export function CallScreen() {
                   <HangUp size={26} />
                 </button>
                 Cancel
+              </div>
+              <div className="ring-act">
+                <button
+                  className="rbtn msg"
+                  data-testid="call-ring-minimise"
+                  aria-label="Minimise while it rings"
+                  title="Keep ringing in the background and carry on"
+                  onClick={() => setMinimised(true)}
+                >
+                  <Minimize2 size={24} />
+                </button>
+                Minimise
               </div>
             </div>
           </div>

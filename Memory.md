@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 15 Oct 2026 — minimise while calling
+The owner: the caller is stuck on the "Calling…" screen until they cancel or the other side answers. A Minimise button on that screen now drops it to the small call bar (which says "Calling…"), so the caller can carry on chatting while it rings. Deployed.
+
 ### 15 Oct 2026 — calls reach people in another tab or app; louder ring; microphone asked up front
 The owner: people in another tab or another app do not get the call box, and the ring is too quiet. Done: the ring is a loud telephone ring (two tones, two bursts every 2 s, near full volume — the old two beeps at gain 0.08 were inaudible); a ring not being looked at shows a notification with Accept / Decline that stays until answered, from the page's service worker or from the server's push, and the buttons act on the call (even when the chat tab was closed: it opens the channel and answers); the missed-call push closes it. Like notifications, the microphone is now asked for once up front (MicNudge) so accepting never stalls on a prompt. Deployed.
 
