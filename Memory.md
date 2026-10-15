@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 15 Oct 2026 — email on the person card
+The owner: clicking a person's name or photo should show their email too. The card now shows it under the role, as a mail link. Deployed.
+
 ### 15 Oct 2026 — a choice of ringtones, and a volume
 The owner asked for a better ringtone or a page to pick one; of five synthesised tones he kept only the classic and supplied three recorded rings from his Downloads (freesound/Pixabay, royalty-free). Settings now has a dropdown of three (Classic phone + two recordings, normalised loud in `web/public/sounds/`; the rotary one was dropped on his word the same morning), a Play button, and a Ring volume slider, full by default; chosen per device. Deployed.
 

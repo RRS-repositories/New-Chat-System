@@ -21,14 +21,24 @@ export function ProfileCard({ userId, name, anchor, onClose }: CardProps) {
   const toast = useToast();
   const navigate = useNavigate();
   const [role, setRole] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const self = userId === user.id;
   const presence = presenceOf(state.presence, userId);
   const status = state.presence.statuses[userId];
   useEffect(() => {
-    if (self) return setRole(user.role);
+    if (self) {
+      setRole(user.role);
+      setEmail(user.email ?? null);
+      return;
+    }
     peopleOnce ||= actions.listUsers().catch(() => []);
     let live = true;
-    void peopleOnce.then((list) => live && setRole(list.find((u) => u.id === userId)?.role ?? null));
+    void peopleOnce.then((list) => {
+      if (!live) return;
+      const found = list.find((u) => u.id === userId);
+      setRole(found?.role ?? null);
+      setEmail(found?.email ?? null);
+    });
     return () => {
       live = false;
     };
@@ -54,6 +64,11 @@ export function ProfileCard({ userId, name, anchor, onClose }: CardProps) {
             {self ? ' (you)' : ''}
           </b>
           {role && <span className="pc-role">{role}</span>}
+          {email && (
+            <a className="pc-email" href={`mailto:${email}`} data-testid="profile-email" title="Send an email">
+              {email}
+            </a>
+          )}
           <span className={`pc-pres ${presence}`}>{PRESENCE_LABEL[presence]}</span>
           {status && (status.emoji || status.text) && (
             <span className="pc-status">
