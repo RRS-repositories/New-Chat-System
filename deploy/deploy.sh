@@ -10,7 +10,8 @@
 #   1. pulls the main branch
 #   2. installs server libraries, only if the server's package files changed
 #   3. rebuilds the web app, only if the web app changed (the old build stays live until the new one is ready)
-#   4. restarts the chat process, only if server code changed (a web-only change needs no restart, so calls are not cut)
+#   4. restarts the chat process, only if server code changed (a web-only change, or one to the browser checks
+#      and dev scripts under server/dev and server/test, needs no restart, so calls are not cut)
 #   5. checks the chat answers; exits with an error if it does not
 #
 # If a step fails, fix the cause and run it again: it carries on from the last deploy that finished.
@@ -63,6 +64,8 @@ main() {
   fi
 
   changed() { git diff --name-only "$before" "$after" | grep -qE "$1"; }
+  # Server code is what the running process loads: server/ minus the browser checks and dev scripts.
+  changed_server_code() { git diff --name-only "$before" "$after" | grep -E '^server/' | grep -vqE '^server/(dev|test)/'; }
 
   if [ "$before" = "$after" ] && ! $force; then
     echo "Already up to date. Nothing to do."
@@ -99,7 +102,7 @@ main() {
     pm2 delete "$APP" >/dev/null 2>&1 || true
     pm2 start deploy/ecosystem.config.cjs --only "$APP"
     pm2 save
-  elif changed '^server/'; then
+  elif changed_server_code; then
     echo "=== restart the chat process ==="
     pm2 restart "$APP"
   else

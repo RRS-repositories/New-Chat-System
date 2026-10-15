@@ -65,9 +65,9 @@ export function ProfileCard({ userId, name, anchor, onClose }: CardProps) {
           </b>
           {role && <span className="pc-role">{role}</span>}
           {email && (
-            <a className="pc-email" href={`mailto:${email}`} data-testid="profile-email" title="Send an email">
+            <span className="pc-email" data-testid="profile-email">
               {email}
-            </a>
+            </span>
           )}
           <span className={`pc-pres ${presence}`}>{PRESENCE_LABEL[presence]}</span>
           {status && (status.emoji || status.text) && (

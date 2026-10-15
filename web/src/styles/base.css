@@ -679,14 +679,10 @@ svg {
   display: block;
   font-size: 12px;
   color: var(--mut);
-  text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.pc-email:hover {
-  color: var(--text);
-  text-decoration: underline;
+  user-select: text;
 }
 .pc-pres {
   font-size: 12px;
