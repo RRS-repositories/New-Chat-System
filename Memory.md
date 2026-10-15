@@ -227,8 +227,8 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
-### 15 Oct 2026 — a choice of ringtones
-The owner asked for a better ringtone or a page to pick one. Settings now has a Ringtone section with five tones (Classic phone, Marimba, Digital, Bell, Old telephone), each with Play; chosen per device. Deployed.
+### 15 Oct 2026 — a choice of ringtones, and a volume
+The owner asked for a better ringtone or a page to pick one; of five synthesised tones he kept only the classic and supplied three recorded rings from his Downloads (freesound/Pixabay, royalty-free). Settings now has a dropdown of four (Classic phone + the three recordings, normalised loud in `web/public/sounds/`), a Play button, and a Ring volume slider, full by default; chosen per device. Deployed.
 
 ### 15 Oct 2026 — sidebar filter box; mark a whole section read
 The owner asked for a search bar on the left panel for people and channels, and a mark-as-read for Channels, Favourites or Direct messages as a whole. Done: a filter box under the brand (type to narrow, Enter opens the best match), and a ✓✓ on each section header while it has unread rows. Deployed.

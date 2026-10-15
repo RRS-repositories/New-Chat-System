@@ -1,72 +1,41 @@
 /**
- * Incoming-call ringtones, made with WebAudio (no audio files), loud: a choice of tones, one kept
- * per device (the owner asked to pick one, 15 Oct 2026). Each tone is a short pattern of notes
- * repeated until stopRingtone() or `maxMs` (the server gives up ringing after 30 s).
+ * Incoming-call ringtones: the classic two-tone ring made with WebAudio, and three recorded rings
+ * (royalty-free, `web/public/sounds/`, normalised loud). One is chosen per device, from a dropdown
+ * in Settings, with a volume (full by default). Rings until stopRingtone() or `maxMs` (the server
+ * gives up ringing after 30 s).
  */
 let ctx: AudioContext | null = null;
 let loop: ReturnType<typeof setInterval> | null = null;
 let cap: ReturnType<typeof setTimeout> | null = null;
+let player: HTMLAudioElement | null = null;
 
 const KEY = 'chat.ringtone';
-/** How loud: the gain of each tone (two at once add up to just under full scale). */
+const VOLUME_KEY = 'chat.ringVolume';
+/** How loud the synthesised ring is at full volume: each of its two tones (they add to just under full scale). */
 export const RING_GAIN = 0.45;
+export const RING_PERIOD_MS = 2000;
 
-/** One note of a pattern: when it starts (s), how long (s), its frequencies, and the wave shape. */
-type Note = { at: number; len: number; freqs: number[]; wave?: OscillatorType; gain?: number };
-export type Ringtone = { id: string; name: string; description: string; periodMs: number; notes: Note[] };
+export type Ringtone = { id: string; name: string; description: string; file?: string };
 
 export const RINGTONES: Ringtone[] = [
+  { id: 'classic', name: 'Classic phone', description: 'Two bursts of the traditional ring, every two seconds' },
   {
-    id: 'classic',
-    name: 'Classic phone',
-    description: 'Two bursts of the traditional ring, every two seconds',
-    periodMs: 2000,
-    notes: [
-      { at: 0, len: 0.4, freqs: [400, 450] },
-      { at: 0.6, len: 0.4, freqs: [400, 450] },
-    ],
+    id: 'phone-ringing',
+    name: 'Phone ringing',
+    description: 'A recorded modern telephone',
+    file: '/sounds/phone-ringing.mp3',
   },
   {
-    id: 'marimba',
-    name: 'Marimba',
-    description: 'A rising four-note chime, soft wood',
-    periodMs: 2400,
-    notes: [
-      { at: 0, len: 0.35, freqs: [523], wave: 'triangle' },
-      { at: 0.25, len: 0.35, freqs: [659], wave: 'triangle' },
-      { at: 0.5, len: 0.35, freqs: [784], wave: 'triangle' },
-      { at: 0.75, len: 0.6, freqs: [1047], wave: 'triangle' },
-    ],
+    id: 'rotary-phone',
+    name: 'Rotary phone',
+    description: 'A recorded old rotary telephone bell',
+    file: '/sounds/rotary-phone.mp3',
   },
   {
-    id: 'digital',
-    name: 'Digital',
-    description: 'Quick high chirps, hard to miss',
-    periodMs: 1600,
-    notes: [
-      { at: 0, len: 0.12, freqs: [1200], wave: 'square', gain: 0.3 },
-      { at: 0.18, len: 0.12, freqs: [1200], wave: 'square', gain: 0.3 },
-      { at: 0.36, len: 0.12, freqs: [1200], wave: 'square', gain: 0.3 },
-      { at: 0.6, len: 0.12, freqs: [1600], wave: 'square', gain: 0.3 },
-      { at: 0.78, len: 0.12, freqs: [1600], wave: 'square', gain: 0.3 },
-    ],
-  },
-  {
-    id: 'bell',
-    name: 'Bell',
-    description: 'A single bright bell, rung twice',
-    periodMs: 2600,
-    notes: [
-      { at: 0, len: 1.0, freqs: [880, 1760, 2640], gain: 0.3 },
-      { at: 1.2, len: 1.0, freqs: [880, 1760, 2640], gain: 0.3 },
-    ],
-  },
-  {
-    id: 'oldphone',
-    name: 'Old telephone',
-    description: 'The fast mechanical trill of a rotary phone',
-    periodMs: 3000,
-    notes: Array.from({ length: 20 }, (_, i) => ({ at: i * 0.1, len: 0.05, freqs: [i % 2 ? 1000 : 1250], gain: 0.35 })),
+    id: 'telephone-electronic',
+    name: 'Electronic telephone',
+    description: 'A recorded electronic office phone',
+    file: '/sounds/telephone-electronic.mp3',
   },
 ];
 
@@ -93,26 +62,53 @@ export function saveRingtone(id: string): void {
   }
 }
 
-function play(tone: Ringtone) {
+/** The ring volume as a fraction 0–1 (full by default); anything odd reads as full. */
+export function clampVolume(v: unknown): number {
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(1, Math.max(0, n));
+}
+
+export function loadRingVolume(): number {
+  try {
+    const raw = localStorage.getItem(VOLUME_KEY);
+    return raw === null ? 1 : clampVolume(raw);
+  } catch {
+    return 1;
+  }
+}
+
+export function saveRingVolume(v: number): void {
+  try {
+    localStorage.setItem(VOLUME_KEY, String(clampVolume(v)));
+  } catch {
+    /* private mode */
+  }
+}
+
+function playClassic(volume: number) {
   try {
     ctx = ctx || new (window.AudioContext || (window as any).webkitAudioContext)();
     if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
     const t0 = ctx.currentTime;
-    for (const n of tone.notes) {
-      const gain = n.gain ?? RING_GAIN;
-      for (const freq of n.freqs) {
+    const gain = Math.max(0.0002, RING_GAIN * volume);
+    for (const [at, len] of [
+      [0, 0.4],
+      [0.6, 0.4],
+    ] as const) {
+      for (const freq of [400, 450]) {
         const o = ctx.createOscillator();
         const g = ctx.createGain();
-        o.type = n.wave ?? 'sine';
+        o.type = 'sine';
         o.frequency.value = freq;
-        g.gain.setValueAtTime(0.0001, t0 + n.at);
-        g.gain.exponentialRampToValueAtTime(gain, t0 + n.at + 0.02);
-        g.gain.setValueAtTime(gain, t0 + n.at + Math.max(0.03, n.len - 0.08));
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.at + n.len);
+        g.gain.setValueAtTime(0.0001, t0 + at);
+        g.gain.exponentialRampToValueAtTime(gain, t0 + at + 0.02);
+        g.gain.setValueAtTime(gain, t0 + at + len - 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + len);
         o.connect(g);
         g.connect(ctx.destination);
-        o.start(t0 + n.at);
-        o.stop(t0 + n.at + n.len + 0.01);
+        o.start(t0 + at);
+        o.stop(t0 + at + len + 0.01);
       }
     }
   } catch {
@@ -120,18 +116,34 @@ function play(tone: Ringtone) {
   }
 }
 
-/** Rings with the device's chosen tone (or the given one) until stopped or `maxMs`. */
-export function startRingtone(maxMs = 30_000, id?: string) {
+function playFile(file: string, volume: number) {
+  try {
+    player = new Audio(file);
+    player.loop = true;
+    player.volume = volume;
+    void player.play().catch(() => {});
+  } catch {
+    /* no audio: the card is still shown */
+  }
+}
+
+/** Rings with the device's chosen tone (or the given one) at the device's volume until stopped or `maxMs`. */
+export function startRingtone(maxMs = 30_000, id?: string, volume?: number) {
   stopRingtone();
   const tone = ringtoneById(id ?? loadRingtone());
-  play(tone);
-  loop = setInterval(() => play(tone), tone.periodMs);
+  const vol = clampVolume(volume ?? loadRingVolume());
+  if (vol === 0) return;
+  if (tone.file) playFile(tone.file, vol);
+  else {
+    playClassic(vol);
+    loop = setInterval(() => playClassic(vol), RING_PERIOD_MS);
+  }
   cap = setTimeout(stopRingtone, maxMs);
 }
 
-/** Plays one pass of a tone, for choosing. */
-export function previewRingtone(id: string) {
-  startRingtone(Math.min(ringtoneById(id).periodMs * 2, 6000), id);
+/** Plays a few seconds of a tone, for choosing. */
+export function previewRingtone(id: string, volume?: number) {
+  startRingtone(4000, id, volume);
 }
 
 export function stopRingtone() {
@@ -139,4 +151,13 @@ export function stopRingtone() {
   if (cap) clearTimeout(cap);
   loop = null;
   cap = null;
+  if (player) {
+    try {
+      player.pause();
+      player.src = '';
+    } catch {
+      /* already gone */
+    }
+    player = null;
+  }
 }

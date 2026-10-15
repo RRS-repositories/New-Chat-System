@@ -14,7 +14,15 @@ import {
   type PushState,
 } from '../../services/push.ts';
 import { loadCompact, setCompact } from '../../utils/density.ts';
-import { RINGTONES, loadRingtone, previewRingtone, saveRingtone, stopRingtone } from '../../utils/ringtone.ts';
+import {
+  RINGTONES,
+  loadRingVolume,
+  loadRingtone,
+  previewRingtone,
+  saveRingVolume,
+  saveRingtone,
+  stopRingtone,
+} from '../../utils/ringtone.ts';
 import { AppearanceSettings } from './AppearanceSettings.tsx';
 import { ProfilePhotoSettings } from './ProfilePhotoSettings.tsx';
 
@@ -26,6 +34,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [compact, setCompactOn] = useState(loadCompact);
   const [ringtone, setRingtone] = useState(loadRingtone);
+  const [ringVolume, setRingVolume] = useState(loadRingVolume);
   // A preview stops with the dialog.
   useEffect(() => () => stopRingtone(), []);
   const [statusEmoji, setStatusEmoji] = useState(prefs.statusEmoji);
@@ -140,40 +149,57 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <div className="ringtones" data-testid="ringtones">
           <div className="tx">
             <b>Ringtone</b>
-            <span>What you hear when a call comes in, on this device. Press play to hear one.</span>
+            <span>What you hear when a call comes in, on this device.</span>
           </div>
-          {RINGTONES.map((r) => (
-            <label key={r.id} className={`ringtone-row${ringtone === r.id ? ' on' : ''}`}>
-              <input
-                type="radio"
-                name="ringtone"
-                value={r.id}
-                checked={ringtone === r.id}
-                data-testid={`ringtone-${r.id}`}
-                onChange={() => {
-                  saveRingtone(r.id);
-                  setRingtone(r.id);
-                  previewRingtone(r.id);
-                }}
-              />
-              <span className="tx">
-                <b>{r.name}</b>
-                <span>{r.description}</span>
-              </span>
-              <button
-                type="button"
-                className="btn-ghost btn-small"
-                aria-label={`Play ${r.name}`}
-                title="Play"
-                onClick={(e) => {
-                  e.preventDefault();
-                  previewRingtone(r.id);
-                }}
-              >
-                <Play size={13} /> Play
-              </button>
-            </label>
-          ))}
+          <div className="ringtone-pick">
+            <select
+              aria-label="Ringtone"
+              data-testid="ringtone-select"
+              value={ringtone}
+              onChange={(e) => {
+                saveRingtone(e.target.value);
+                setRingtone(e.target.value);
+                previewRingtone(e.target.value, ringVolume);
+              }}
+            >
+              {RINGTONES.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} — {r.description}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn-ghost btn-small"
+              data-testid="ringtone-play"
+              aria-label="Play the ringtone"
+              onClick={() => previewRingtone(ringtone, ringVolume)}
+            >
+              <Play size={13} /> Play
+            </button>
+          </div>
+          <label className="ringtone-volume">
+            <span className="tx">
+              <b>Ring volume</b>
+              <span>{Math.round(ringVolume * 100)}%</span>
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(ringVolume * 100)}
+              aria-label="Ring volume"
+              data-testid="ring-volume"
+              onChange={(e) => {
+                const v = Number(e.target.value) / 100;
+                saveRingVolume(v);
+                setRingVolume(v);
+              }}
+              onMouseUp={() => previewRingtone(ringtone, ringVolume)}
+              onTouchEnd={() => previewRingtone(ringtone, ringVolume)}
+            />
+          </label>
         </div>
         <label className="togrow check-row">
           <span className="tx">
