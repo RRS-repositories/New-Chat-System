@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { allowedParents, MSG, PARENT_ORIGINS } from '../src/utils/embed.ts';
 
-test('the CRM addresses are https, and the page\'s own address is allowed for the local check', () => {
+test("the CRM addresses are https, and the page's own address is allowed for the local check", () => {
   assert.ok(PARENT_ORIGINS.every((o) => o.startsWith('https://')));
   assert.deepEqual(allowedParents('http://localhost:5021'), [...PARENT_ORIGINS, 'http://localhost:5021']);
 });

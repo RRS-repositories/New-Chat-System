@@ -31,6 +31,8 @@ const CHECKS = {
   'application/x-zip-compressed': isZip,
   'text/csv': isText,
   'text/plain': isText,
+  'text/markdown': isText,
+  'text/x-markdown': isText,
   'video/mp4': (buf) => startsWith(buf, ascii('ftyp'), 4),
   'video/webm': (buf) => startsWith(buf, [0x1a, 0x45, 0xdf, 0xa3]),
   // Sound. MP3: an ID3 tag, or straight into a frame (0xFF then the top three bits of the next byte set).

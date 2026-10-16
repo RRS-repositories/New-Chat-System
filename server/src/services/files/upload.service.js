@@ -6,10 +6,29 @@ import { utf8Name } from '../../utils/filenames.js';
 import { contentMatchesType } from '../../utils/fileSignature.js';
 import { ALLOWED_MIME, saveUpload, makeThumbnail, removeUpload } from './storage.js';
 
+/**
+ * A browser only labels a file with a type it knows. On Windows a .md (or sometimes .txt / .csv)
+ * file arrives as "application/octet-stream" or with no type; for those plain-text kinds the name
+ * says what it is, and the content check (no binary bytes) still applies.
+ */
+const TEXT_BY_EXTENSION = { md: 'text/markdown', markdown: 'text/markdown', txt: 'text/plain', csv: 'text/csv' };
+const NO_TYPE = new Set(['', 'application/octet-stream']);
+export function typeFromName(mimetype, filename) {
+  if (!NO_TYPE.has(String(mimetype || '').toLowerCase())) return mimetype;
+  const ext = String(filename || '')
+    .split('.')
+    .pop()
+    .toLowerCase();
+  return TEXT_BY_EXTENSION[ext] || mimetype;
+}
+
 /** Fixes the names and refuses an empty upload, a file type that is not allowed, or content that is not that type. */
 export function checkUploads(files) {
   if (!files.length) throw httpError(400, 'no_files', 'Attach at least one file');
-  for (const file of files) file.originalname = utf8Name(file.originalname);
+  for (const file of files) {
+    file.originalname = utf8Name(file.originalname);
+    file.mimetype = typeFromName(file.mimetype, file.originalname);
+  }
   for (const file of files) {
     if (!ALLOWED_MIME.has(file.mimetype))
       throw httpError(400, 'file_type', `${file.originalname}: file type not allowed`);

@@ -49,8 +49,10 @@ test('restrictionRow formats a row for the table (User, Blocked from, Target, Ty
   assert.equal(restrictionRow({ ...row, restriction: 'all' }).blockedFrom, 'cannot contact');
   assert.equal(restrictionRow({ ...row, restriction: 'call' }).blockedFrom, 'cannot call');
   assert.equal(restrictionRow({ ...row, restriction: 'channel' }).blockedFrom, 'cannot share private channels with');
-  // London wall-clock date, not UTC: 23:30 UTC on 30 Sep is 1 Oct in BST.
-  assert.equal(restrictionRow({ ...row, createdAt: '2026-09-30T23:30:00.000Z' }).date, '1 Oct 2026');
+  // The reader's wall-clock date, not UTC: 23:30 UTC on 30 Sep is 1 Oct in London (BST) and in India.
+  assert.equal(restrictionRow({ ...row, createdAt: '2026-09-30T23:30:00.000Z' }, 'Europe/London').date, '1 Oct 2026');
+  assert.equal(restrictionRow({ ...row, createdAt: '2026-09-30T23:30:00.000Z' }, 'Asia/Kolkata').date, '1 Oct 2026');
+  assert.equal(restrictionRow({ ...row, createdAt: '2026-09-30T23:30:00.000Z' }, 'UTC').date, '30 Sep 2026');
 });
 
 test('restrictionRow falls back to "User #id" when a name is missing (e.g. deactivated user)', () => {

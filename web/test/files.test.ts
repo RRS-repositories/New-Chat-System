@@ -21,6 +21,11 @@ test('validateFiles: size, count and extension rules with readable errors', () =
   assert.equal(six.ok.length, 5);
   assert.match(six.errors[0]!, /5 files/);
 });
+test('Markdown notes are allowed and known as Markdown', () => {
+  const r = validateFiles([f('FCA-Car-Finance-Pause-App-Update.md', 10)]);
+  assert.equal(r.errors.length, 0);
+  assert.equal(fileKind('', 'notes.md'), 'Markdown');
+});
 test('sound files (call recordings) are allowed and known as Audio', () => {
   const r = validateFiles([f('call-2026-10-07.mp3', 10), f('note.wav', 10), f('voice.m4a', 10), f('x.ogg', 10)]);
   assert.equal(r.errors.length, 0);

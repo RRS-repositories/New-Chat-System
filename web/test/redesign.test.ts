@@ -46,16 +46,17 @@ test('no colour is written straight into a stylesheet outside the token and them
   assert.deepEqual(offenders, []);
 });
 
-test('day chips: Today, Yesterday, then the weekday and date (UK time)', () => {
+test('day chips: Today, Yesterday, then the weekday and date (pinned to London here; the app uses the device zone)', () => {
   const now = new Date('2026-10-05T12:00:00Z');
-  assert.equal(dayLabel('2026-10-05T08:00:00Z', now), 'Today');
-  assert.equal(dayLabel('2026-10-04T22:59:00Z', now), 'Yesterday');
-  assert.equal(dayLabel('2026-10-04T23:30:00Z', now), 'Today', '00:30 UK summer time is already the next day');
-  assert.equal(dayLabel('2026-10-01T10:00:00Z', now), 'Thursday, 1 Oct');
-  assert.equal(dayLabel('2025-12-25T10:00:00Z', now), 'Thursday, 25 Dec 2025');
-  assert.notEqual(dayKey('2026-10-04T22:59:00Z'), dayKey('2026-10-04T23:30:00Z'));
-  assert.equal(dayKey('2026-10-05T08:00:00Z'), dayKey('2026-10-05T20:00:00Z'));
-  assert.equal(formatClock('2026-10-05T13:05:00Z'), '14:05');
+  const L = 'Europe/London';
+  assert.equal(dayLabel('2026-10-05T08:00:00Z', now, L), 'Today');
+  assert.equal(dayLabel('2026-10-04T22:59:00Z', now, L), 'Yesterday');
+  assert.equal(dayLabel('2026-10-04T23:30:00Z', now, L), 'Today', '00:30 UK summer time is already the next day');
+  assert.equal(dayLabel('2026-10-01T10:00:00Z', now, L), 'Thursday, 1 Oct');
+  assert.equal(dayLabel('2025-12-25T10:00:00Z', now, L), 'Thursday, 25 Dec 2025');
+  assert.notEqual(dayKey('2026-10-04T22:59:00Z', L), dayKey('2026-10-04T23:30:00Z', L));
+  assert.equal(dayKey('2026-10-05T08:00:00Z', L), dayKey('2026-10-05T20:00:00Z', L));
+  assert.equal(formatClock('2026-10-05T13:05:00Z', L), '14:05');
 });
 
 const msg = (id: string, userId: number, type = 'message') => ({ id, userId, type }) as any;

@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 16 Oct 2026 — Markdown uploads; times on the reader's own clock
+The owner could not attach a `.md` file ("this file type is not allowed"); `.md` is now allowed in the web list and on the server, with the type taken from the name when a Windows browser sends none (the no-binary-bytes content check still applies). He also said people in other countries are confused by UK times: all times and dates in the web app now follow the device's own time zone, with the zone named on the message-time tooltip. Deployed.
+
 ### 15 Oct 2026 — email on the person card
 The owner asked for the email address on the person card. It is a plain line directly under the role (he said "simple": not a link). The people list already carried the email. Deploy: the first commit's browser check lived under server/, which made deploy.sh restart the chat; the script now ignores server/dev and server/test when deciding on a restart, so a web-only change can go out during a call.
 

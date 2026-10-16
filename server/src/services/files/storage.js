@@ -16,6 +16,9 @@ export const ALLOWED_MIME = new Map([
   ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'pptx'],
   ['text/csv', 'csv'],
   ['text/plain', 'txt'],
+  // Markdown notes. Windows browsers often send a .md file with no type at all (see checkUploads).
+  ['text/markdown', 'md'],
+  ['text/x-markdown', 'md'],
   ['application/zip', 'zip'],
   ['application/x-zip-compressed', 'zip'],
   ['video/mp4', 'mp4'],

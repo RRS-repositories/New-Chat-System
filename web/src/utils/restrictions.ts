@@ -21,13 +21,13 @@ export const typeLabel = (t: RestrictionType): string => LABELS[t] ?? t;
 const isType = (t: unknown): t is RestrictionType => (RESTRICTION_TYPES as readonly unknown[]).includes(t);
 const nameOr = (name: string | null, id: number) => name || `User #${id}`;
 
-/** "12 Sep 2026" in Europe/London; '' when the date cannot be parsed. */
-function formatDate(iso: string): string {
+/** "12 Sep 2026" on the reader's own clock (or in the zone given); '' when the date cannot be parsed. */
+function formatDate(iso: string, timeZone?: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   const p: Record<string, string> = {};
   for (const part of new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/London',
+    ...(timeZone ? { timeZone } : {}),
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',
@@ -48,7 +48,7 @@ export type RestrictionRow = {
 };
 
 /** Display strings for one table row: User | Blocked from | Target | Type | Set by | Date. */
-export function restrictionRow(r: Restriction): RestrictionRow {
+export function restrictionRow(r: Restriction, timeZone?: string): RestrictionRow {
   return {
     id: r.id,
     user: nameOr(r.userName, r.userId),
@@ -56,7 +56,7 @@ export function restrictionRow(r: Restriction): RestrictionRow {
     target: nameOr(r.targetName, r.targetUserId),
     type: typeLabel(r.restriction),
     setBy: nameOr(r.restrictedByName, r.restrictedBy),
-    date: formatDate(r.createdAt),
+    date: formatDate(r.createdAt, timeZone),
     reason: r.reason || '',
   };
 }

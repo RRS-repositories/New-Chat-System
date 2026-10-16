@@ -122,6 +122,47 @@ test('a PNG upload stores the file, makes a 200px thumbnail, creates a file mess
   assert.equal(emitted[0].e, 'new_message');
 });
 
+test('a Markdown note is allowed, also when the browser gives it no type (as Windows does); a program is still refused', async () => {
+  const notes = Buffer.from('# Car finance pause\n\nWhat changed this week.\n');
+  let db = makeDb();
+  let r = await request(app(db))
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', notes, { filename: 'FCA-Car-Finance-Pause-App-Update.md', contentType: 'text/markdown' });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(db.inserted[0].mime_type, 'text/markdown');
+
+  db = makeDb();
+  r = await request(app(db))
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', notes, { filename: 'notes.md', contentType: 'application/octet-stream' });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(db.inserted[0].mime_type, 'text/markdown', 'the name says what an untyped text file is');
+
+  db = makeDb();
+  r = await request(app(db))
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', Buffer.concat([Buffer.from('MZ'), Buffer.alloc(64)]), {
+      filename: 'setup.exe',
+      contentType: 'application/octet-stream',
+    });
+  assert.equal(r.status, 400);
+  assert.equal(r.body.code, 'file_type');
+
+  db = makeDb();
+  r = await request(app(db))
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', Buffer.concat([Buffer.from('MZ\0\0'), Buffer.alloc(64)]), {
+      filename: 'program.md',
+      contentType: 'application/octet-stream',
+    });
+  assert.equal(r.status, 400, 'binary content wearing a .md name');
+  assert.equal(r.body.code, 'file_content');
+});
+
 test('too large, disallowed type, and no file are refused and leave nothing on disk', async () => {
   const before = countOnDisk();
   const a = app(makeDb());

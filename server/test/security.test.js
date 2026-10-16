@@ -218,6 +218,7 @@ test('real files pass; a file of another kind wearing the label does not', () =>
   );
   assert.equal(contentMatchesType('text/plain', Buffer.from('just some notes\nsecond line')), true);
   assert.equal(contentMatchesType('text/csv', Buffer.from('name,amount\nA,1\n')), true);
+  assert.equal(contentMatchesType('text/markdown', Buffer.from('# Notes\n\n- one\n')), true);
   assert.equal(
     contentMatchesType(
       'image/svg+xml',
