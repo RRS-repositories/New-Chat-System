@@ -2,7 +2,9 @@
  * Who is connected. In-process (one chat-server instance).
  * Interface: connect(userId, socketId) -> { first }, disconnect(userId, socketId, onOffline),
  * setAway(userId, socketId, away) -> { changed, away }, isConnected(userId), isAway(userId),
- * socketsOf(userId), snapshot() -> { online, away }, close().
+ * socketsOf(userId), snapshot() -> { online, away }, close(). In the snapshot `online` is everyone
+ * connected, away or not, and `away` the subset that is away: a reader who trusted `online` alone
+ * used to show every away person as Offline (the cause of "people show offline" complaints, 16 Oct 2026).
  *
  * A user is kept in the registry from their first socket until `graceMs` after their last one
  * closed, so a page reload does not flicker offline/online. During that grace they have no live
@@ -87,7 +89,10 @@ export function createPresence({ graceMs = 5000, timers = null } = {}) {
     snapshot() {
       const online = [],
         away = [];
-      for (const [id, e] of users) (e.away ? away : online).push(id);
+      for (const [id, e] of users) {
+        online.push(id);
+        if (e.away) away.push(id);
+      }
       return { online: online.sort((a, b) => a - b), away: away.sort((a, b) => a - b) };
     },
   };

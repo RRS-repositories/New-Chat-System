@@ -15,6 +15,10 @@ export function createHttpStack({ config, db, fetchImpl, sessionRecheckMs, webpu
   const io = new Server({
     cors: config.corsOrigins.length ? { origin: config.corsOrigins } : undefined,
     path: '/socket.io',
+    // A browser working in the background answers pings late; give it a minute before the
+    // connection is called dead (the default 20 s made people flicker Offline).
+    pingInterval: 25_000,
+    pingTimeout: 60_000,
   });
   const presence = createPresence({ graceMs: config.presenceOfflineGraceMs });
   const notifier = createNotifier({ db, presence, config, webpush });

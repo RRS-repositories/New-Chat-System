@@ -1,7 +1,7 @@
 // The sidebar the way the person arranged it: row order per section, and "Recent" direct messages.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyOrder, moveId, recentDms } from '../src/utils/sidebarOrder.ts';
+import { applyOrder, byLatest, moveId, recentDms } from '../src/utils/sidebarOrder.ts';
 
 const ch = (id: string, over: Record<string, unknown> = {}) =>
   ({ id, type: 'dm', unreadCount: 0, mentionCount: 0, lastMessageAt: null, ...over }) as any;
@@ -28,6 +28,29 @@ test('moveId: below the target when dragging down, above it when dragging up; no
   assert.deepEqual(moveId(ids, 'd', 'a'), ['d', 'a', 'b', 'c'], 'to the top');
   assert.equal(moveId(ids, 'a', 'a'), ids);
   assert.equal(moveId(ids, 'x', 'a'), ids);
+});
+
+test('byLatest: whoever wrote last is at the top; empty conversations last, unless just opened', () => {
+  const dms = [
+    ch('old', { lastMessageAt: '2026-10-10T09:00:00Z', dmUserName: 'Old' }),
+    ch('empty', { dmUserName: 'Empty' }),
+    ch('newest', { lastMessageAt: '2026-10-16T12:00:00Z', dmUserName: 'New' }),
+    ch('mid', { lastMessageAt: '2026-10-12T09:00:00Z', dmUserName: 'Mid' }),
+  ];
+  assert.deepEqual(
+    byLatest(dms).map((c) => c.id),
+    ['newest', 'mid', 'old', 'empty'],
+  );
+  assert.deepEqual(
+    byLatest(dms, 'empty').map((c) => c.id),
+    ['empty', 'newest', 'mid', 'old'],
+    'the conversation just started leads until its first message',
+  );
+  assert.deepEqual(
+    dms.map((c) => c.id),
+    ['old', 'empty', 'newest', 'mid'],
+    'the input is not changed',
+  );
 });
 
 test('recentDms: unread, open, favourite or active within two weeks stay; the quiet old ones go', () => {

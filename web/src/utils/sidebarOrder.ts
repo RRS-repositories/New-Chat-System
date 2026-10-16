@@ -53,6 +53,25 @@ export function moveId(ids: string[], dragged: string, target: string): string[]
   return [...without.slice(0, insertAt), dragged, ...without.slice(insertAt)];
 }
 
+/**
+ * Direct messages newest first: the person who last wrote (or was written to) is at the top, so
+ * whoever just messaged is easy to find. Conversations with no message yet go last, except the
+ * one open now (just started), which leads.
+ */
+export function byLatest<T extends { id: string; lastMessageAt: string | null; dmUserName?: string | null }>(
+  list: T[],
+  currentId: string | null = null,
+): T[] {
+  const at = (c: T) => (c.lastMessageAt ? new Date(c.lastMessageAt).getTime() || 0 : 0);
+  return [...list].sort((a, b) => {
+    if (a.id === currentId && !a.lastMessageAt) return -1;
+    if (b.id === currentId && !b.lastMessageAt) return 1;
+    const d = at(b) - at(a);
+    if (d) return d;
+    return (a.dmUserName || '').localeCompare(b.dmUserName || '');
+  });
+}
+
 export function loadDmsRecent(): boolean {
   try {
     return localStorage.getItem(RECENT_KEY) === 'true';

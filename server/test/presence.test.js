@@ -93,6 +93,14 @@ test('disconnect of an unknown socket or user is a no-op', () => {
   assert.equal(p.isConnected(1), true);
 });
 
+test('snapshot: an away person is still in the online list (connected), and in the away list too', () => {
+  const p = createPresence({ graceMs: 5000, timers: fakeTimers() });
+  p.connect(1, 's1');
+  p.connect(2, 's2');
+  p.setAway(2, 's2', true);
+  assert.deepEqual(p.snapshot(), { online: [1, 2], away: [2] });
+});
+
 test('away only when ALL sockets are away; any active socket makes the user online', () => {
   const p = createPresence({ graceMs: 5000, timers: fakeTimers() });
   p.connect(1, 's1');
@@ -101,7 +109,7 @@ test('away only when ALL sockets are away; any active socket makes the user onli
   assert.deepEqual(p.snapshot(), { online: [1], away: [] });
   assert.deepEqual(p.setAway(1, 's2', true), { changed: true, away: true });
   assert.equal(p.isAway(1), true);
-  assert.deepEqual(p.snapshot(), { online: [], away: [1] });
+  assert.deepEqual(p.snapshot(), { online: [1], away: [1] });
   assert.deepEqual(p.setAway(1, 's2', true), { changed: false, away: true }, 'repeat is not a change');
   assert.deepEqual(p.setAway(1, 's1', false), { changed: true, away: false });
   assert.deepEqual(p.snapshot(), { online: [1], away: [] });
@@ -116,7 +124,7 @@ test('a new socket is active, so it ends "away"; closing the only active socket 
   assert.equal(p.isAway(1), false);
   p.disconnect(1, 's2', () => {});
   assert.equal(p.isAway(1), true);
-  assert.deepEqual(p.snapshot(), { online: [], away: [1] });
+  assert.deepEqual(p.snapshot(), { online: [1], away: [1] });
 });
 
 test('setAway for a socket the registry does not know changes nothing', () => {

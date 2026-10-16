@@ -5,6 +5,7 @@ import { unreadRows } from '../../utils/sidebarFilter.ts';
 import { useCall } from '../../context/callContext.ts';
 import {
   applyOrder,
+  byLatest,
   loadDmsRecent,
   loadOrder,
   moveId,
@@ -79,9 +80,10 @@ export function ChannelList({
     channels.filter((c) => c.type !== 'dm' && !c.favourite),
     order.rooms,
   );
-  const allDms = applyOrder(
+  // Direct messages are not arranged by hand: newest first, so whoever just wrote is at the top.
+  const allDms = byLatest(
     channels.filter((c) => c.type === 'dm' && !c.favourite),
-    order.dms,
+    currentId,
   );
   // Direct messages: everyone, or only the recent ones (unread, open, favourite, or active lately).
   const [dmsRecent, setDmsRecent] = useState<boolean>(loadDmsRecent);
@@ -215,9 +217,10 @@ export function ChannelList({
       key={c.id}
       className={`s-row${menuFor?.id === c.id ? ' menu-open' : ''}`}
       onContextMenu={(e) => openMenu(c, e)}
-      draggable
-      data-testid="chan-draggable"
+      draggable={sectionOf(c) !== 'dms'}
+      data-testid={sectionOf(c) !== 'dms' ? 'chan-draggable' : 'chan-row-fixed'}
       onDragStart={(e) => {
+        if (sectionOf(c) === 'dms') return;
         dragging.current = { section: sectionOf(c), id: c.id };
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', c.id);

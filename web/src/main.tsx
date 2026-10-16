@@ -14,6 +14,7 @@ import { withTimeout } from './utils/timeout.ts';
 import { isEmbedded } from './utils/embed.ts';
 import '@fontsource-variable/inter/wght.css';
 import './styles/index.css';
+import { holdPresenceLock } from './utils/keepAwake.ts';
 
 const SIGN_OUT_WAIT_MS = 2000;
 const currentToken = () => getSession()?.token ?? null;
@@ -44,6 +45,8 @@ function Root() {
   );
   useEffect(() => {
     socketRef.current = socket;
+    // Signed in: ask the browser not to freeze this tab, so presence holds while people work elsewhere.
+    if (socket) holdPresenceLock();
     return () => {
       socket?.close();
     };

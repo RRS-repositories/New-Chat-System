@@ -152,6 +152,47 @@ const openMenu = async (page, name) => {
     if (await buttons.count()) throw new Error('a mark-all-read button stayed after everything was read');
   });
 
+  await step('whoever just messaged is at the top of Direct messages', async () => {
+    // Only people who have signed in to the chat are offered in the picker, so Bob signs in first.
+    const bob = await person(browser, 'b@x', 'Bob');
+    const leads = (page, name) =>
+      page.waitForFunction(
+        (who) =>
+          new RegExp(who).test(
+            document.querySelector('[data-testid="dms-recent"]')?.closest('.chan-group')?.querySelector('.chan-name')
+              ?.textContent || '',
+          ),
+        name,
+        { timeout: 8000 },
+      );
+    const dmNames = () =>
+      meg.page
+        .locator('.chan-group', { has: meg.page.locator(tid('dms-recent')) })
+        .locator('.chan-name')
+        .allInnerTexts();
+    const writeTo = async (who, name, text) => {
+      await who.page.click('button[aria-label="New message"]');
+      await who.page.locator('.pick-row', { hasText: name }).click();
+      await who.page.locator('.chan-title', { hasText: name }).waitFor({ timeout: 8000 });
+      await who.page.waitForTimeout(1100);
+      await who.page.fill('.panel > .input-bar textarea', text);
+      await who.page.keyboard.press('Enter');
+    };
+    try {
+      // Bob writes to Meg: Bob leads Meg's Direct messages.
+      await writeTo(bob, 'Meg', 'hello meg, bob here');
+      await leads(meg.page, 'Bob');
+      // Ann writes to Meg: Ann moves to the top, above Bob, without Meg doing anything.
+      await writeTo(ann, 'Meg', 'hello meg, are you there?');
+      await leads(meg.page, 'Ann');
+      const names = await dmNames();
+      if (!/Ann/.test(names[0] || '') || !/Bob/.test(names[1] || '')) throw new Error(`direct messages: ${names}`);
+    } finally {
+      await bob.ctx.close();
+      for (const who of [meg, ann]) await who.page.keyboard.press('Escape').catch(() => {});
+    }
+  });
+
   await step(
     'mute shows the bell on the row and the menu offers Unmute; copy link puts the address on the clipboard',
     async () => {

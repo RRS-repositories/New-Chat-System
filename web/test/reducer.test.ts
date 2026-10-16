@@ -393,6 +393,15 @@ test('the open channel counts unread (and mentions) when the chat is not being l
   );
 });
 
+test('presence: a snapshot that lists someone only as away still counts them as connected (Away, not Offline)', () => {
+  const s = chatReducer(initialState, {
+    type: 'presence_loaded',
+    snapshot: { online: [1], away: [2], statuses: {} },
+  });
+  assert.deepEqual(s.presence.online, { 1: true, 2: true });
+  assert.deepEqual(s.presence.away, { 2: true });
+});
+
 test('presence: snapshot then online/offline/away/status events', () => {
   assert.deepEqual(initialState.presence, { online: {}, away: {}, statuses: {} });
   let s = chatReducer(initialState, {

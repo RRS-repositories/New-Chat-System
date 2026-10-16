@@ -445,7 +445,11 @@ export function chatReducer(state: State, action: Action): State {
       const away: Presence['away'] = {};
       const statuses: Presence['statuses'] = {};
       for (const id of action.snapshot.online || []) online[id] = true;
-      for (const id of action.snapshot.away || []) away[id] = true;
+      // Away people are connected people: whatever list the server put them in, they are online too.
+      for (const id of action.snapshot.away || []) {
+        away[id] = true;
+        online[id] = true;
+      }
       for (const [id, st] of Object.entries(action.snapshot.statuses || {}))
         if (st && (st.text || st.emoji)) statuses[Number(id)] = { text: st.text || '', emoji: st.emoji || '' };
       return { ...state, presence: { online, away, statuses } };
