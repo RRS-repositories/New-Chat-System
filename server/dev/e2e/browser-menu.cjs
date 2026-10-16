@@ -152,6 +152,23 @@ const openMenu = async (page, name) => {
     if (await buttons.count()) throw new Error('a mark-all-read button stayed after everything was read');
   });
 
+  await step('"Copy text" on a message puts its words on the clipboard, also for someone else\'s message', async () => {
+    await ann.page.locator('.chan-row', { hasText: 'General' }).first().click();
+    await ann.page.locator('.chan-title', { hasText: 'General' }).waitFor({ timeout: 8000 });
+    await ann.page.waitForTimeout(1100);
+    await ann.page.fill('.panel > .input-bar textarea', 'copy these exact words please');
+    await ann.page.keyboard.press('Enter');
+    await meg.page.locator('.chan-row', { hasText: 'General' }).first().click();
+    const msg = meg.page.locator('.msg', { hasText: 'copy these exact words please' }).last();
+    await msg.waitFor({ timeout: 8000 });
+    await msg.hover();
+    await msg.locator(tid('msg-more')).click();
+    await meg.page.locator(tid('msg-copy')).click();
+    await meg.page.locator(tid('toast'), { hasText: 'Message copied' }).waitFor({ timeout: 5000 });
+    const copied = await meg.page.evaluate(() => navigator.clipboard.readText());
+    if (copied !== 'copy these exact words please') throw new Error(`clipboard: ${copied}`);
+  });
+
   await step('whoever just messaged is at the top of Direct messages', async () => {
     // Only people who have signed in to the chat are offered in the picker, so Bob signs in first.
     const bob = await person(browser, 'b@x', 'Bob');

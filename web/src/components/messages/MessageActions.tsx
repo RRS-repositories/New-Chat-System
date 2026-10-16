@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { MessageSquare, MoreHorizontal, Pencil, Pin, PinOff, Reply, Smile, Trash2 } from 'lucide-react';
+import { Copy, MessageSquare, MoreHorizontal, Pencil, Pin, PinOff, Reply, Smile, Trash2 } from 'lucide-react';
+import { useToast } from '../../context/ToastProvider.tsx';
 import type { Message } from '../../types/index.ts';
 import { Floating } from '../common/Floating.tsx';
 import { EmojiPicker } from './EmojiPicker.tsx';
@@ -18,7 +19,7 @@ type Props = {
   onDelete: () => void;
 };
 
-/** The small bar that appears on a message: react, reply, thread, pin, and (for your own) edit and delete. */
+/** The small bar that appears on a message: react, reply, thread, pin, and a menu with copy text and (for your own) edit and delete. */
 export function MessageActions({
   m,
   own,
@@ -33,6 +34,17 @@ export function MessageActions({
 }: Props) {
   const [picking, setPicking] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const toast = useToast();
+  // Copy the message's text (as written, so links and formatting marks come along) to the clipboard.
+  const copyText = async () => {
+    setMenuOpen(false);
+    try {
+      await navigator.clipboard.writeText(m.content);
+      toast({ text: 'Message copied' });
+    } catch {
+      toast({ text: 'Could not copy: the browser did not allow it' });
+    }
+  };
   const reactButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
   // The three reactions this person uses most, one tap away; a pick anywhere counts towards them.
@@ -72,43 +84,52 @@ export function MessageActions({
           {m.pinned ? <PinOff size={15} /> : <Pin size={15} />}
         </button>
       )}
-      {own && (
-        <button
-          ref={moreButton}
-          aria-label="More"
-          title="More"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <MoreHorizontal size={15} />
-        </button>
-      )}
+      <button
+        ref={moreButton}
+        aria-label="More"
+        title="More"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        data-testid="msg-more"
+        onClick={() => setMenuOpen(!menuOpen)}
+      >
+        <MoreHorizontal size={15} />
+      </button>
       {menuOpen && (
         <Floating anchor={moreButton} onClose={() => setMenuOpen(false)} className="cmenu" role="menu" label="More">
-          <button
-            role="menuitem"
-            aria-label="Edit"
-            onClick={() => {
-              setMenuOpen(false);
-              onEdit();
-            }}
-          >
-            <Pencil size={15} />
-            <span>Edit message</span>
-          </button>
-          <button
-            role="menuitem"
-            className="danger"
-            aria-label="Delete"
-            onClick={() => {
-              setMenuOpen(false);
-              onDelete();
-            }}
-          >
-            <Trash2 size={15} />
-            <span>Delete message</span>
-          </button>
+          {m.content.trim() !== '' && (
+            <button role="menuitem" aria-label="Copy text" data-testid="msg-copy" onClick={() => void copyText()}>
+              <Copy size={15} />
+              <span>Copy text</span>
+            </button>
+          )}
+          {own && (
+            <button
+              role="menuitem"
+              aria-label="Edit"
+              onClick={() => {
+                setMenuOpen(false);
+                onEdit();
+              }}
+            >
+              <Pencil size={15} />
+              <span>Edit message</span>
+            </button>
+          )}
+          {own && (
+            <button
+              role="menuitem"
+              className="danger"
+              aria-label="Delete"
+              onClick={() => {
+                setMenuOpen(false);
+                onDelete();
+              }}
+            >
+              <Trash2 size={15} />
+              <span>Delete message</span>
+            </button>
+          )}
         </Floating>
       )}
     </div>

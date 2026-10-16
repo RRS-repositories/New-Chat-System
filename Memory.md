@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 16 Oct 2026 — copy a message
+The owner asked for a copy button on a message. The ⋯ menu now appears on every message (it was only on your own) with "Copy text"; Edit and Delete stay for your own. Deployed.
+
 ### 16 Oct 2026 — people in other apps showed Offline; newest direct message on top
 The owner: people who keep the chat open but work in VS Code, Office or Outlook show Offline after a while, and a new direct message does not move its sender to the top of Direct messages. Found: the online snapshot listed away people only under `away` and the web app counted only `online` as connected, so every minute's refresh turned Away into Offline (fixed on both sides); on top of that Chromium freezes background tabs, so the page now holds a Web Lock, and the Socket.IO ping timeout is 60 s. Direct messages are now always newest first (no hand-arranging in that section). Deployed.
 
