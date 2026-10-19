@@ -1,6 +1,6 @@
 import { HangUp } from '../common/HangUp.tsx';
 import { memo, useRef, useState, type CSSProperties } from 'react';
-import { Hand, Mic, MicOff, MonitorUp, MoreHorizontal, Phone, UserX } from 'lucide-react';
+import { Crown, Hand, Mic, MicOff, MonitorUp, MoreHorizontal, Phone, UserX } from 'lucide-react';
 import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
 import type { PeerState } from '../../services/callManager.ts';
 import { initials } from '../../utils/format.ts';
@@ -155,6 +155,11 @@ export const CallTile = memo(function CallTile({
           <Hand size={15} />
         </span>
       )}
+      {person.isHost && (
+        <span className="c-crown call-host-tag" role="img" aria-label="host" title="Host of the call">
+          <Crown size={14} />
+        </span>
+      )}
       <div className="av">{src ? <img src={src} alt="" /> : initials(person.name)}</div>
       {!person.ringing && person.state === 'connecting' && <span className="c-state">connecting…</span>}
       {person.state === 'lost' && <span className="c-state call-lost">connection lost</span>}
@@ -178,12 +183,6 @@ export const CallTile = memo(function CallTile({
         <span className="t call-name">
           {person.name}
           {person.isSelf && <span className="yx"> (you)</span>}
-          {person.isHost && (
-            <span className="yx">
-              {' '}
-              · <span className="call-host-tag">host</span>
-            </span>
-          )}
         </span>
       </div>
       {person.ringing && (

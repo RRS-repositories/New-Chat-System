@@ -89,8 +89,10 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
   const bob = await person(browser, 'b@x', 'Bob');
 
   // ---- 1. search -----------------------------------------------------------
+  // Search across everything opens with Ctrl+K (the sidebar button went on 12 Oct 2026; each
+  // conversation has its own search button, which is not what these steps check).
   const openSearch = async (page) => {
-    await page.click('button[aria-label="Search messages"]');
+    await page.keyboard.press('Control+k');
     await page.waitForSelector(tid('search-input'));
   };
   await step('search: part of a word finds the message, with the typed part marked', async () => {
@@ -156,6 +158,8 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
   await step('everyone sees who the host is; only the host has the mute and remove buttons', async () => {
     for (const p of [meg, ann, bob]) {
       await row(p.page, 'Meg Manager').locator('.call-host-tag').waitFor({ timeout: 8000 });
+      const status = await p.page.locator('[data-testid="call-status"]').innerText();
+      if (!/Host: Meg|You are the host/.test(status)) throw new Error(`${p.label}: header says "${status}"`);
       const tags = await p.page.locator('.call-host-tag').count();
       if (tags !== 1) throw new Error(`${p.label} sees ${tags} host tags`);
     }

@@ -286,8 +286,13 @@ export function CallScreen() {
     setBoardOpen(true);
   }
   const calling = call.phase === 'in-call' && oneToOne && others.length === 0 && invites.length === 0;
+  const hostLabel = isHost ? 'You are the host' : hostName ? `Host: ${first(hostName)}` : '';
   const status =
-    call.phase === 'joining' ? 'Connecting…' : others.length ? `${clock} · ${others.length + 1} people` : clock;
+    call.phase === 'joining'
+      ? 'Connecting…'
+      : others.length
+        ? `${clock} · ${others.length + 1} people${hostLabel ? ` · ${hostLabel}` : ''}`
+        : clock;
 
   // The voices keep playing whether the call is full size or minimised.
   const audio = others.map((p) => (p.audioTrack ? <RemoteAudio key={p.userId} track={p.audioTrack} /> : null));

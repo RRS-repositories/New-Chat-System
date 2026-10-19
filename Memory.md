@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 19 Oct 2026 — who is the host
+The owner could not tell who the host was while a screen was shared: the " · host" tag sat after the name and long names cut it off. Now a crown badge on the host's tile and "Host: Name" in the header line. Deployed.
+
 ### 16 Oct 2026 — copy a message
 The owner asked for a copy button on a message. The ⋯ menu now appears on every message (it was only on your own) with "Copy text"; Edit and Delete stay for your own. Deployed.
 

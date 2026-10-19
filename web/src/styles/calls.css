@@ -402,6 +402,20 @@
     transform: scaleY(1);
   }
 }
+/* The host's crown: top right of their tile, never cut off like a long name is. */
+.c-crown {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 158, 11, 0.95);
+  color: #241700;
+  box-shadow: 0 6px 14px -4px rgba(245, 158, 11, 0.6);
+}
 .c-hand {
   position: absolute;
   top: 9px;
