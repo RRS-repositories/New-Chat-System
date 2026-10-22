@@ -56,7 +56,9 @@ const waitAudio = async (page, n, what) => {
   }
   throw new Error(`${what}: expected ${n} live remote audio, saw ${last}`);
 };
-const row = (page, name) => page.locator(tid('call-participant'), { hasText: name });
+// A tile shows a short name ("Meg M."); the full name is the name label's tooltip.
+const row = (page, name) =>
+  page.locator(tid('call-participant'), { has: page.locator(`.call-name[title*="${name}"]`) });
 const inCallCount = (page, n) =>
   page.waitForFunction(
     ([sel, count]) => document.querySelectorAll(sel).length === count,
@@ -196,7 +198,9 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
     if ((await micLabel(ann.page)) !== 'Mute') throw new Error('Ann could not unmute');
     await meg.page.waitForFunction(
       ([sel, name]) => {
-        const li = [...document.querySelectorAll(sel)].find((el) => el.textContent.includes(name));
+        const li = [...document.querySelectorAll(sel)].find((el) =>
+          (el.querySelector('.call-name')?.title || '').includes(name),
+        );
         return li && !li.querySelector('[aria-label="muted"]');
       },
       [tid('call-participant'), 'Ann Agent'],

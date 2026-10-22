@@ -9,10 +9,11 @@ const { chromium } = require('playwright-core');
 const BASE = process.env.BASE || 'http://localhost:5021';
 const results = [];
 const errors = [];
+const tapped = [];
 const step = async (name, fn) => {
   try {
     await fn();
-    results.push(['PASS', name]);
+    results.push(['PASS', `${new Date().toISOString().slice(11, 19)} ${name}`]);
   } catch (e) {
     results.push([
       'FAIL',
@@ -32,6 +33,22 @@ async function person(browser, email, label) {
     viewport: { width: 1280, height: 760 },
   });
   const page = await ctx.newPage();
+  // TAP=Ann prints the call events that person's socket received, for working out a failing step.
+  if (process.env.TAP === label)
+    page.on('websocket', (ws) =>
+      ws.on('framereceived', (f) => {
+        const t = String(f.payload);
+        if (/call_|channel_created|member_added/.test(t))
+          tapped.push(`${new Date().toISOString().slice(11, 19)} ${t.slice(0, 150)}`);
+      }),
+    );
+  if (process.env.TAP)
+    page.on('request', (r) => {
+      if (/\/calls\//.test(r.url()) && r.method() !== 'GET')
+        tapped.push(
+          `${new Date().toISOString().slice(11, 19)} ${label} ${r.method()} ${r.url().replace(/^https?:\/\/[^/]+/, '')}`,
+        );
+    });
   page.on('pageerror', (e) => errors.push(`${label} pageerror: ${e.message}`));
   page.on('console', (m) => {
     if (m.type() === 'error' && !/Failed to load resource|Permissions policy violation: camera/.test(m.text()))
@@ -46,8 +63,13 @@ async function person(browser, email, label) {
   await page.waitForSelector('.panel > .input-bar textarea');
   return { ctx, page, label };
 }
-const tile = (page, name) => page.locator(tid('call-participant'), { hasText: name });
-const ringingTile = (page, name) => page.locator(`${tid('call-participant')}[data-state="ringing"]`, { hasText: name });
+// A tile shows a short name ("Meg M."); the full name is the name label's tooltip.
+const tile = (page, name) =>
+  page.locator(tid('call-participant'), { has: page.locator(`.call-name[title*="${name}"]`) });
+const ringingTile = (page, name) =>
+  page.locator(`${tid('call-participant')}[data-state="ringing"]`, {
+    has: page.locator(`.call-name[title*="${name}"]`),
+  });
 const tiles = (page) => page.locator(tid('call-participant')).count();
 const liveAudio = (page) =>
   page.evaluate(
@@ -93,7 +115,7 @@ const addToCall = async (page, name) => {
   const dee = await person(browser, 'dee@x', 'Dee');
 
   await step(
-    'an incoming call is a centred card: who is calling, a countdown, and Decline / Message / Accept',
+    'an incoming call is a corner pop-up: who is calling, a countdown, and Decline / Message / Accept',
     async () => {
       await openDm(meg.page, 'Ann Agent');
       await meg.page.click(tid('call-start'));
@@ -104,9 +126,13 @@ const addToCall = async (page, name) => {
         throw new Error(`sub line: ${await card.locator('.inc-sub').innerText()}`);
       for (const id of ['incoming-decline', 'incoming-message', 'incoming-accept'])
         if (!(await card.locator(tid(id)).isVisible())) throw new Error(`${id} missing`);
+      // Since 13 Oct 2026 the card is a pop-up in the bottom-right corner, so nobody is interrupted mid-message.
       const box = await card.boundingBox();
-      const centre = box.x + box.width / 2;
-      if (Math.abs(centre - 640) > 4 || box.width > 420) throw new Error(`not a centred card: ${JSON.stringify(box)}`);
+      const view = ann.page.viewportSize();
+      const nearRight = view.width - (box.x + box.width) < 60;
+      const nearBottom = view.height - (box.y + box.height) < 60;
+      if (!nearRight || !nearBottom || box.width > 420)
+        throw new Error(`not a corner pop-up: ${JSON.stringify(box)} in ${JSON.stringify(view)}`);
       await ann.page.click(tid('incoming-accept'));
       await ann.page.waitForSelector(tid('call-panel'), { timeout: 15000 });
       await waitAudio(meg.page, 1, 'Meg hears Ann');
@@ -214,6 +240,7 @@ const addToCall = async (page, name) => {
   });
 
   await browser.close();
+  if (tapped.length) console.log(`--- ${process.env.TAP}'s socket ---\n${tapped.join('\n')}\n`);
   for (const [s, n] of results) console.log(`${s}  ${n}`);
   console.log(`\nbrowser errors: ${errors.length ? '\n  ' + errors.join('\n  ') : 'none'}`);
   const failed = results.filter(([s]) => s === 'FAIL').length;

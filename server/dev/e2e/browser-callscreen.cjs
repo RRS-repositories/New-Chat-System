@@ -37,7 +37,9 @@ async function person(browser, email, label, viewport = { width: 1280, height: 7
   await page.waitForSelector('.panel > .input-bar textarea');
   return { ctx, page, label };
 }
-const tile = (page, name) => page.locator(tid('call-participant'), { hasText: name });
+// A tile shows a short name ("Meg M."); the full name is the name label's tooltip.
+const tile = (page, name) =>
+  page.locator(tid('call-participant'), { has: page.locator(`.call-name[title*="${name}"]`) });
 const liveAudio = (page) =>
   page.evaluate(
     () =>
@@ -97,7 +99,11 @@ const waitAudio = async (page, n, what) => {
     await ann.page.click(tid('call-mute'));
     await tile(meg.page, 'Ann Agent').locator('[aria-label="muted"]').waitFor({ timeout: 8000 });
     for (let i = 0; i < 12; i++) {
-      if (await meg.page.locator(`${tid('call-participant')}.speaking`, { hasText: 'Ann Agent' }).count())
+      if (
+        await meg.page
+          .locator(`${tid('call-participant')}.speaking`, { has: meg.page.locator('.call-name[title="Ann Agent"]') })
+          .count()
+      )
         throw new Error('a muted person is shown as speaking');
       await meg.page.waitForTimeout(250);
     }

@@ -74,7 +74,8 @@ async function person(browser, email, label, permissions = []) {
     if (!/Ann Agent/.test(await card.innerText())) throw new Error(`card: ${await card.innerText()}`);
     await card.locator('.pc-pres', { hasText: 'Online' }).waitFor({ timeout: 8000 });
     await card.locator('.pc-role', { hasText: 'cs_agent' }).waitFor({ timeout: 8000 });
-    await card.locator('[data-testid="profile-email"]', { hasText: 'a@x' }).waitFor({ timeout: 8000 });
+    if (await card.locator('[data-testid="profile-email"]').count())
+      throw new Error('the card shows an email (removed 22 Oct 2026)');
   });
 
   await step('Message on the card opens the direct conversation with that person', async () => {

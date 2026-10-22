@@ -3,7 +3,7 @@ import { memo, useRef, useState, type CSSProperties } from 'react';
 import { Crown, Hand, Mic, MicOff, MonitorUp, MoreHorizontal, Phone, UserX } from 'lucide-react';
 import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
 import type { PeerState } from '../../services/callManager.ts';
-import { initials } from '../../utils/format.ts';
+import { initials, shortName } from '../../utils/format.ts';
 import { hueOf } from '../../utils/hue.ts';
 import { Floating } from '../common/Floating.tsx';
 
@@ -180,8 +180,8 @@ export const CallTile = memo(function CallTile({
             <MonitorUp size={13} />
           </span>
         )}
-        <span className="t call-name">
-          {person.name}
+        <span className="t call-name" title={person.name}>
+          {shortName(person.name)}
           {person.isSelf && <span className="yx"> (you)</span>}
         </span>
       </div>

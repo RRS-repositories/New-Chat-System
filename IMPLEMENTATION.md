@@ -466,6 +466,8 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Screen share bandwidth (13 Oct 2026).** A mesh call sends one copy of the shared screen to every other person, which is what froze or blanked viewers' screens in big calls. The capture is capped at 1080p and 15 fps with `contentHint: 'detail'` (text stays sharp), and each copy is capped by `sharePerPeerBps(n)`: a 6 Mbps upload budget split between the viewers, between 250 kbps and 1.5 Mbps a copy, worked out again whenever someone joins or leaves (`capShare` in `callManager.ts`, via `RTCRtpSender.setParameters`). A viewer whose picture has not moved for 4 seconds sees "Picture paused — waiting for X's connection" over the last frame instead of a frozen picture that looks live. The real limit stays the mesh itself: past about 15 people a media server (SFU) is the next step.
 
+**Short names on call tiles (22 Oct 2026).** A tile shows the first name and the initial of the last ("Sayed M.", `shortName` in `web/src/utils/format.ts`); the full name is the tile's tooltip. The person card no longer shows the email address (added 15 Oct, removed on the owner's word).
+
 **Who is the host (19 Oct 2026).** The host's tile carries a crown badge at its top right (the old " · host" after the name was cut off by long names), and the line under the call title reads "4:02:08 · 5 people · Host: Priyanshu" (or "You are the host").
 
 **Copy a message (16 Oct 2026).** The ⋯ on a message's hover bar is there for every message now, not only your own: its menu offers **Copy text** (the message as written, to the clipboard, with a "Message copied" toast), and for your own messages Edit and Delete as before.

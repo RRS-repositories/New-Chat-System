@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayKey, dayLabel, formatClock, formatFull, formatTime, groupWithPrevious } from '../src/utils/format.ts';
+import {
+  dayKey,
+  dayLabel,
+  formatClock,
+  formatFull,
+  formatTime,
+  groupWithPrevious,
+  shortName,
+} from '../src/utils/format.ts';
 
 const now = new Date('2026-09-28T15:30:00.000Z');
 test('formatTime: today → time, this week → weekday + time, older → day month', () => {
@@ -25,6 +33,13 @@ test("times are shown on the reader's own clock: the same moment reads different
   assert.equal(dayLabel(late, new Date('2026-10-16T02:00:00.000Z'), 'UTC'), 'Yesterday');
   assert.equal(formatTime(late, new Date('2026-10-16T02:00:00.000Z'), 'Asia/Kolkata'), '05:00');
   assert.match(formatFull(iso, 'Asia/Kolkata'), /16 Oct 2026, 14:35 (IST|GMT\+5:30)/);
+});
+test('shortName: first name and the initial of the last; a single name stays', () => {
+  assert.equal(shortName('Sayed Mohammad'), 'Sayed M.');
+  assert.equal(shortName('Akanksha Shivaji Powar'), 'Akanksha P.');
+  assert.equal(shortName('  priyanshu  srivastava '), 'priyanshu S.');
+  assert.equal(shortName('Cher'), 'Cher');
+  assert.equal(shortName(''), '');
 });
 test('groupWithPrevious: same author within 5 minutes', () => {
   const a = { userId: 1, createdAt: '2026-09-28T10:00:00.000Z' } as any;

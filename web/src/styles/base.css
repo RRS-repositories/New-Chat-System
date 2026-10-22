@@ -675,15 +675,6 @@ svg {
   font-size: 12px;
   color: var(--mut);
 }
-.pc-email {
-  display: block;
-  font-size: 12px;
-  color: var(--mut);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  user-select: text;
-}
 .pc-pres {
   font-size: 12px;
   color: var(--mut);

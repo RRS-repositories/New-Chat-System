@@ -76,6 +76,12 @@ export function formatFull(iso: string, timeZone?: string): string {
     timeZoneName: 'short',
   }).format(d);
 }
+/** A short name for a tile: the first name and the initial of the last, "Sayed Mohammad" → "Sayed M."; a single name as it is. */
+export function shortName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] || '';
+  return `${parts[0]} ${parts[parts.length - 1]![0]!.toUpperCase()}.`;
+}
 export const initials = (name: string) =>
   name
     .split(/\s+/)
