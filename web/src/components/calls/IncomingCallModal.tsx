@@ -8,7 +8,7 @@ import type { IncomingCall } from '../../context/callState.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
 import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
-import { initials } from '../../utils/format.ts';
+import { initials, shortName } from '../../utils/format.ts';
 import { hueOf } from '../../utils/hue.ts';
 
 const RING_SECONDS = 30;
@@ -87,7 +87,9 @@ function Card({ inc, onACall }: { inc: IncomingCall; onACall: boolean }) {
           <span className="w" />
           <span className="c">{src ? <img src={src} alt="" /> : initials(inc.fromName)}</span>
         </div>
-        <h2 id="incoming-title">{inc.fromName}</h2>
+        <h2 id="incoming-title" title={inc.fromName}>
+          {shortName(inc.fromName)}
+        </h2>
         <p className="inc-sub" id="incoming-where">
           {what} · {seconds}s
         </p>

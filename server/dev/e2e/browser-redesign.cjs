@@ -147,7 +147,7 @@ const closeSettings = (page) => page.click('[role=dialog][aria-label="Settings"]
 
   // ---- shell ----------------------------------------------------------------
   await step('sidebar: brand, search bar, sections, own card with presence', async () => {
-    for (const selector of ['.s-brand .s-logo', '.s-search button', '.s-sec', '.s-me .dot.online', '.s-me .uav'])
+    for (const selector of ['.s-brand .s-logo', '.s-filter input', '.s-sec', '.s-me .dot.online', '.s-me .uav'])
       await meg.page.waitForSelector(selector, { timeout: 5000 });
     const width = await meg.page.evaluate(() => document.querySelector('.chat-sidebar').offsetWidth);
     if (width !== 274) throw new Error(`sidebar is ${width}px wide`);
@@ -166,7 +166,7 @@ const closeSettings = (page) => page.click('[role=dialog][aria-label="Settings"]
       throw new Error('pin button not lit');
     await meg.page.click('button[aria-label="Channel details"]');
     await meg.page.waitForSelector('[aria-label="Channel details"].thread-panel');
-    await meg.page.locator('.mrow', { hasText: 'Meg Manager (you)' }).waitFor();
+    await meg.page.locator('.mrow', { hasText: 'Meg M. (you)' }).waitFor();
     await meg.page.click('button[aria-label="Channel details"]');
     await meg.page.waitForSelector('.thread-panel', { state: 'detached' });
   });
@@ -235,7 +235,7 @@ const closeSettings = (page) => page.click('[role=dialog][aria-label="Settings"]
   await step('an empty conversation shows the person, not a blank page', async () => {
     const dm = (await api(megToken, 'POST', '/channels/dm', { userId: 5 })).channel;
     await meg.page.goto(`${BASE}/channels/${dm.id}`);
-    await meg.page.locator('.empty h3', { hasText: 'Cy Sales' }).waitFor({ timeout: 10000 });
+    await meg.page.locator('.empty h3', { hasText: 'Cy S.' }).waitFor({ timeout: 10000 });
   });
 
   // ---- phone ----------------------------------------------------------------

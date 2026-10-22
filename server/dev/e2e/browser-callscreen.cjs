@@ -215,9 +215,9 @@ const waitAudio = async (page, n, what) => {
     await meg.page.click('button[aria-label="New message"]');
     await meg.page.locator('.pick-row', { hasText: 'Cy Sales' }).click();
     await meg.page.waitForFunction(() => /\/channels\//.test(location.pathname));
-    await meg.page.locator('.m-title', { hasText: 'Cy Sales' }).waitFor();
+    await meg.page.locator('.m-title', { hasText: 'Cy S.' }).waitFor();
     await meg.page.click(tid('call-start'));
-    await meg.page.locator(tid('call-ringing-out'), { hasText: 'Cy Sales' }).waitFor({ timeout: 10000 });
+    await meg.page.locator(tid('call-ringing-out'), { hasText: 'Cy' }).waitFor({ timeout: 10000 });
     await cy.page.waitForSelector(tid('incoming-call'), { timeout: 15000 });
     await cy.page.click(tid('incoming-accept'));
     await gone(meg.page, tid('call-ringing-out'), 15000);

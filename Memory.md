@@ -227,8 +227,8 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
-### 22 Oct 2026 — short names on call tiles; no email on the person card
-The owner: show only the first name and the initial of the second ("Sayed Mohammad" = "Sayed M.") and remove the email display. Applied to the call tiles (where long names were cut off; full name on hover); the email line added to the person card on 15 Oct is gone. Deployed.
+### 22 Oct 2026 — short names everywhere; no email on the person card
+The owner: show only the first name and the initial of the second ("Sayed Mohammad" = "Sayed M.") and remove the email display. First done on the call tiles; he said "i still see full names", so it now applies everywhere a person is shown in the chat (messages, sidebar, titles, person card, replies, pins, search hits, members, files, typing, calls). Pickers, Admin pages and mentions keep full names so people can still be told apart. The email line added to the person card on 15 Oct is gone. The browser checks that looked for "Ann Agent" in displayed text now look for "Ann A.". Deployed.
 
 ### 19 Oct 2026 — who is the host
 The owner could not tell who the host was while a screen was shared: the " · host" tag sat after the name and long names cut it off. Now a crown badge on the host's tile and "Host: Name" in the header line. Deployed.

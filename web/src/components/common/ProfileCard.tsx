@@ -8,6 +8,7 @@ import type { UserOption } from '../../types/index.ts';
 import { presenceOf, type PresenceState } from '../../utils/presence.ts';
 import { Floating } from './Floating.tsx';
 import { UserAvatar } from './UserAvatar.tsx';
+import { shortName } from '../../utils/format.ts';
 
 const PRESENCE_LABEL: Record<PresenceState, string> = { online: 'Online', away: 'Away', offline: 'Offline' };
 /** The people list is fetched once per page visit for the role line; it is small. */
@@ -56,8 +57,8 @@ export function ProfileCard({ userId, name, anchor, onClose }: CardProps) {
       <div className="pc-top" data-testid="profile-card">
         <UserAvatar userId={userId} name={name} size="xl" presence={presence} />
         <div className="pc-who">
-          <b>
-            {name}
+          <b title={name}>
+            {shortName(name)}
             {self ? ' (you)' : ''}
           </b>
           {role && <span className="pc-role">{role}</span>}

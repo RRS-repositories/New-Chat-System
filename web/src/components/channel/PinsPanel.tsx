@@ -1,6 +1,6 @@
 import { Pin, X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
-import { formatTime } from '../../utils/format.ts';
+import { formatTime, shortName } from '../../utils/format.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
 import { useCanModerate } from './MessagePanel.tsx';
 
@@ -42,7 +42,7 @@ export function PinsPanel({ channelId, onClose, onJump }: Props) {
           <div key={m.id} className="pinrow" data-testid="pin-row">
             <UserAvatar userId={m.userId} name={m.userName} size="md" />
             <button className="bd" onClick={() => onJump(m.id)} title="Go to this message">
-              <b>{m.userName}</b>
+              <b>{shortName(m.userName)}</b>
               <time>{formatTime(m.createdAt)}</time>
               <p>
                 {m.content.slice(0, PREVIEW_CHARS)}

@@ -91,7 +91,7 @@ const waitAudio = async (page, n, what) => {
 const openDm = async (page, name) => {
   await page.click('button[aria-label="New message"]');
   await page.locator('.pick-row', { hasText: name }).click();
-  await page.locator('.m-title', { hasText: name }).waitFor();
+  await page.locator('.m-title', { hasText: name.split(' ')[0] }).waitFor(); // the title shows "Ann A."
 };
 const addToCall = async (page, name) => {
   await page.click(tid('call-add'));
@@ -121,7 +121,7 @@ const addToCall = async (page, name) => {
       await meg.page.click(tid('call-start'));
       const card = ann.page.locator(tid('incoming-call'));
       await card.waitFor({ timeout: 15000 });
-      if ((await card.locator('h2').innerText()) !== 'Meg Manager') throw new Error('the caller is not named');
+      if ((await card.locator('h2').innerText()) !== 'Meg M.') throw new Error('the caller is not named');
       if (!/Incoming voice call · \d+s/.test(await card.locator('.inc-sub').innerText()))
         throw new Error(`sub line: ${await card.locator('.inc-sub').innerText()}`);
       for (const id of ['incoming-decline', 'incoming-message', 'incoming-accept'])
@@ -179,15 +179,14 @@ const addToCall = async (page, name) => {
     await gone(bob.page, tid('incoming-call'));
     await ringingTile(meg.page, 'Bob Sales').waitFor({ state: 'detached', timeout: 8000 });
     await bob.page.locator(tid('toast'), { hasText: 'Sent to Meg' }).waitFor({ timeout: 8000 });
-    await bob.page.locator('.chan-row', { hasText: 'Meg Manager' }).first().click();
+    await bob.page.locator('.chan-row', { hasText: 'Meg M.' }).first().click();
     await bob.page.locator('.msg-text', { hasText: 'Give me 5 minutes' }).waitFor({ timeout: 8000 });
   });
 
   await step('the "Join my call" card in the conversation still lets them in after the ring', async () => {
     const card = bob.page.locator(tid('call-invite-card')).last();
     await card.waitFor({ timeout: 8000 });
-    if (!/Meg Manager asked you to join their call/.test(await card.innerText()))
-      throw new Error(await card.innerText());
+    if (!/Meg M. asked you to join their call/.test(await card.innerText())) throw new Error(await card.innerText());
     await card.locator(tid('call-invite-join')).click();
     await bob.page.waitForSelector(tid('call-panel'), { timeout: 15000 });
     for (const p of [meg, ann, bob]) await waitAudio(p.page, 2, `${p.label} hears two`);

@@ -1,5 +1,6 @@
 import { CornerUpLeft } from 'lucide-react';
 import type { Message } from '../../types/index.ts';
+import { shortName } from '../../utils/format.ts';
 export function ReplyPreview({
   replyTo,
   onJump,
@@ -11,7 +12,7 @@ export function ReplyPreview({
   return (
     <button className="reply-preview" onClick={() => onJump(replyTo.id)} title="Go to the original message">
       <CornerUpLeft size={12} />
-      <span className="reply-author">{replyTo.userName || 'Unknown'}</span>
+      <span className="reply-author">{replyTo.userName ? shortName(replyTo.userName) : 'Unknown'}</span>
       <span className="reply-text">{text || '(attachment)'}</span>
     </button>
   );

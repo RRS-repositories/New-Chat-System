@@ -102,14 +102,14 @@ const send = async (page, text) => {
     // Meg opens a direct message with Ann so the section exists.
     await meg.page.click('button[aria-label="New message"]');
     await meg.page.locator('.pick-row', { hasText: 'Ann Agent' }).click();
-    await meg.page.locator('.chan-title', { hasText: 'Ann Agent' }).waitFor({ timeout: 8000 });
+    await meg.page.locator('.chan-title', { hasText: 'Ann A.' }).waitFor({ timeout: 8000 });
     const sw = meg.page.locator(tid('dms-recent'));
     await sw.waitFor({ timeout: 5000 });
     if ((await sw.innerText()).trim().toLowerCase() !== 'all') throw new Error(`switch says ${await sw.innerText()}`);
     await sw.click();
     if ((await sw.innerText()).trim().toLowerCase() !== 'recent') throw new Error('did not switch to Recent');
     // The open conversation stays visible under Recent.
-    await row(meg.page, 'Ann Agent').waitFor({ timeout: 5000 });
+    await row(meg.page, 'Ann A.').waitFor({ timeout: 5000 });
     await meg.page.reload({ waitUntil: 'domcontentloaded' });
     await meg.page.locator(tid('dms-recent')).waitFor({ timeout: 15000 });
     if ((await meg.page.locator(tid('dms-recent')).innerText()).trim().toLowerCase() !== 'recent')

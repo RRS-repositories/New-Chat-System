@@ -4,6 +4,7 @@ import type { PresenceState } from '../../utils/presence.ts';
 import { Avatar } from '../common/Avatar.tsx';
 import { PresenceDot } from '../common/PresenceDot.tsx';
 import { NotifyMenu } from './NotifyMenu.tsx';
+import { shortName } from '../../utils/format.ts';
 
 type Props = {
   channel: Channel | null;
@@ -48,7 +49,13 @@ export function ChannelHeader({
   callDisabled,
 }: Props) {
   const isDm = channel?.type === 'dm';
-  const title = channel ? (isDm ? channel.dmUserName || 'Direct message' : channel.displayName) : 'Chat';
+  const title = channel
+    ? isDm
+      ? channel.dmUserName
+        ? shortName(channel.dmUserName)
+        : 'Direct message'
+      : channel.displayName
+    : 'Chat';
   const statusLine = [dmStatus?.emoji, dmStatus?.text].filter(Boolean).join(' ');
   let subtitle = '';
   if (channel && isDm) subtitle = statusLine || (dmPresence ? PRESENCE_LABEL[dmPresence] : '');

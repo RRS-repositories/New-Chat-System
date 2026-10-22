@@ -12,6 +12,7 @@ import {
 } from '../../utils/breakout.ts';
 import { Floating } from '../common/Floating.tsx';
 import { UserAvatar } from '../common/UserAvatar.tsx';
+import { shortName } from '../../utils/format.ts';
 
 export type BreakoutPerson = { userId: number; name: string; isSelf: boolean; isHost: boolean; ringing?: boolean };
 
@@ -133,7 +134,7 @@ function AddToGroup({
               }}
             >
               <UserAvatar userId={person.userId} name={person.name} size="sm" />
-              <span>{person.name}</span>
+              <span>{shortName(person.name)}</span>
             </button>
           ))}
         </Floating>

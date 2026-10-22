@@ -92,11 +92,11 @@ const waitPhoto = (page, scope, want = true) =>
   await step('Bob sees it without reloading: on her messages and in the members list', async () => {
     await waitPhoto(bob.page, '.feed .msg.first');
     await bob.page.click('button[aria-label="Channel details"]');
-    const row = bob.page.locator('.mrow', { hasText: 'Ann Agent' });
+    const row = bob.page.locator('.mrow', { hasText: 'Ann A.' });
     await row.waitFor();
     await bob.page.waitForFunction(
       () => {
-        const row = [...document.querySelectorAll('.mrow')].find((r) => r.textContent.includes('Ann Agent'));
+        const row = [...document.querySelectorAll('.mrow')].find((r) => r.textContent.includes('Ann A.'));
         const img = row && row.querySelector('.uav img');
         return !!img && img.complete && img.naturalWidth > 0;
       },
@@ -106,7 +106,7 @@ const waitPhoto = (page, scope, want = true) =>
     const others = await bob.page.evaluate(
       () =>
         [...document.querySelectorAll('.mrow')].filter(
-          (r) => !r.textContent.includes('Ann Agent') && r.querySelector('.uav img'),
+          (r) => !r.textContent.includes('Ann A.') && r.querySelector('.uav img'),
         ).length,
     );
     if (others) throw new Error(`${others} other people show a photo`);

@@ -83,7 +83,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
     await meg.page.locator(`${tid('add-members-person')}[data-user-id="2"]`).check();
     await meg.page.click(tid('add-members-save'));
     await meg.page.waitForSelector('[role=dialog][aria-label="Add people"]', { state: 'detached' });
-    await meg.page.locator('.mrow', { hasText: 'Ann Agent' }).waitFor({ timeout: 8000 });
+    await meg.page.locator('.mrow', { hasText: 'Ann A.' }).waitFor({ timeout: 8000 });
     await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ timeout: 10000 });
   });
 
@@ -92,7 +92,7 @@ const names = (page, selector) => page.locator(`${selector} .pi b`).allInnerText
     await meg.page.click('button[aria-label="Channel details"]');
     meg.page.once('dialog', (d) => d.accept());
     await meg.page.locator(`${tid('remove-member')}[data-user-id="2"]`).click();
-    await meg.page.locator('.mrow', { hasText: 'Ann Agent' }).waitFor({ state: 'detached', timeout: 8000 });
+    await meg.page.locator('.mrow', { hasText: 'Ann A.' }).waitFor({ state: 'detached', timeout: 8000 });
     await ann.page.locator('.chan-row', { hasText: 'Rota' }).waitFor({ state: 'detached', timeout: 10000 });
   });
 

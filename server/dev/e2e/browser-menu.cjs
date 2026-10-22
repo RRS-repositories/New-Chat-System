@@ -240,8 +240,8 @@ const openMenu = async (page, name) => {
       await meg.page.keyboard.press('Escape');
       await meg.page.click('button[aria-label="New message"]');
       await meg.page.locator('.pick-row', { hasText: 'Ann Agent' }).click();
-      await meg.page.locator('.m-title', { hasText: 'Ann Agent' }).waitFor();
-      await openMenu(meg.page, 'Ann Agent');
+      await meg.page.locator('.m-title', { hasText: 'Ann A.' }).waitFor();
+      await openMenu(meg.page, 'Ann A.');
       if (await meg.page.locator(tid('menu-add-people')).count()) throw new Error('a direct message offers Add people');
       if (await meg.page.locator(tid('menu-leave')).count()) throw new Error('a direct message offers Leave');
       await meg.page.keyboard.press('Escape');

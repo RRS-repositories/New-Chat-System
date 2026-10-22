@@ -71,7 +71,7 @@ async function person(browser, email, label, permissions = []) {
     await msg.locator('.msg-author').click();
     const card = meg.page.locator(tid('profile-card'));
     await card.waitFor();
-    if (!/Ann Agent/.test(await card.innerText())) throw new Error(`card: ${await card.innerText()}`);
+    if (!/Ann A\./.test(await card.innerText())) throw new Error(`card: ${await card.innerText()}`);
     await card.locator('.pc-pres', { hasText: 'Online' }).waitFor({ timeout: 8000 });
     await card.locator('.pc-role', { hasText: 'cs_agent' }).waitFor({ timeout: 8000 });
     if (await card.locator('[data-testid="profile-email"]').count())
@@ -80,7 +80,7 @@ async function person(browser, email, label, permissions = []) {
 
   await step('Message on the card opens the direct conversation with that person', async () => {
     await meg.page.click(tid('profile-message'));
-    await meg.page.locator('.m-title', { hasText: 'Ann Agent' }).waitFor({ timeout: 10000 });
+    await meg.page.locator('.m-title', { hasText: 'Ann A.' }).waitFor({ timeout: 10000 });
     await meg.page.waitForFunction(() => /\/channels\//.test(location.pathname));
   });
 
@@ -101,8 +101,8 @@ async function person(browser, email, label, permissions = []) {
 
   await step('the members list opens the card as well', async () => {
     await meg.page.click('button[aria-label="Channel details"]');
-    await meg.page.locator('.mrow', { hasText: 'Ann Agent' }).locator('.person-btn').click();
-    await meg.page.locator(tid('profile-card'), { hasText: 'Ann Agent' }).waitFor();
+    await meg.page.locator('.mrow', { hasText: 'Ann A.' }).locator('.person-btn').click();
+    await meg.page.locator(tid('profile-card'), { hasText: 'Ann A.' }).waitFor();
   });
 
   await browser.close();

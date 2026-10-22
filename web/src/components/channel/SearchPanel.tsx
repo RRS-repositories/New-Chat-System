@@ -6,7 +6,7 @@ import { quickFind } from '../../utils/quickFind.ts';
 import { Avatar } from '../common/Avatar.tsx';
 import { UserAvatar } from '../common/UserAvatar.tsx';
 import { snippetParts } from '../../utils/snippet.ts';
-import { formatTime } from '../../utils/format.ts';
+import { formatTime, shortName } from '../../utils/format.ts';
 import { generation, latestOnly } from '../../utils/latest.ts';
 type Result = { hits: SearchHit[]; page: number; hasMore: boolean };
 const EMPTY: Result = { hits: [], page: 1, hasMore: false };
@@ -217,7 +217,7 @@ export function SearchPanel({
               <UserAvatar userId={h.userId} name={h.userName} size="md" />
               <span className="bd">
                 <b>
-                  {h.userName} · {h.channelName}
+                  {shortName(h.userName)} · {h.channelName}
                 </b>
                 <time>{formatTime(h.createdAt)}</time>
                 <p>

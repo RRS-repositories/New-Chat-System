@@ -68,7 +68,7 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
     // Meg opens a direct message with Ann from New message: the cursor lands in the box.
     await meg.page.click('button[aria-label="New message"]');
     await meg.page.locator('.pick-row', { hasText: 'Ann Agent' }).click();
-    await meg.page.locator('.chan-title', { hasText: 'Ann Agent' }).waitFor({ timeout: 8000 });
+    await meg.page.locator('.chan-title', { hasText: 'Ann A.' }).waitFor({ timeout: 8000 });
     await focused(meg.page);
     // Back to General: the same.
     await meg.page.locator('.chan-row', { hasText: 'General' }).first().click();
@@ -106,7 +106,7 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
     await ann.page.locator('.sidebar-head button[aria-label="New message"]').click();
     await ann.page.locator('.pick-row', { hasText: 'Meg Manager' }).click();
     await ann.page
-      .locator('.chan-list .chan-row', { hasText: 'Meg Manager' })
+      .locator('.chan-list .chan-row', { hasText: 'Meg M.' })
       .locator('.dot.online')
       .waitFor({ timeout: 8000 });
   });
@@ -139,13 +139,13 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
     else await meg.page.keyboard.press('Enter');
     await meg.page.waitForTimeout(1000);
     await meg.page.keyboard.press('Escape');
-    const row = ann.page.locator('.chan-list .chan-row', { hasText: 'Meg Manager' });
+    const row = ann.page.locator('.chan-list .chan-row', { hasText: 'Meg M.' });
     await ann.page
       .waitForFunction(
         () =>
           [...document.querySelectorAll('.chan-list .chan-row')].some(
             (r) =>
-              /Meg Manager/.test(r.textContent) &&
+              /Meg M\./.test(r.textContent) &&
               r.querySelector('[title*="In court today"], [aria-label*="In court today"]'),
           ),
         null,
@@ -163,7 +163,7 @@ const generalRow = (page) => page.locator('.chan-list .chan-row', { hasText: 'Ge
   await step("presence: closing the other person's browser shows them Offline", async () => {
     await meg.ctx.close();
     await ann.page
-      .locator('.chan-list .chan-row', { hasText: 'Meg Manager' })
+      .locator('.chan-list .chan-row', { hasText: 'Meg M.' })
       .locator('.dot.offline')
       .waitFor({ timeout: 12000 });
   });

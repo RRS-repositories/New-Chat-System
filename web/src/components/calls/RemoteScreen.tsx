@@ -2,6 +2,7 @@ import { ExternalLink, Maximize2, MonitorUp, Undo2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTrackStream } from '../../hooks/useTrackStream.ts';
 import type { TrackLike } from '../../services/callManager.ts';
+import { shortName } from '../../utils/format.ts';
 
 const WINDOW_NAME = 'chat-shared-screen';
 const WINDOW_FEATURES = 'popup,width=1280,height=760';
@@ -120,11 +121,11 @@ export function RemoteScreen({ track, name, own = false }: Props) {
           <span>
             {inWindow ? (
               <>
-                <b>{name}’s screen</b> is open in its own window
+                <b>{shortName(name)}’s screen</b> is open in its own window
               </>
             ) : (
               <>
-                <b>{own ? 'You are' : `${name} is`}</b> presenting
+                <b>{own ? 'You are' : `${shortName(name)} is`}</b> presenting
               </>
             )}
           </span>
@@ -176,7 +177,7 @@ export function RemoteScreen({ track, name, own = false }: Props) {
         />
         {stalled && (
           <div className="c-stall" role="status" data-testid="call-screen-stalled">
-            Picture paused — waiting for {name}’s connection
+            Picture paused — waiting for {shortName(name)}’s connection
           </div>
         )}
       </div>

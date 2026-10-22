@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Phone } from 'lucide-react';
 import { useCall } from '../../context/callContext.ts';
 import type { Message } from '../../types/index.ts';
-import { formatTime } from '../../utils/format.ts';
+import { formatTime, shortName } from '../../utils/format.ts';
 
 /**
  * "Join my call": the message posted into a direct conversation when someone rings a person into
@@ -39,7 +39,9 @@ export function CallInviteCard({ m, own }: { m: Message; own: boolean }) {
       <div className="gav" />
       <div className="bd">
         <Phone size={14} aria-hidden="true" />
-        <span>{own ? 'You asked them to join your call' : `${m.userName} asked you to join their call`}</span>
+        <span>
+          {own ? 'You asked them to join your call' : `${shortName(m.userName)} asked you to join their call`}
+        </span>
         <span>· {formatTime(m.createdAt)}</span>
         {!own &&
           (over ? (

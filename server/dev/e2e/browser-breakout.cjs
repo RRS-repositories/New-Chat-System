@@ -122,7 +122,7 @@ const playing = (page) => page.locator('audio').count();
     await meg.page.locator(tid('bo-group')).first().waitFor();
     if (!(await meg.page.locator(tid('bo-start')).isDisabled()))
       throw new Error('the groups can be opened with nobody in them');
-    for (const name of ['Ann Agent', 'Bob Sales']) {
+    for (const name of ['Ann A.', 'Bob S.']) {
       await meg.page.locator(tid('bo-add-people')).first().click();
       await meg.page.locator(tid('bo-add-person'), { hasText: name }).click();
       await meg.page.locator(`${tid('bo-group')} ${tid('bo-person')}`, { hasText: name.split(' ')[0] }).waitFor();

@@ -16,7 +16,7 @@ import { FileText, X } from 'lucide-react';
 import type { ChannelFileRow } from '../../types/index.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { formatBytes } from '../../utils/files.ts';
-import { formatTime } from '../../utils/format.ts';
+import { formatTime, shortName } from '../../utils/format.ts';
 
 type Props = {
   channelId: string;
@@ -85,7 +85,7 @@ export function ChannelDocumentsPanel({ channelId, onClose }: Props) {
             <button className="bd pin-body" onClick={() => void download(f)} title="Download">
               <b className="file-name">{f.filename}</b>
               <p className="muted">
-                {formatBytes(f.sizeBytes)} · {f.userName}
+                {formatBytes(f.sizeBytes)} · {shortName(f.userName)}
                 {f.createdAt ? ` · ${formatTime(f.createdAt)}` : ''}
               </p>
             </button>

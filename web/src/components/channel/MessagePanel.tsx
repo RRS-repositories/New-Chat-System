@@ -26,6 +26,7 @@ import { TypingIndicator } from '../messages/TypingIndicator.tsx';
 import { CallBanner } from '../calls/CallBanner.tsx';
 import { MicNudge, NotificationNudge } from './NotificationNudge.tsx';
 import { useCall } from '../../context/callContext.ts';
+import { shortName } from '../../utils/format.ts';
 
 export function useCanModerate(channelId: string | null): boolean {
   const { state, user } = useChat();
@@ -61,11 +62,12 @@ const composerPlaceholder = (channel: Channel | null) => {
 function EmptyConversation({ channel }: { channel: Channel | null }) {
   if (!channel) return null;
   if (channel.type === 'dm') {
-    const name = channel.dmUserName || 'this person';
+    const fullName = channel.dmUserName || 'this person';
+    const name = channel.dmUserName ? shortName(channel.dmUserName) : 'this person';
     return (
       <div className="empty">
-        <UserAvatar userId={channel.dmUserId} name={name} size="lg" />
-        <h3>{name}</h3>
+        <UserAvatar userId={channel.dmUserId} name={fullName} size="lg" />
+        <h3 title={fullName}>{name}</h3>
         <p>
           This is the very start of your conversation with {name.split(' ')[0]}. Say hello, send a file, or start a call
           from the phone icon above.

@@ -6,6 +6,7 @@ import type { Channel, UserStatus } from '../../types/index.ts';
 import type { Presence, PresenceState } from '../../utils/presence.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
 import { ChannelList } from './ChannelList.tsx';
+import { shortName } from '../../utils/format.ts';
 
 type Props = {
   channels: Channel[];
@@ -93,7 +94,9 @@ export function Sidebar(props: Props) {
         <button className="s-me" aria-label="Settings" title="Settings" onClick={props.onSettings}>
           <UserAvatar userId={userId} name={userName} presence={ownPresence} />
           <span className="nm">
-            <b className="sidebar-user">{userName}</b>
+            <b className="sidebar-user" title={userName}>
+              {shortName(userName)}
+            </b>
             <span>{statusLine || `${PRESENCE_LABEL[ownPresence]} · tap for settings`}</span>
           </span>
           <span className="gear">

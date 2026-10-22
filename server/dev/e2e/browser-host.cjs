@@ -121,7 +121,7 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
     await ann.page.fill(tid('search-input'), 'bob sal');
     await ann.page.locator(tid('search-person'), { hasText: 'Bob Sales' }).click();
     await gone(ann.page, tid('search-input'));
-    await ann.page.locator('.chan-row', { hasText: 'Bob Sales' }).first().waitFor({ timeout: 10000 });
+    await ann.page.locator('.chan-row', { hasText: 'Bob S.' }).first().waitFor({ timeout: 10000 });
     await ann.page.waitForFunction(() => /\/channels\//.test(location.pathname), null, { timeout: 10000 });
     await ann.page.locator('.chan-row', { hasText: 'General' }).first().click();
     await ann.page.waitForSelector('textarea');
@@ -234,7 +234,7 @@ const micLabel = (page) => page.locator(tid('call-mute')).getAttribute('aria-lab
     await join.click();
     await bob.page.waitForSelector(tid('call-banner-waiting'), { timeout: 8000 });
     if (await bob.page.locator(tid('call-panel')).count()) throw new Error('Bob got into the call without the host');
-    await meg.page.locator(tid('call-request'), { hasText: 'Bob Sales asks to rejoin' }).waitFor({ timeout: 8000 });
+    await meg.page.locator(tid('call-request'), { hasText: 'Bob S. asks to rejoin' }).waitFor({ timeout: 8000 });
     if (await ann.page.locator(tid('call-request')).count()) throw new Error('a non-host sees the request');
   });
   await step('the host lets Bob in: he is back in the call with audio', async () => {

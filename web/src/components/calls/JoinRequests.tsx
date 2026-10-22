@@ -1,4 +1,5 @@
 import type { JoinRequest } from '../../types/index.ts';
+import { shortName } from '../../utils/format.ts';
 
 type Props = {
   requests: JoinRequest[];
@@ -12,7 +13,7 @@ export function JoinRequests({ requests, onAnswer }: Props) {
     <ul className="call-requests" aria-label="People asking to rejoin">
       {requests.map((request) => (
         <li key={request.userId} className="call-request" data-testid="call-request" data-user-id={request.userId}>
-          <span className="call-name">{request.userName} asks to rejoin</span>
+          <span className="call-name">{shortName(request.userName)} asks to rejoin</span>
           <button
             className="ok"
             data-testid="call-request-accept"

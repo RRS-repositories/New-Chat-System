@@ -2,7 +2,7 @@ import { CallInviteCard } from './CallInviteCard.tsx';
 import { memo, useState, type ReactNode } from 'react';
 import { MessageSquare, Phone, Pin } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
-import { formatClock, formatFull, formatTime } from '../../utils/format.ts';
+import { formatClock, formatFull, formatTime, shortName } from '../../utils/format.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
 import { PersonButton } from '../common/ProfileCard.tsx';
 import { MessageActions } from './MessageActions.tsx';
@@ -129,7 +129,9 @@ export const Message = memo(function Message({
         {first && (
           <div className="hd msg-meta">
             <PersonButton userId={m.userId} name={m.userName} className="msg-author-btn">
-              <b className="msg-author">{m.userName}</b>
+              <b className="msg-author" title={m.userName}>
+                {shortName(m.userName)}
+              </b>
             </PersonButton>
             <time dateTime={m.createdAt} title={formatFull(m.createdAt)}>
               {formatClock(m.createdAt)}

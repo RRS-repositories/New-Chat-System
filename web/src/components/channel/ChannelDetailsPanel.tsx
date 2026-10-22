@@ -3,7 +3,7 @@ import { FileText, UserPlus, X } from 'lucide-react';
 import { useChat } from '../../context/chatContext.ts';
 import type { ChannelFileRow } from '../../types/index.ts';
 import { formatBytes } from '../../utils/files.ts';
-import { formatTime } from '../../utils/format.ts';
+import { formatTime, shortName } from '../../utils/format.ts';
 import { presenceOf, type PresenceState } from '../../utils/presence.ts';
 import { StatusBadge } from '../common/PresenceDot.tsx';
 import { UserAvatar } from '../common/UserAvatar.tsx';
@@ -101,7 +101,7 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
             {isDm && (
               <div className="prof-card">
                 <UserAvatar userId={channel!.dmUserId} name={channel!.dmUserName || '?'} size="xl" />
-                <b>{channel!.dmUserName}</b>
+                <b>{shortName(channel!.dmUserName || '')}</b>
                 <span className="st2">
                   {[dmStatus?.emoji, dmStatus?.text].filter(Boolean).join(' ') || PRESENCE_LABEL[dmPresence]}
                 </span>
@@ -141,7 +141,7 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
                   </PersonButton>
                   <span className="pi">
                     <b>
-                      {m.fullName}
+                      {shortName(m.fullName)}
                       {m.id === user.id ? ' (you)' : ''}
                     </b>
                     <span>
@@ -196,7 +196,7 @@ export function ChannelDetailsPanel({ channelId, onClose, onGone }: Props) {
                 <button className="bd pin-body" onClick={() => void download(f)} title="Download">
                   <b className="file-name">{f.filename}</b>
                   <p className="muted">
-                    {formatBytes(f.sizeBytes)} · {f.userName}
+                    {formatBytes(f.sizeBytes)} · {shortName(f.userName)}
                     {f.createdAt ? ` · ${formatTime(f.createdAt)}` : ''}
                   </p>
                 </button>

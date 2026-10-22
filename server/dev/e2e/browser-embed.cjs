@@ -61,7 +61,7 @@ const PARENT_HTML = `<!doctype html><title>CRM stand-in</title>
     await chat.locator('input[type=email]').fill('b@x');
     await chat.locator('input[type=password]').fill('local');
     await chat.locator('button[type=submit]').click();
-    await chat.locator('.sidebar-user', { hasText: 'Bob Sales' }).waitFor({ timeout: 15000 });
+    await chat.locator('.sidebar-user', { hasText: 'Bob S.' }).waitFor({ timeout: 15000 });
   });
 
   await step('the chat reports its waiting count to the CRM, and nothing else', async () => {
@@ -74,7 +74,7 @@ const PARENT_HTML = `<!doctype html><title>CRM stand-in</title>
 
   await step('opened again later, this browser is still signed in as the same person', async () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await chat.locator('.sidebar-user', { hasText: 'Bob Sales' }).waitFor({ timeout: 15000 });
+    await chat.locator('.sidebar-user', { hasText: 'Bob S.' }).waitFor({ timeout: 15000 });
     if (await chat.locator('input[type=password]').count()) throw new Error('asked to sign in again');
   });
 

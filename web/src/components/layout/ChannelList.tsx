@@ -22,6 +22,7 @@ import { presenceOf, type Presence } from '../../utils/presence.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
 import { StatusBadge } from '../common/PresenceDot.tsx';
 import { ChannelMenu } from './ChannelMenu.tsx';
+import { shortName } from '../../utils/format.ts';
 
 const NOBODY: Presence = { online: {}, away: {}, statuses: {} };
 type Collapsed = { favourites?: boolean; rooms?: boolean; dms?: boolean };
@@ -270,7 +271,7 @@ export function ChannelList({
   const dmRow = (c: Channel) =>
     row(
       c,
-      c.dmUserName || 'Direct message',
+      c.dmUserName ? shortName(c.dmUserName) : 'Direct message',
       <UserAvatar
         userId={c.dmUserId}
         name={c.dmUserName || '?'}
