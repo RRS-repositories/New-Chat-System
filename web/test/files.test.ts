@@ -21,6 +21,23 @@ test('validateFiles: size, count and extension rules with readable errors', () =
   assert.equal(six.ok.length, 5);
   assert.match(six.errors[0]!, /5 files/);
 });
+test('settings, log and data files are allowed; scripts and programs are not', () => {
+  const r = validateFiles([
+    f('.env', 10),
+    f('server.log', 10),
+    f('config.json', 10),
+    f('deploy.yml', 10),
+    f('run.ps1', 10),
+    f('setup.exe', 10),
+  ]);
+  assert.deepEqual(
+    r.ok.map((x) => x.name),
+    ['.env', 'server.log', 'config.json', 'deploy.yml'],
+  );
+  assert.equal(r.errors.length, 2);
+  assert.equal(fileKind('', '.env'), 'Settings');
+  assert.equal(fileKind('', 'server.log'), 'Log');
+});
 test('Markdown notes are allowed and known as Markdown', () => {
   const r = validateFiles([f('FCA-Car-Finance-Pause-App-Update.md', 10)]);
   assert.equal(r.errors.length, 0);

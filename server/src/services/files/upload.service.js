@@ -11,7 +11,24 @@ import { ALLOWED_MIME, saveUpload, makeThumbnail, removeUpload } from './storage
  * file arrives as "application/octet-stream" or with no type; for those plain-text kinds the name
  * says what it is, and the content check (no binary bytes) still applies.
  */
-const TEXT_BY_EXTENSION = { md: 'text/markdown', markdown: 'text/markdown', txt: 'text/plain', csv: 'text/csv' };
+const TEXT_BY_EXTENSION = {
+  md: 'text/markdown',
+  markdown: 'text/markdown',
+  txt: 'text/plain',
+  csv: 'text/csv',
+  // Settings, logs and data files: plain text the browser gives no type for (23 Oct 2026).
+  env: 'text/plain',
+  log: 'text/plain',
+  ini: 'text/plain',
+  cfg: 'text/plain',
+  conf: 'text/plain',
+  toml: 'text/plain',
+  sql: 'text/plain',
+  yml: 'text/yaml',
+  yaml: 'text/yaml',
+  json: 'application/json',
+  xml: 'text/xml',
+};
 const NO_TYPE = new Set(['', 'application/octet-stream']);
 export function typeFromName(mimetype, filename) {
   if (!NO_TYPE.has(String(mimetype || '').toLowerCase())) return mimetype;

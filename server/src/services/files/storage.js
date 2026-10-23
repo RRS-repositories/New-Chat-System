@@ -19,6 +19,13 @@ export const ALLOWED_MIME = new Map([
   // Markdown notes. Windows browsers often send a .md file with no type at all (see checkUploads).
   ['text/markdown', 'md'],
   ['text/x-markdown', 'md'],
+  // Data and settings files (plain text; content checked for binary bytes like the others).
+  ['application/json', 'json'],
+  ['text/xml', 'xml'],
+  ['application/xml', 'xml'],
+  ['text/yaml', 'yml'],
+  ['application/x-yaml', 'yml'],
+  ['application/yaml', 'yml'],
   ['application/zip', 'zip'],
   ['application/x-zip-compressed', 'zip'],
   ['video/mp4', 'mp4'],

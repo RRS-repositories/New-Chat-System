@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 23 Oct 2026 — .env and other text files can be shared
+The owner pasted ".env: this file type is not allowed". Settings, log and data files (.env, .log, .ini, .cfg, .conf, .toml, .sql, .yml, .json, .xml) are now allowed as plain text, with the no-binary check; scripts and programs stay refused. Deployed.
+
 ### 23 Oct 2026 — pictures shown too small
 The owner: "many times image is not visible", with a screenshot of the viewer showing a tiny picture. Reproduced locally: a big picture fills the viewer, but a small one (a cropped screenshot) was shown at its natural size, unreadable; the feed preview was 200 px. Now: small pictures are scaled up in the viewer (up to three times, never past the window), previews are up to 420 px (thumbnails made at 480 px from now on), and a failed fetch says so. Deployed.
 

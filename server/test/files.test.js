@@ -163,6 +163,25 @@ test('a Markdown note is allowed, also when the browser gives it no type (as Win
   assert.equal(r.body.code, 'file_content');
 });
 
+test('settings, log and data files are allowed as plain text; a script is still refused', async () => {
+  const post = (filename, contentType, body) =>
+    request(app(makeDb()))
+      .post('/api/chat/channels/c1/upload')
+      .set('Authorization', token(7))
+      .attach('files', Buffer.from(body), { filename, contentType });
+  let r = await post('.env', 'application/octet-stream', 'DB_HOST=localhost\nDB_NAME=crm\n');
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  r = await post('server.log', '', '12:00 started\n12:01 ready\n');
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  r = await post('config.json', 'application/json', '{ "a": 1 }');
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  r = await post('deploy.yml', 'application/octet-stream', 'name: chat\n');
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  r = await post('run.ps1', 'application/octet-stream', 'Remove-Item -Recurse C:\\');
+  assert.equal(r.status, 400);
+  assert.equal(r.body.code, 'file_type', 'a script is not a kind the chat carries');
+});
+
 test('too large, disallowed type, and no file are refused and leave nothing on disk', async () => {
   const before = countOnDisk();
   const a = app(makeDb());
