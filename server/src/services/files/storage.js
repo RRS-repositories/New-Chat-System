@@ -38,7 +38,8 @@ export const ALLOWED_MIME = new Map([
   ['audio/webm', 'weba'],
 ]);
 const THUMB_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
-export const THUMB_WIDTH = 200;
+/** Width of the preview made for a picture at upload. 200 was too small to read a screenshot (23 Oct 2026). */
+export const THUMB_WIDTH = 480;
 
 export function safeFilename(name) {
   const base =
@@ -67,7 +68,7 @@ export async function makeThumbnail({ uploadsDir, relPath, mime }) {
   try {
     await sharp(path.join(uploadsDir, relPath), { animated: false })
       .rotate()
-      .resize({ width: THUMB_WIDTH, withoutEnlargement: false })
+      .resize({ width: THUMB_WIDTH, withoutEnlargement: true })
       .jpeg({ quality: 80 })
       .toFile(path.join(uploadsDir, thumbRel));
     return thumbRel;

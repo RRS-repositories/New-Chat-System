@@ -41,9 +41,15 @@ export function FileAttachment({ file }: { file: ChatFile }) {
       setBusy(false);
     }
   }
+  const [fullFailed, setFullFailed] = useState(false);
   async function openFull() {
     setOpen(true);
-    if (!full) setFull(await actions.fetchBlob(dl).catch(() => null));
+    setFullFailed(false);
+    if (!full) {
+      const url = await actions.fetchBlob(dl).catch(() => null);
+      setFull(url);
+      if (!url) setFullFailed(true);
+    }
   }
   function closeFull() {
     setOpen(false);
@@ -57,7 +63,7 @@ export function FileAttachment({ file }: { file: ChatFile }) {
       <>
         <button className="file-image" onClick={() => void openFull()} aria-label={`Open ${file.filename}`}>
           {thumb ? (
-            <img src={thumb} alt={file.filename} width={200} />
+            <img src={thumb} alt={file.filename} />
           ) : (
             <span className="fcard file-card">
               <span className="fic">
@@ -69,7 +75,7 @@ export function FileAttachment({ file }: { file: ChatFile }) {
             </span>
           )}
         </button>
-        {open && <Lightbox src={full} alt={file.filename} onClose={closeFull} />}
+        {open && <Lightbox src={full} alt={file.filename} failed={fullFailed} onClose={closeFull} />}
       </>
     );
   }

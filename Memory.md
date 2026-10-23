@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 23 Oct 2026 — pictures shown too small
+The owner: "many times image is not visible", with a screenshot of the viewer showing a tiny picture. Reproduced locally: a big picture fills the viewer, but a small one (a cropped screenshot) was shown at its natural size, unreadable; the feed preview was 200 px. Now: small pictures are scaled up in the viewer (up to three times, never past the window), previews are up to 420 px (thumbnails made at 480 px from now on), and a failed fetch says so. Deployed.
+
 ### 22 Oct 2026 — short names everywhere; no email on the person card
 The owner: show only the first name and the initial of the second ("Sayed Mohammad" = "Sayed M.") and remove the email display. First done on the call tiles; he said "i still see full names", so it now applies everywhere a person is shown in the chat (messages, sidebar, titles, person card, replies, pins, search hits, members, files, typing, calls). Pickers, Admin pages and mentions keep full names so people can still be told apart. The email line added to the person card on 15 Oct is gone. The browser checks that looked for "Ann Agent" in displayed text now look for "Ann A.". Deployed.
 

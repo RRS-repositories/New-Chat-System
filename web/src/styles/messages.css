@@ -403,7 +403,10 @@
 }
 .file-image img {
   display: block;
-  max-width: 220px;
+  max-width: min(420px, 100%);
+}
+.lightbox img {
+  object-fit: contain;
 }
 .file-video {
   display: block;

@@ -101,7 +101,7 @@ test('safeFilename strips paths and control characters', () => {
   assert.equal(MAX_FILE_BYTES, 20 * 1024 * 1024);
 });
 
-test('a PNG upload stores the file, makes a 200px thumbnail, creates a file message and broadcasts it', async () => {
+test('a PNG upload stores the file, makes a 480px thumbnail, creates a file message and broadcasts it', async () => {
   const emitted = [];
   const db = makeDb();
   const r = await request(app(db, emitted))
@@ -115,7 +115,7 @@ test('a PNG upload stores the file, makes a 200px thumbnail, creates a file mess
   assert.match(db.inserted[0].file_path, /^c1\/[0-9a-f-]{36}-shot\.png$/);
   assert.ok(db.inserted[0].thumbnail_path && existsSync(join(uploadsDir, db.inserted[0].thumbnail_path)));
   const meta = await sharp(join(uploadsDir, db.inserted[0].thumbnail_path)).metadata();
-  assert.equal(meta.width, 200);
+  assert.equal(meta.width, 480);
   const msgIns = db.calls.find((c) => /INSERT INTO chat\.messages/.test(c.sql));
   assert.equal(msgIns.params[2], 'look at this');
   assert.equal(msgIns.params[3], 'file');
