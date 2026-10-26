@@ -440,7 +440,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Profile photos.** JPEG, PNG or WebP up to 2 MB, checked by content, cut to a square and stored as a 256×256 JPEG under `uploads/avatars/`. The web app shrinks and crops before sending. Everyone's screen updates through `user_updated`.
 
-**Call screen.** `components/calls/CallScreen.tsx`: a full-screen stage with one tile per person (`CallTile`), the dock (`CallDock`), and a minimised pill. Speaking is measured in the browser from each audio track (`hooks/useSpeaking.ts`). The host is the starter while in the call, otherwise whoever has been in it longest.
+**Call screen.** `components/calls/CallScreen.tsx`: a full-screen stage with one tile per person (`CallTile`), the dock (`CallDock`), and a minimised pill. The pill can be dragged anywhere (press anywhere but a button): it stays inside the window with an 8 px margin, is pulled back in when the window shrinks, and the spot is remembered in the browser (`hooks/useDraggablePill.ts`, `utils/pillPosition.ts`). Speaking is measured in the browser from each audio track (`hooks/useSpeaking.ts`). The host is the starter while in the call, otherwise whoever has been in it longest.
 
 **Incoming call.** A card with a 30-second countdown: Accept, Decline, Message. Message declines and posts the chosen words into the direct conversation with the caller. The card also shows over a call the person is already in.
 
@@ -659,7 +659,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | What | Command | Count |
 |---|---|---|
 | Server | `cd server && npm test` | 478, 49 files |
-| Web | `cd web && npm test` | 176, 23 files |
+| Web | `cd web && npm test` | 233, 37 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
@@ -680,6 +680,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: recording (the saved file is played back) **(Phase 9)** | `node server/dev/e2e/browser-record.cjs` | 4 |
 | Real browser: breakout groups (checked on the real audio connections) **(Phase 9)** | `node server/dev/e2e/browser-breakout.cjs` | 7 |
 | Real browser: add people, the signed-in rule, Management or IT setting a password | `node server/dev/e2e/browser-people.cjs` | 5 |
+| Real browser: dragging the minimised call pill (edges, resize, remembered, buttons still click, Send button clear) | `node server/dev/e2e/browser-pill.cjs` | 8 |
 | Speed with heavy data (needs `SEED_HEAVY=1`) | `node server/dev/e2e/browser-perf.cjs` | 31 measurements |
 | Deploy scripts | `bash deploy/rehearse.sh` | 51 |
 

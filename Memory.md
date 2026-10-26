@@ -85,6 +85,7 @@ node server/dev/e2e/browser-polish.cjs   # 5 checks
 node server/dev/e2e/browser-admin.cjs    # 7 checks
 node server/dev/e2e/browser-host.cjs     # 16 checks: search, own-screen preview, call host controls
 node server/dev/e2e/browser-features.cjs # 12 checks: links, formatting, channel rename/leave/archive
+node server/dev/e2e/browser-pill.cjs     # 8 checks: dragging the minimised call pill
 node server/dev/e2e/browser-real-share.cjs  # a call sharing the PC's real screen (opens a window)
 
 # Speed with heavy data (start the local chat with SEED_HEAVY=1 first; loading takes about 20 seconds):
@@ -165,6 +166,18 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 26 Oct 2026 — the minimised call pill can be dragged anywhere
+The owner, with a screenshot: the small call pill in the bottom-right corner sat on top of the message box's Send
+button, and he wants to put it wherever he likes. Press anywhere on the pill except its buttons and drag (mouse or
+finger); it goes where it is let go, never past the edge of the window (8 px margin), is pulled back in when the
+window shrinks, and the spot is remembered in the browser (`chat.callPill`) so it comes back there next time. A
+small grip mark on its left shows it can be moved. Until someone moves it, it sits in the corner as before.
+Where: `web/src/utils/pillPosition.ts` (clamp, threshold, remember — pure, tested), `web/src/hooks/useDraggablePill.ts`
+(pointer events with capture, so the drag survives the pointer leaving the pill), four lines in `CallScreen.tsx`,
+`.mini` in `calls.css`. Checked: 6 new web tests (233 in all), type check and build clean, new browser check
+`browser-pill.cjs` 8 of 8 in Edge (drag, Send button clear, buttons still click, edges, resize, remembered, leave),
+`browser-callscreen.cjs` still 11 of 11. **Not deployed yet** — waiting for the owner's word.
 
 ### 13 Oct 2026 — Documents: every file in one place
 The owner asked for "a document button where all documents sent is seen at a single place". New `GET /api/chat/files`
