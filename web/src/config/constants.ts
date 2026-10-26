@@ -2,6 +2,7 @@
 export const STORAGE_KEYS = {
   lastChannel: 'chat_last_channel',
   collapsedSections: 'chat.collapsed',
+  callPillPosition: 'chat.callPill',
 } as const;
 
 /** Shown to someone who can sign in to the CRM but has not been switched on for chat. */
