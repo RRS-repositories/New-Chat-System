@@ -117,7 +117,8 @@ The browser checks use the Microsoft Edge already installed on the PC.
 | 1 Oct 2026 | The GitHub repository stays public. |
 | 1 Oct 2026 | The chat gets its own separate settings file on the server (not a link to the CRM's). |
 | 1 Oct 2026 | Call host controls: a disconnected person can join back freely; a person the host removed sends a join request that the host accepts or refuses. |
-| 1 Oct 2026 | Work in this repository goes straight to `main`: no branch, no pull request. Only the owner and the developer work here. Other repositories are unchanged. |
+| 1 Oct 2026 | Work in this repository goes straight to `main`: no branch, no pull request. Only the owner and the developer work here. Other repositories are unchanged. **Replaced 26 Oct 2026**, see below. |
+| 26 Oct 2026 | Branch → pull request → **the owner merges** → the developer deploys `main`. No more pushing straight to `main`. |
 | 1 Oct 2026 | **The chat must stay lightweight and lag-free**, however long the channels get and however large the files. Measure with heavy data before saying something is fast. |
 | 1 Oct 2026 | To add: calls from outside the office, the CRM's automatic messages, clickable links, channel housekeeping, simple formatting. **Not** to add: "seen" marks, a mute-everyone button or host handover, an audit screen, Mattermost history import, install as an app, dark mode. |
 | 5 Oct 2026 | **The `Updates/` file is the plan**: build all ten sections exactly as written. This reverses two choices of 1 Oct: dark mode is now wanted, and so is a stand-in host. Deploys restart the chat and end live calls, so the owner deploys off-hours; the developer does not deploy this by itself. |
@@ -177,7 +178,7 @@ Where: `web/src/utils/pillPosition.ts` (clamp, threshold, remember — pure, tes
 (pointer events with capture, so the drag survives the pointer leaving the pill), four lines in `CallScreen.tsx`,
 `.mini` in `calls.css`. Checked: 6 new web tests (233 in all), type check and build clean, new browser check
 `browser-pill.cjs` 8 of 8 in Edge (drag, Send button clear, buttons still click, edges, resize, remembered, leave),
-`browser-callscreen.cjs` still 11 of 11. **Not deployed yet** — waiting for the owner's word.
+`browser-callscreen.cjs` still 11 of 11. First pushed straight to `main` (ea28a97) under the old rule, then reverted (c0b59e6) and reopened as a pull request at the owner's request: from now on he merges, then the developer deploys.
 
 ### 13 Oct 2026 — Documents: every file in one place
 The owner asked for "a document button where all documents sent is seen at a single place". New `GET /api/chat/files`
