@@ -85,6 +85,7 @@ node server/dev/e2e/browser-polish.cjs   # 5 checks
 node server/dev/e2e/browser-admin.cjs    # 7 checks
 node server/dev/e2e/browser-host.cjs     # 16 checks: search, own-screen preview, call host controls
 node server/dev/e2e/browser-features.cjs # 12 checks: links, formatting, channel rename/leave/archive
+node server/dev/e2e/browser-pill.cjs     # 8 checks: dragging the minimised call pill
 node server/dev/e2e/browser-real-share.cjs  # a call sharing the PC's real screen (opens a window)
 
 # Speed with heavy data (start the local chat with SEED_HEAVY=1 first; loading takes about 20 seconds):
@@ -116,7 +117,8 @@ The browser checks use the Microsoft Edge already installed on the PC.
 | 1 Oct 2026 | The GitHub repository stays public. |
 | 1 Oct 2026 | The chat gets its own separate settings file on the server (not a link to the CRM's). |
 | 1 Oct 2026 | Call host controls: a disconnected person can join back freely; a person the host removed sends a join request that the host accepts or refuses. |
-| 1 Oct 2026 | Work in this repository goes straight to `main`: no branch, no pull request. Only the owner and the developer work here. Other repositories are unchanged. |
+| 1 Oct 2026 | Work in this repository goes straight to `main`: no branch, no pull request. Only the owner and the developer work here. Other repositories are unchanged. **Replaced 26 Oct 2026**, see below. |
+| 26 Oct 2026 | Branch → pull request → **the owner merges** → the developer deploys `main`. No more pushing straight to `main`. |
 | 1 Oct 2026 | **The chat must stay lightweight and lag-free**, however long the channels get and however large the files. Measure with heavy data before saying something is fast. |
 | 1 Oct 2026 | To add: calls from outside the office, the CRM's automatic messages, clickable links, channel housekeeping, simple formatting. **Not** to add: "seen" marks, a mute-everyone button or host handover, an audit screen, Mattermost history import, install as an app, dark mode. |
 | 5 Oct 2026 | **The `Updates/` file is the plan**: build all ten sections exactly as written. This reverses two choices of 1 Oct: dark mode is now wanted, and so is a stand-in host. Deploys restart the chat and end live calls, so the owner deploys off-hours; the developer does not deploy this by itself. |
@@ -165,6 +167,18 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 26 Oct 2026 — the minimised call pill can be dragged anywhere
+The owner, with a screenshot: the small call pill in the bottom-right corner sat on top of the message box's Send
+button, and he wants to put it wherever he likes. Press anywhere on the pill except its buttons and drag (mouse or
+finger); it goes where it is let go, never past the edge of the window (8 px margin), is pulled back in when the
+window shrinks, and the spot is remembered in the browser (`chat.callPill`) so it comes back there next time. A
+small grip mark on its left shows it can be moved. Until someone moves it, it sits in the corner as before.
+Where: `web/src/utils/pillPosition.ts` (clamp, threshold, remember — pure, tested), `web/src/hooks/useDraggablePill.ts`
+(pointer events with capture, so the drag survives the pointer leaving the pill), four lines in `CallScreen.tsx`,
+`.mini` in `calls.css`. Checked: 6 new web tests (233 in all), type check and build clean, new browser check
+`browser-pill.cjs` 8 of 8 in Edge (drag, Send button clear, buttons still click, edges, resize, remembered, leave),
+`browser-callscreen.cjs` still 11 of 11. First pushed straight to `main` (ea28a97) under the old rule, then reverted (c0b59e6) and reopened as a pull request at the owner's request: from now on he merges, then the developer deploys.
 
 ### 13 Oct 2026 — Documents: every file in one place
 The owner asked for "a document button where all documents sent is seen at a single place". New `GET /api/chat/files`
