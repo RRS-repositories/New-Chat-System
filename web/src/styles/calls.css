@@ -1115,18 +1115,6 @@
     0 24px 64px -18px rgba(12, 15, 34, 0.75),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   animation: srise 0.2s;
-  /* Draggable: a press anywhere but a button moves it (hooks/useDraggablePill.ts) */
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-}
-.mini:active {
-  cursor: grabbing;
-}
-.mini .mi-grip {
-  flex: 0 0 auto;
-  margin-right: -4px;
-  color: var(--dk-mut);
 }
 .mini .mi-i {
   min-width: 0;

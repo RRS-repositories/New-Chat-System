@@ -1,6 +1,6 @@
 import { HangUp } from '../common/HangUp.tsx';
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { GripVertical, LayoutGrid, Maximize2, Mic, MicOff, Minimize2, MonitorUp } from 'lucide-react';
+import { LayoutGrid, Maximize2, Mic, MicOff, Minimize2, MonitorUp } from 'lucide-react';
 import { FEATURES } from '../../config/features.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
@@ -8,7 +8,6 @@ import { useCall } from '../../context/callContext.ts';
 import { useAvatarSrc } from '../../hooks/useAvatarSrc.ts';
 import { callShortcut, withShortcut } from '../../utils/callShortcuts.ts';
 import { useCallClock } from '../../hooks/useCallClock.ts';
-import { useDraggablePill } from '../../hooks/useDraggablePill.ts';
 import { useSpeaking, type VoiceSource } from '../../hooks/useSpeaking.ts';
 import { initials } from '../../utils/format.ts';
 import { hueOf } from '../../utils/hue.ts';
@@ -94,7 +93,6 @@ export function CallScreen() {
     answerJoinRequest,
   } = useCall();
   const [minimised, setMinimised] = useState(false);
-  const pill = useDraggablePill(); // the minimised pill can be dragged anywhere
   const [adding, setAdding] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(false);
@@ -302,20 +300,7 @@ export function CallScreen() {
   if (minimised)
     return (
       <>
-        <div
-          className="mini"
-          role="region"
-          aria-label="Voice call"
-          data-testid="call-panel"
-          data-minimised="true"
-          ref={pill.ref}
-          style={pill.style}
-          onPointerDown={pill.onPointerDown}
-          onPointerMove={pill.onPointerMove}
-          onPointerUp={pill.onPointerUp}
-          onPointerCancel={pill.onPointerUp}
-        >
-          <GripVertical className="mi-grip" size={14} aria-hidden="true" />
+        <div className="mini" role="region" aria-label="Voice call" data-testid="call-panel" data-minimised="true">
           <span className="mi-i">
             <b>{title}</b>
             <span>
