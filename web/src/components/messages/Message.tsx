@@ -185,8 +185,10 @@ export const Message = memo(function Message({
         )}
         {confirm && (
           <div className="msg-confirm">
-            <span className="muted">Delete this message?</span>
-            <button className="link danger" onClick={() => void del()}>
+            <span className="muted">
+              {own ? 'Delete this message?' : `Delete ${shortName(m.userName)}'s message for everyone?`}
+            </span>
+            <button className="link danger" data-testid="msg-confirm-delete" onClick={() => void del()}>
               Delete
             </button>
             <button className="link" onClick={() => setConfirm(false)}>

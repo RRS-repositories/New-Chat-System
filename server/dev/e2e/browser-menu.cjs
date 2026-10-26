@@ -169,6 +169,37 @@ const openMenu = async (page, name) => {
     if (copied !== 'copy these exact words please') throw new Error(`clipboard: ${copied}`);
   });
 
+  await step("IT (and Management) can delete anyone's message from its menu, after a question", async () => {
+    const eli = await person(browser, 'eli@x', 'Eli');
+    try {
+      await ann.page.locator('.chan-row', { hasText: 'General' }).first().click();
+      await ann.page.locator('.chan-title', { hasText: 'General' }).waitFor({ timeout: 8000 });
+      await ann.page.waitForTimeout(1100);
+      await ann.page.fill('.panel > .input-bar textarea', 'please remove this one');
+      await ann.page.keyboard.press('Enter');
+      const msg = eli.page.locator('.msg', { hasText: 'please remove this one' }).last();
+      await msg.waitFor({ timeout: 8000 }).catch(() => {
+        throw new Error('Eli (IT) does not see the message in General');
+      });
+      await msg.hover();
+      await msg.locator(tid('msg-more')).click();
+      await eli.page.locator(tid('msg-delete'), { hasText: 'Delete their message' }).click();
+      // The message asks inline, naming whose it is.
+      await msg
+        .locator('.msg-confirm', { hasText: "Delete Ann A.'s message for everyone?" })
+        .waitFor({ timeout: 5000 });
+      await msg.locator(tid('msg-confirm-delete')).click();
+      await ann.page
+        .locator('.msg-text', { hasText: 'please remove this one' })
+        .waitFor({ state: 'detached', timeout: 8000 })
+        .catch(() => {
+          throw new Error('the message is still on the screen of the person who wrote it');
+        });
+    } finally {
+      await eli.ctx.close();
+    }
+  });
+
   await step('whoever just messaged is at the top of Direct messages', async () => {
     // Only people who have signed in to the chat are offered in the picker, so Bob signs in first.
     const bob = await person(browser, 'b@x', 'Bob');

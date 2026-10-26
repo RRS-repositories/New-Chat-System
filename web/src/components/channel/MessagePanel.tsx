@@ -27,10 +27,11 @@ import { CallBanner } from '../calls/CallBanner.tsx';
 import { MicNudge, NotificationNudge } from './NotificationNudge.tsx';
 import { useCall } from '../../context/callContext.ts';
 import { shortName } from '../../utils/format.ts';
+import { isManagementOrIT } from '../../utils/restrictions.ts';
 
 export function useCanModerate(channelId: string | null): boolean {
   const { state, user } = useChat();
-  if (user.role === 'Management') return true;
+  if (isManagementOrIT(user)) return true;
   const me = channelId ? (state.membersByChannel[channelId] || []).find((m) => m.id === user.id) : undefined;
   return me?.channelRole === 'owner' || me?.channelRole === 'admin';
 }

@@ -227,6 +227,9 @@ The owner sent a screenshot of chat2 as bare unstyled HTML. Cause: `web/src/styl
 stylesheet goes back to 74,741 bytes. Nothing else changed. Deployed.
 
 
+### 23 Oct 2026 — Management and IT delete anyone's message
+The owner: "let Management and IT can delete anyone's message". The server already let Management (not IT) and channel owners/admins; now Management and IT everywhere, and the ⋯ menu shows "Delete their message" to a moderator with a confirmation. Deployed.
+
 ### 23 Oct 2026 — .env and other text files can be shared
 The owner pasted ".env: this file type is not allowed". Settings, log and data files (.env, .log, .ini, .cfg, .conf, .toml, .sql, .yml, .json, .xml) are now allowed as plain text, with the no-binary check; scripts and programs stay refused. Deployed.
 

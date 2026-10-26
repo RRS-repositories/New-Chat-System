@@ -116,18 +116,19 @@ export function MessageActions({
               <span>Edit message</span>
             </button>
           )}
-          {own && (
+          {(own || canModerate) && (
             <button
               role="menuitem"
               className="danger"
               aria-label="Delete"
+              data-testid="msg-delete"
               onClick={() => {
                 setMenuOpen(false);
-                onDelete();
+                onDelete(); // the message asks "Delete …?" inline before anything happens
               }}
             >
               <Trash2 size={15} />
-              <span>Delete message</span>
+              <span>{own ? 'Delete message' : 'Delete their message'}</span>
             </button>
           )}
         </Floating>

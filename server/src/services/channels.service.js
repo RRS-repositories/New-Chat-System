@@ -1,6 +1,6 @@
 // Rules about channels: who is in, who may moderate, and who may share a private channel.
 import { httpError } from '../middleware/errors.js';
-import { isMember, listMembers } from '../models/channels.model.js';
+import { OVERSEER_ROLES, isMember, listMembers } from '../models/channels.model.js';
 import { blockedPairs } from '../models/restrictions.model.js';
 
 /** Refuses with 403 `not_member` unless the person is in the channel. */
@@ -8,9 +8,9 @@ export async function assertMember(db, channelId, userId) {
   if (!(await isMember(db, channelId, userId))) throw httpError(403, 'not_member', 'You are not in this channel');
 }
 
-/** Channel owner or admin, or CRM Management: may pin, unpin, remove members and delete others' messages. */
+/** Channel owner or admin, or Management or IT (23 Oct 2026): may pin, unpin, remove members and delete others' messages. */
 export async function canModerate(db, channelId, user) {
-  if (user.role === 'Management') return true;
+  if (OVERSEER_ROLES.includes(user.role)) return true;
   const me = (await listMembers(db, channelId)).find((m) => m.id === user.id);
   return ['owner', 'admin'].includes(me?.channelRole);
 }
