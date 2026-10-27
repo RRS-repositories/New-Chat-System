@@ -61,21 +61,35 @@ export function FileAttachment({ file }: { file: ChatFile }) {
   if (isImage(file.mimeType)) {
     return (
       <>
-        <button className="file-image" onClick={() => void openFull()} aria-label={`Open ${file.filename}`}>
-          {thumb ? (
-            <img src={thumb} alt={file.filename} />
-          ) : (
-            <span className="fcard file-card">
-              <span className="fic">
-                <FileText size={17} />
+        <span className="file-image-wrap">
+          <button className="file-image" onClick={() => void openFull()} aria-label={`Open ${file.filename}`}>
+            {thumb ? (
+              <img src={thumb} alt={file.filename} />
+            ) : (
+              <span className="fcard file-card">
+                <span className="fic">
+                  <FileText size={17} />
+                </span>
+                <span className="fmeta">
+                  <b className="file-name">{file.filename}</b>
+                </span>
               </span>
-              <span className="fmeta">
-                <b className="file-name">{file.filename}</b>
-              </span>
-            </span>
-          )}
-        </button>
-        {open && <Lightbox src={full} alt={file.filename} failed={fullFailed} onClose={closeFull} />}
+            )}
+          </button>
+          <button
+            className="icon-btn small file-image-dl"
+            disabled={busy}
+            aria-label={`Download ${file.filename}`}
+            title={error ? `Download · ${error}` : 'Download'}
+            data-testid="image-download"
+            onClick={() => void download()}
+          >
+            <Download size={15} />
+          </button>
+        </span>
+        {open && (
+          <Lightbox src={full} alt={file.filename} filename={file.filename} failed={fullFailed} onClose={closeFull} />
+        )}
       </>
     );
   }

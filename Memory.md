@@ -86,6 +86,7 @@ node server/dev/e2e/browser-admin.cjs    # 7 checks
 node server/dev/e2e/browser-host.cjs     # 16 checks: search, own-screen preview, call host controls
 node server/dev/e2e/browser-features.cjs # 12 checks: links, formatting, channel rename/leave/archive
 node server/dev/e2e/browser-pill.cjs     # 8 checks: dragging the minimised call pill
+node server/dev/e2e/browser-viewer.cjs   # 8 checks: the picture viewer (fit, zoom, download)
 node server/dev/e2e/browser-real-share.cjs  # a call sharing the PC's real screen (opens a window)
 
 # Speed with heavy data (start the local chat with SEED_HEAVY=1 first; loading takes about 20 seconds):
@@ -167,6 +168,20 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 27 Oct 2026 — the picture viewer: opens whole, zooms, downloads
+The owner, with two screenshots: a picture opened in the viewer "gets zoomed a lot" (a tall screenshot ran off the
+bottom of the window), and he wants a Download button on pictures. Cause: the 23 Oct enlargement (up to three times)
+was capped against the window's width only, never its height. Now a picture opens WHOLE: a big one is shrunk to fit
+the window both ways; a small one is enlarged to read, but at most twice and never past the window. From there:
++ and − buttons, the mouse wheel, the + and − keys, a percentage that resets on press, and a double-click to actual
+size and back; zoomed past the window, it scrolls instead of being cut off. Download is in the viewer's toolbar and in
+the corner of the preview in the feed (shows on hover; always on touch screens). Where: `web/src/utils/viewer.ts`
+(`openingScale`, `zoomed`, `toggledScale` — pure, tested), `components/messages/Lightbox.tsx`, `FileAttachment.tsx`,
+`messages.css`. Checked: web tests 238, type check and build clean, new `browser-viewer.cjs` 8 of 8 in Edge (a tall
+picture fits, zoom in/out/reset/double-click, scrolling, Download from the viewer and from the feed save under the
+file's name). Pull request opened for the owner to merge.
+
 
 ### 26 Oct 2026 — the minimised call pill can be dragged anywhere
 The owner, with a screenshot: the small call pill in the bottom-right corner sat on top of the message box's Send
