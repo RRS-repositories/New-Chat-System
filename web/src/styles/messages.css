@@ -405,8 +405,35 @@
   display: block;
   max-width: min(420px, 100%);
 }
-.lightbox img {
-  object-fit: contain;
+/* The picture preview in the feed, with a Download button in its corner that shows on hover */
+.file-image-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.file-image-dl {
+  position: absolute;
+  top: 13px;
+  right: 6px;
+  color: #fff;
+  background: rgba(12, 15, 34, 0.55);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.13s;
+}
+.file-image-wrap:hover .file-image-dl,
+.file-image-dl:focus-visible,
+.file-image-dl:disabled {
+  opacity: 1;
+}
+.file-image-dl:hover:not(:disabled) {
+  background: rgba(12, 15, 34, 0.8);
+  color: #fff;
+}
+@media (hover: none) {
+  .file-image-dl {
+    opacity: 1;
+  }
 }
 .file-video {
   display: block;
@@ -424,33 +451,67 @@
   margin-top: 6px;
   height: 40px;
 }
+/* The picture viewer: a toolbar fixed at the top right, and a stage that scrolls once the picture is zoomed
+   past the window. The picture's width is set by the viewer (utils/viewer.ts); nothing here caps it. */
 .lightbox {
   position: fixed;
   inset: 0;
   background: rgba(7, 9, 22, 0.86);
   backdrop-filter: blur(6px);
+  z-index: 130;
+  overflow: auto;
+}
+.lightbox-stage {
+  min-width: 100%;
+  min-height: 100%;
   display: grid;
   place-items: center;
-  z-index: 130;
-  padding: 16px;
+  padding: 56px 16px 16px;
+  box-sizing: border-box;
+  width: max-content;
 }
 .lightbox img {
-  max-width: 100%;
-  max-height: 100%;
+  display: block;
+  max-width: none;
   border-radius: 12px;
+  cursor: zoom-in;
 }
 .lightbox .muted {
   color: var(--dk-mut);
 }
-.lightbox-close {
-  position: absolute;
-  top: 12px;
+.lightbox-bar {
+  position: fixed;
+  top: 10px;
   right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(12, 15, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  z-index: 1;
+}
+.lightbox-bar .icon-btn {
   color: #fff;
 }
-.lightbox-close:hover:not(:disabled) {
+.lightbox-bar .icon-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
+}
+.lightbox-zoom {
+  min-width: 52px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+}
+.lightbox-zoom:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* Formatted text: mentions, links, code, lists */

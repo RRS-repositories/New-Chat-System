@@ -327,7 +327,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 - Up to **5 files per message, 20 MB each**.
 - Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, ZIP, MP4, WebM, and sound files (MP3, WAV, M4A, AAC, OGG; since 7 Oct 2026, for call recordings from the CRM's phone system). A sound file's card plays it in place on tap, then offers the download. Each type's content is checked against its first bytes (`server/src/utils/fileSignature.js`).
 - Stored under `CHAT_UPLOADS_DIR` (`/data/chat-uploads` on the server), in a folder per channel, under a generated name. File names are cleaned and sent back with a safe `Content-Disposition`.
-- Images get a 200-pixel-wide JPEG **thumbnail** (`sharp`). Clicking opens a full-size view.
+- Images get a JPEG **thumbnail** (`sharp`; 480 px wide since 23 Oct 2026, 200 px before). Clicking opens the viewer: the picture opens whole (a big one shrunk to the window both ways, a small one enlarged to read, at most twice), then zooms with + / −, the wheel, the keys or a double-click, scrolling once it is bigger than the window; its toolbar has Download, and the preview in the feed has a Download button in its corner (`utils/viewer.ts`, `components/messages/Lightbox.tsx`).
 - Files are fetched with the sign-in token and shown from memory; only channel members can fetch them. An SVG is never served as an image (it can carry script); it downloads instead.
 - **(PR #9)** The content must match the type: a real JPEG, PNG, PDF and so on is recognised by its first bytes. A program renamed to `photo.jpg` is refused with code `file_content`.
 
@@ -659,7 +659,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | What | Command | Count |
 |---|---|---|
 | Server | `cd server && npm test` | 478, 49 files |
-| Web | `cd web && npm test` | 233, 37 files |
+| Web | `cd web && npm test` | 238, 37 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
@@ -681,6 +681,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: breakout groups (checked on the real audio connections) **(Phase 9)** | `node server/dev/e2e/browser-breakout.cjs` | 7 |
 | Real browser: add people, the signed-in rule, Management or IT setting a password | `node server/dev/e2e/browser-people.cjs` | 5 |
 | Real browser: dragging the minimised call pill (edges, resize, remembered, buttons still click, Send button clear) | `node server/dev/e2e/browser-pill.cjs` | 8 |
+| Real browser: the picture viewer (a tall picture fits, zoom, scroll, Download from the viewer and the feed) | `node server/dev/e2e/browser-viewer.cjs` | 8 |
 | Speed with heavy data (needs `SEED_HEAVY=1`) | `node server/dev/e2e/browser-perf.cjs` | 31 measurements |
 | Deploy scripts | `bash deploy/rehearse.sh` | 51 |
 
