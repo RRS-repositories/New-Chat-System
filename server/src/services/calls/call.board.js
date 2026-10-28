@@ -2,7 +2,9 @@
  * The shared whiteboard of a live call.
  *
  * Only the host draws; everyone in the call sees it. A drawing is a list of strokes; a stroke is
- * a list of points with a colour and a thickness. A point is a fraction of the board's width and
+ * a list of points with a colour and a thickness: freehand (a pen, a highlighter, or the eraser),
+ * a shape given by its two corners (line, arrow, rectangle, ellipse), or text at one point. A
+ * point is a fraction of the board's width and
  * height (0 to 1 is the first screenful), so it lands in the same place on every screen size; the
  * board goes on beyond that first screenful, and the host can move and zoom the view. Everyone
  * else's view follows the host's. The strokes are kept in memory for the life of the call, so a
@@ -22,8 +24,22 @@ export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 4;
 const ID = /^[A-Za-z0-9_-]{6,40}$/;
 const COLOUR = /^#[0-9a-fA-F]{6}$/;
+/** What a stroke can be. A pen stroke carries no `kind`. */
+export const KINDS = new Set(['pen', 'highlighter', 'line', 'arrow', 'rect', 'ellipse', 'text']);
+const SHAPES = new Set(['line', 'arrow', 'rect', 'ellipse']);
+export const MAX_TEXT = 500;
 
 const round = (n) => Math.round(n * 10000) / 10000;
+/** The words of a text stroke as kept: trimmed, control characters out, at most MAX_TEXT. Null when nothing is left. */
+export function cleanText(text) {
+  if (typeof text !== 'string') return null;
+  const t = text
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '')
+    .trim();
+  if (!t) return null;
+  return t.length > MAX_TEXT ? t.slice(0, MAX_TEXT) : t;
+}
 /** The usable points of a batch, or null when the batch is not a list of [x, y] pairs. */
 export function cleanPoints(points) {
   if (!Array.isArray(points) || points.length === 0 || points.length > MAX_POINTS_PER_BATCH) return null;
@@ -57,8 +73,8 @@ export function createCallBoard({ devices, toSocket, isPaused = () => false }) {
     },
 
     /**
-     * One change to the board, from the host: a new stroke or more points for one being drawn
-     * (`stroke`), taking back one of their own strokes (`undo`), wiping the board (`clear`), or where
+     * One change to the board, from the host: a new stroke, shape or text, or more points for a
+     * freehand stroke being drawn (`stroke`), taking back one of their own strokes (`undo`), wiping the board (`clear`), or where
      * they are looking (`view`). `isHost` says whether the sender is the host of the call; nobody
      * else can change the board. Returns false when the change was dropped.
      */
@@ -74,6 +90,7 @@ export function createCallBoard({ devices, toSocket, isPaused = () => false }) {
         const existing = board.get(op.id);
         if (existing) {
           if (existing.userId !== userId) return false;
+          if (existing.kind && existing.kind !== 'highlighter') return false; // a shape or text is sent whole, once
           if (existing.points.length + points.length > MAX_POINTS_PER_STROKE) return false;
           existing.points.push(...points);
           toOthers(callId, userId, { type: 'stroke', id: op.id, points });
@@ -81,12 +98,21 @@ export function createCallBoard({ devices, toSocket, isPaused = () => false }) {
         }
         const size = Number(op.size);
         if (typeof op.color !== 'string' || !COLOUR.test(op.color) || !(size >= 1 && size <= MAX_SIZE)) return false;
+        const kind = op.kind === undefined ? 'pen' : op.kind;
+        if (!KINDS.has(kind)) return false;
+        const eraser = op.eraser === true;
+        if (eraser && kind !== 'pen') return false;
+        if (SHAPES.has(kind) && points.length !== 2) return false;
+        const text = kind === 'text' ? cleanText(op.text) : null;
+        if (kind === 'text' && (!text || points.length !== 1)) return false;
         if (board.size >= MAX_STROKES) {
           // The board is full: the sender's own copy of the stroke is taken back, so every screen stays the same.
           back(socketId, callId, { type: 'full', stroke_id: op.id });
           return false;
         }
-        const stroke = { id: op.id, userId, points, color: op.color.toLowerCase(), size, eraser: op.eraser === true };
+        const stroke = { id: op.id, userId, points, color: op.color.toLowerCase(), size, eraser };
+        if (kind !== 'pen') stroke.kind = kind;
+        if (text) stroke.text = text;
         board.set(op.id, stroke);
         boards.set(callId, board);
         toOthers(callId, userId, { type: 'stroke', ...stroke });

@@ -194,6 +194,10 @@ export type CallJoinResponse = {
     color: string;
     size: number;
     eraser: boolean;
+    /** Missing for a pen stroke. */
+    kind?: 'pen' | 'highlighter' | 'line' | 'arrow' | 'rect' | 'ellipse' | 'text';
+    /** The words, for `text`. */
+    text?: string;
   }>;
 };
 /** Someone being rung into a live call: shown as a "Ringing…" tile. */
