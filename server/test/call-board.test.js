@@ -8,7 +8,9 @@ import {
   BOARD_MIN,
   MAX_POINTS_PER_BATCH,
   MAX_STROKES,
+  MAX_TEXT,
   cleanPoints,
+  cleanText,
   createCallBoard,
 } from '../src/services/calls/call.board.js';
 import { attachCallSignalling } from '../src/sockets/calls.socket.js';
@@ -219,4 +221,82 @@ test('the socket passes call_wb to the call service with who sent it', async () 
   socket.emit('call_wb', null);
   socket.emit('call_wb', { op: { type: 'clear' } });
   assert.deepEqual(seen, [{ callId: 'k1', userId: 2, socketId: 's2', op: { type: 'clear' } }]);
+});
+
+test('cleanText: trimmed, control characters out, cut at the limit, null when nothing is left', () => {
+  assert.equal(cleanText('  Hello\r\nteam\u0000 '), 'Hello\nteam');
+  assert.equal(cleanText('x'.repeat(MAX_TEXT + 9)).length, MAX_TEXT);
+  for (const bad of ['', '   ', null, 7, ['a']]) assert.equal(cleanText(bad), null, JSON.stringify(bad));
+});
+
+test('a shape is its two corners and text is one point with words: both go to the others whole and are kept', () => {
+  const { board, sent } = setup();
+  const corners = [
+    [0.1, 0.1],
+    [0.4, 0.3],
+  ];
+  assert.equal(board.apply({ ...meg, op: stroke('shape-1', { kind: 'rect', points: corners }) }), true);
+  assert.equal(
+    board.apply({ ...meg, op: stroke('words-1', { kind: 'text', text: '  Hi\u0000 team ', points: [[0.5, 0.5]] }) }),
+    true,
+  );
+  assert.equal(board.apply({ ...meg, op: stroke('glow-1', { kind: 'highlighter', size: 18 }) }), true);
+  const ops = sent.filter((e) => e.socketId === 's2').map((e) => e.payload.op);
+  assert.deepEqual(ops[0], {
+    type: 'stroke',
+    id: 'shape-1',
+    userId: 1,
+    points: corners,
+    color: '#6c4de6',
+    size: 6,
+    eraser: false,
+    kind: 'rect',
+  });
+  assert.equal(ops[1].kind, 'text');
+  assert.equal(ops[1].text, 'Hi team');
+  assert.equal(ops[2].kind, 'highlighter');
+  assert.deepEqual(
+    board.snapshot('k1').whiteboard.map((s) => [s.id, s.kind, s.text]),
+    [
+      ['shape-1', 'rect', undefined],
+      ['words-1', 'text', 'Hi team'],
+      ['glow-1', 'highlighter', undefined],
+    ],
+  );
+  // More points can follow a highlighter stroke, never a shape or text.
+  assert.equal(board.apply({ ...meg, op: { type: 'stroke', id: 'glow-1', points: [[0.9, 0.9]] } }), true);
+  assert.equal(board.apply({ ...meg, op: { type: 'stroke', id: 'shape-1', points: [[0.9, 0.9]] } }), false);
+  assert.equal(board.apply({ ...meg, op: { type: 'stroke', id: 'words-1', points: [[0.9, 0.9]] } }), false);
+  assert.equal(board.snapshot('k1').whiteboard[0].points.length, 2);
+});
+
+test('a malformed shape or text is dropped', () => {
+  const { board, sent } = setup();
+  for (const bad of [
+    stroke('stroke-1', { kind: 'blob' }),
+    stroke('stroke-1', { kind: 'rect', points: [[0.1, 0.1]] }),
+    stroke('stroke-1', {
+      kind: 'line',
+      points: [
+        [0.1, 0.1],
+        [0.2, 0.2],
+        [0.3, 0.3],
+      ],
+    }),
+    stroke('stroke-1', {
+      kind: 'text',
+      text: 'Hi',
+      points: [
+        [0.1, 0.1],
+        [0.2, 0.2],
+      ],
+    }),
+    stroke('stroke-1', { kind: 'text', text: '   ', points: [[0.1, 0.1]] }),
+    stroke('stroke-1', { kind: 'text', points: [[0.1, 0.1]] }),
+    stroke('stroke-1', { kind: 'text', text: 42, points: [[0.1, 0.1]] }),
+    stroke('stroke-1', { kind: 'ellipse', eraser: true }),
+  ])
+    assert.equal(board.apply({ ...meg, op: bad }), false, JSON.stringify(bad));
+  assert.equal(sent.length, 0);
+  assert.deepEqual(board.snapshot('k1').whiteboard, []);
 });

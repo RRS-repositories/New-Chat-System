@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ERASER_FACTOR, Whiteboard, type BoardChange, type BoardOp } from '../src/services/whiteboard.ts';
+import { HIGHLIGHT_FACTOR, textSizeOf } from '../src/utils/boardTools.ts';
 
 function setup(myUserId = 2) {
   const sent: BoardOp[] = [];
@@ -25,7 +26,7 @@ function setup(myUserId = 2) {
   board.subscribe((c) => changes.push(c));
   return { board, sent, changes, tick: () => pending?.() };
 }
-const pen = { color: '#6C4DE6', size: 6, eraser: false };
+const pen = { color: '#6C4DE6', size: 6, tool: 'pen' as const };
 
 test('drawing shows at once and is sent in batches: the first batch describes the stroke, later ones only add points', () => {
   const { board, sent, changes, tick } = setup();
@@ -58,7 +59,7 @@ test('drawing shows at once and is sent in batches: the first batch describes th
 
 test('the eraser is a thick stroke that rubs out', () => {
   const { board, sent } = setup();
-  board.begin({ ...pen, eraser: true }, [0.5, 0.5]);
+  board.begin({ ...pen, tool: 'eraser' }, [0.5, 0.5]);
   board.end();
   assert.equal((sent[0] as any).eraser, true);
   assert.equal((sent[0] as any).size, 6 * ERASER_FACTOR);
@@ -172,4 +173,115 @@ test('the view stays within the board and the zoom limits; clearing and leaving 
   assert.deepEqual(board.view, { x: 0, y: 2, zoom: 1.5 }, 'a late joiner starts where the host is looking');
   board.reset();
   assert.deepEqual(board.view, { x: 0, y: 0, zoom: 1 });
+});
+
+test('the highlighter is a wide, see-through pen: its kind goes with the first batch', () => {
+  const { board, sent, tick } = setup();
+  board.begin({ ...pen, tool: 'highlighter' }, [0.1, 0.1]);
+  board.extend([0.2, 0.1]);
+  tick();
+  assert.equal((sent[0] as any).kind, 'highlighter');
+  assert.equal((sent[0] as any).size, 6 * HIGHLIGHT_FACTOR);
+  board.extend([0.3, 0.1]);
+  board.end();
+  assert.deepEqual(sent[1], { type: 'stroke', id: 'stroke-1', points: [[0.3, 0.1]] }, 'later batches are only points');
+});
+
+test('a tool that is not a pen draws nothing when put down', () => {
+  const { board, sent } = setup();
+  for (const tool of ['rect', 'text', 'move'] as const) board.begin({ ...pen, tool }, [0.1, 0.1]);
+  assert.equal(board.isDrawing, false);
+  assert.equal(board.isEmpty, true);
+  assert.equal(sent.length, 0);
+});
+
+test('a shape is shown at once and sent whole, with its kind and its two corners', () => {
+  const { board, sent, changes } = setup();
+  const stroke = board.addShape({ ...pen, tool: 'arrow' }, 'arrow', [0.1, 0.1], [0.4, 0.3]);
+  assert.deepEqual(sent, [
+    {
+      type: 'stroke',
+      id: 'stroke-1',
+      points: [
+        [0.1, 0.1],
+        [0.4, 0.3],
+      ],
+      color: '#6C4DE6',
+      size: 6,
+      eraser: false,
+      kind: 'arrow',
+    },
+  ]);
+  assert.deepEqual(changes.at(-1), { kind: 'segment', stroke, from: 0 });
+  assert.equal(board.list()[0].kind, 'arrow');
+});
+
+test('text goes on the board cleaned, at the font size for the thickness; no words, nothing', () => {
+  const { board, sent } = setup();
+  const stroke = board.addText({ ...pen, tool: 'text' }, [0.2, 0.2], '  Hello\r\nteam\u0000 ');
+  assert.equal(stroke?.text, 'Hello\nteam');
+  assert.equal(stroke?.kind, 'text');
+  assert.equal(stroke?.size, textSizeOf(6));
+  assert.equal((sent[0] as any).text, 'Hello\nteam');
+  assert.equal((sent[0] as any).kind, 'text');
+  assert.deepEqual((sent[0] as any).points, [[0.2, 0.2]]);
+  assert.equal(board.addText({ ...pen, tool: 'text' }, [0.2, 0.2], '   '), null);
+  assert.equal(sent.length, 1);
+  assert.equal(board.list().length, 1);
+});
+
+test('redo puts back the stroke undone last, sent whole; drawing something new forgets what was undone', () => {
+  const { board, sent } = setup();
+  board.begin(pen, [0.1, 0.1]);
+  board.end();
+  board.addShape({ ...pen, tool: 'rect' }, 'rect', [0.1, 0.1], [0.3, 0.3]);
+  assert.equal(board.canRedo, false);
+  assert.equal(board.redoMine(), false);
+  board.undoMine();
+  assert.equal(board.canRedo, true);
+  sent.length = 0;
+  assert.equal(board.redoMine(), true);
+  assert.deepEqual(
+    board.list().map((s) => s.id),
+    ['stroke-1', 'stroke-2'],
+  );
+  assert.equal((sent[0] as any).kind, 'rect');
+  assert.equal((sent[0] as any).id, 'stroke-2');
+  assert.equal((sent[0] as any).points.length, 2);
+  board.undoMine();
+  board.undoMine();
+  assert.equal(board.canRedo, true);
+  board.begin(pen, [0.5, 0.5]);
+  board.end();
+  assert.equal(board.canRedo, false, 'a new stroke after undo: the undone ones are gone for good');
+  board.undoMine();
+  board.clear();
+  assert.equal(board.canRedo, false, 'clearing forgets them too');
+});
+
+test('other people’s shapes and text arrive whole; an unknown kind or empty text is ignored', () => {
+  const { board } = setup();
+  const base = { type: 'stroke' as const, userId: 1, color: '#1b1f3a', size: 3 };
+  board.applyRemote(
+    {
+      ...base,
+      id: 'box',
+      kind: 'rect',
+      points: [
+        [0, 0],
+        [0.2, 0.2],
+      ],
+    },
+    1,
+  );
+  board.applyRemote({ ...base, id: 'words', kind: 'text', text: ' Hi ', points: [[0.5, 0.5]] }, 1);
+  board.applyRemote({ ...base, id: 'blob', kind: 'blob' as any, points: [[0, 0]] }, 1);
+  board.applyRemote({ ...base, id: 'silent', kind: 'text', text: '  ', points: [[0, 0]] }, 1);
+  assert.deepEqual(
+    board.list().map((s) => [s.id, s.kind, s.text]),
+    [
+      ['box', 'rect', undefined],
+      ['words', 'text', 'Hi'],
+    ],
+  );
 });

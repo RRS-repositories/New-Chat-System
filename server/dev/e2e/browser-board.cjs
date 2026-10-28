@@ -1,7 +1,8 @@
 // Real-browser check of the call whiteboard against the local harness
 // (node server/dev/local.mjs → http://localhost:5021), three people in a real call:
 // only the host draws and the others see it live, a late joiner sees the board as it is, the host
-// zooms and moves the board (Ctrl + drag) and everyone's view follows, and a new call starts empty.
+// zooms and moves the board (Ctrl + drag) and everyone's view follows, text and shapes go on the board, undo and
+// redo take them back and put them back, a letter picks a tool, and a new call starts empty.
 //   node server/dev/e2e/browser-board.cjs
 const { chromium } = require('playwright-core');
 
@@ -117,7 +118,16 @@ const near = (a, b) => Math.abs(a - b) <= Math.max(40, b * 0.03);
 
   await step('only the host can draw: everyone else has no pens, and dragging on the board draws nothing', async () => {
     await ann.page.waitForSelector(tid('wb-view-only'));
-    for (const id of ['wb-colour', 'wb-size', 'wb-eraser', 'wb-undo', 'wb-clear', 'wb-move'])
+    for (const id of [
+      'wb-colour',
+      'wb-size',
+      'wb-tool-eraser',
+      'wb-tool-text',
+      'wb-undo',
+      'wb-redo',
+      'wb-clear',
+      'wb-move',
+    ])
       if (await ann.page.locator(tid(id)).count()) throw new Error(`someone who is not the host has ${id}`);
     await draw(ann.page, [0.2, 0.6], [0.7, 0.8]); // for Ann this only moves her own view
     await ann.page.waitForTimeout(700);
@@ -193,9 +203,57 @@ const near = (a, b) => Math.abs(a - b) <= Math.max(40, b * 0.03);
   });
 
   await step('the eraser rubs out part of the drawing for everyone', async () => {
-    await meg.page.click(tid('wb-eraser'));
+    await meg.page.click(tid('wb-tool-eraser'));
     await draw(meg.page, [0.25, 0.1], [0.25, 0.3]);
     await waitInk(ann.page, (n) => n > 0 && n < annTwo - 20, 'Ann’s board after the eraser');
+  });
+
+  await step(
+    'text: the host clicks with the text tool, types, presses Enter, and everyone sees the words',
+    async () => {
+      const was = await ink(ann.page);
+      await meg.page.click(tid('wb-tool-text'));
+      const box = await meg.page.locator(tid('wb-canvas')).boundingBox();
+      await meg.page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.5);
+      await meg.page.waitForSelector(tid('wb-text-editor'));
+      await meg.page.keyboard.type('Hello team');
+      await meg.page.keyboard.press('Enter');
+      await gone(meg.page, tid('wb-text-editor'));
+      await waitInk(meg.page, (n) => n > was + 150, 'the words on the host’s board');
+      await waitInk(ann.page, (n) => n > was + 150, 'Ann sees the words');
+      if (await ann.page.locator(tid('wb-text-editor')).count()) throw new Error('a watcher has a text box');
+    },
+  );
+
+  await step(
+    'shapes: a rectangle and an arrow dragged out are seen by everyone; undo takes the arrow back, redo puts it back',
+    async () => {
+      const was = await ink(ann.page);
+      await meg.page.click(tid('wb-tool-rect'));
+      await draw(meg.page, [0.6, 0.55], [0.9, 0.85]);
+      const withBox = await waitInk(ann.page, (n) => n > was + 150, 'Ann sees the rectangle');
+      await meg.page.click(tid('wb-tool-arrow'));
+      await draw(meg.page, [0.1, 0.9], [0.5, 0.6]);
+      const withArrow = await waitInk(ann.page, (n) => n > withBox + 100, 'Ann sees the arrow');
+      await meg.page.click(tid('wb-undo'));
+      await waitInk(ann.page, (n) => near(n, withBox), 'Ann after the arrow is taken back');
+      await meg.page.click(tid('wb-redo'));
+      await waitInk(ann.page, (n) => near(n, withArrow), 'Ann after the arrow is put back');
+    },
+  );
+
+  await step('a letter picks a tool: H the highlighter, P the pen; Ctrl+Z takes back the last stroke', async () => {
+    await meg.page.keyboard.press('h');
+    if ((await meg.page.locator(tid('wb-tool-highlighter')).getAttribute('aria-pressed')) !== 'true')
+      throw new Error('H did not pick the highlighter');
+    const was = await ink(ann.page);
+    await draw(meg.page, [0.1, 0.4], [0.5, 0.4]);
+    await waitInk(ann.page, (n) => n > was + 150, 'Ann sees the highlight');
+    await meg.page.keyboard.press('Control+z');
+    await waitInk(ann.page, (n) => near(n, was), 'Ann after Ctrl+Z');
+    await meg.page.keyboard.press('p');
+    if ((await meg.page.locator(tid('wb-tool-pen')).getAttribute('aria-pressed')) !== 'true')
+      throw new Error('P did not pick the pen');
   });
 
   await step('clearing empties the board for everyone', async () => {
@@ -204,7 +262,7 @@ const near = (a, b) => Math.abs(a - b) <= Math.max(40, b * 0.03);
   });
 
   await step('closing the board brings the people back; the drawing is kept; a new call starts empty', async () => {
-    await meg.page.click(tid('wb-eraser')); // back to the pen
+    await meg.page.click(tid('wb-tool-pen')); // back to the pen
     await draw(meg.page, [0.3, 0.5], [0.6, 0.5]);
     await waitInk(meg.page, (n) => n > 200, 'Meg draws again');
     await meg.page.click(tid('wb-close'));

@@ -1,16 +1,51 @@
 /**
  * The shared whiteboard of the call this tab is in (no React, no canvas: the drawing itself).
  *
- * A drawing is a list of strokes; a stroke is a list of points, each between 0 and 1 across and
- * down, so it lands in the same place on every screen size. What this person draws is shown at
- * once and sent to the others in small batches; what the others draw arrives the same way.
+ * A drawing is a list of strokes. A freehand stroke (pen, highlighter, eraser) is a list of points,
+ * each between 0 and 1 across and down, so it lands in the same place on every screen size; a
+ * shape (line, arrow, rectangle, ellipse) is its two corners; text is one point and the words.
+ * What this person draws is shown at once and sent to the others in small batches (a shape or
+ * text goes whole, when it is finished); what the others draw arrives the same way.
  */
-export type Point = [number, number];
-export type Stroke = { id: string; userId: number; points: Point[]; color: string; size: number; eraser: boolean };
-export type Pen = { color: string; size: number; eraser: boolean };
+import {
+  HIGHLIGHT_FACTOR,
+  KINDS,
+  cleanText,
+  textSizeOf,
+  type Point,
+  type ShapeKind,
+  type StrokeKind,
+  type Tool,
+} from '../utils/boardTools.ts';
+export type { Point, ShapeKind, StrokeKind, Tool };
+
+export type Stroke = {
+  id: string;
+  userId: number;
+  points: Point[];
+  color: string;
+  size: number;
+  eraser: boolean;
+  /** Missing means a pen stroke. */
+  kind?: StrokeKind;
+  /** The words, for `text`. */
+  text?: string;
+};
+/** What the host has in hand: the colour and thickness, and the tool. */
+export type Pen = { color: string; size: number; tool: Tool };
 /** A change to the board, as sent and received (`call_wb`). */
 export type BoardOp =
-  | { type: 'stroke'; id: string; points: Point[]; color?: string; size?: number; eraser?: boolean; userId?: number }
+  | {
+      type: 'stroke';
+      id: string;
+      points: Point[];
+      color?: string;
+      size?: number;
+      eraser?: boolean;
+      kind?: StrokeKind;
+      text?: string;
+      userId?: number;
+    }
   | { type: 'undo'; stroke_id: string }
   | { type: 'clear' }
   | { type: 'full'; stroke_id: string }
@@ -34,11 +69,13 @@ export type BoardChange =
   | { kind: 'segment'; stroke: Stroke; from: number } // points from index `from` were added: draw just those
   | { kind: 'redraw' }; // strokes were removed or replaced, or the view moved: draw everything again
 
-export const PEN_COLOURS = ['#1B1F3A', '#6C4DE6', '#E0507A', '#1FA75A', '#E8930C'];
+export const PEN_COLOURS = ['#1B1F3A', '#6C4DE6', '#1E6FE8', '#1FA75A', '#F2C319', '#E8930C', '#E0507A', '#D7263D'];
 export const PEN_SIZES = [3, 6, 10];
 export const ERASER_FACTOR = 6;
 export const SEND_EVERY_MS = 100;
 const MAX_BATCH = 300;
+/** How many undone strokes can be put back. */
+const MAX_REDO = 50;
 
 type Deps = {
   myUserId: number;
@@ -51,6 +88,18 @@ type Deps = {
 const randomId = (userId: number) =>
   `${userId}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`.slice(0, 40);
 
+/** The stroke as first sent: everything about it. */
+const describe = (stroke: Stroke, points: Point[]): BoardOp => ({
+  type: 'stroke',
+  id: stroke.id,
+  points,
+  color: stroke.color,
+  size: stroke.size,
+  eraser: stroke.eraser,
+  ...(stroke.kind ? { kind: stroke.kind } : {}),
+  ...(stroke.text != null ? { text: stroke.text } : {}),
+});
+
 export class Whiteboard {
   private strokes = new Map<string, Stroke>();
   private listeners = new Set<(change: BoardChange) => void>();
@@ -59,6 +108,8 @@ export class Whiteboard {
   /** Points of the stroke being drawn that the others have not been sent yet. */
   private unsent: Point[] = [];
   private announced = false;
+  /** This person's undone strokes, latest last, ready to be put back. */
+  private undone: Stroke[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private viewTimer: ReturnType<typeof setTimeout> | null = null;
   /** Where this screen is looking. The host's view is sent to everyone, and theirs follow it. */
@@ -83,6 +134,9 @@ export class Whiteboard {
   get isEmpty(): boolean {
     return this.strokes.size === 0;
   }
+  get canRedo(): boolean {
+    return this.undone.length > 0;
+  }
 
   /** Told about every change to the drawing. Returns the way to stop listening. */
   subscribe(listener: (change: BoardChange) => void): () => void {
@@ -104,6 +158,7 @@ export class Whiteboard {
     this.strokes.clear();
     for (const s of strokes || []) this.strokes.set(s.id, { ...s, points: [...s.points] });
     this.full = false;
+    this.undone = [];
     this.tell({ kind: 'redraw' });
   }
 
@@ -116,6 +171,7 @@ export class Whiteboard {
     this.drawing = null;
     this.unsent = [];
     this.strokes.clear();
+    this.undone = [];
     this.full = false;
     this.view = HOME_VIEW;
     this.tell({ kind: 'redraw' });
@@ -148,6 +204,7 @@ export class Whiteboard {
         existing.points.push(...op.points);
         this.tell({ kind: 'segment', stroke: existing, from: Math.max(0, from - 1) });
       } else if (typeof op.color === 'string' && typeof op.size === 'number') {
+        if (op.kind !== undefined && !KINDS.includes(op.kind)) return;
         const stroke: Stroke = {
           id: op.id,
           userId: Number(op.userId ?? fromUserId ?? 0),
@@ -156,6 +213,12 @@ export class Whiteboard {
           size: op.size,
           eraser: op.eraser === true,
         };
+        if (op.kind && op.kind !== 'pen') stroke.kind = op.kind;
+        if (op.kind === 'text') {
+          const text = cleanText(op.text ?? '');
+          if (!text) return;
+          stroke.text = text;
+        }
         this.strokes.set(stroke.id, stroke);
         this.tell({ kind: 'segment', stroke, from: 0 });
       } else return;
@@ -178,27 +241,41 @@ export class Whiteboard {
       this.strokes.clear();
       this.drawing = null;
       this.unsent = [];
+      this.undone = [];
       this.full = false;
       this.view = HOME_VIEW;
       this.tell({ kind: 'redraw' });
     }
   }
 
-  /** This person puts the pen down. */
-  begin(pen: Pen, point: Point): void {
-    this.end();
-    const stroke: Stroke = {
+  private newStroke(pen: Pen, points: Point[]): Stroke {
+    return {
       id: (this.deps.newId ?? (() => randomId(this.deps.myUserId)))(),
       userId: this.deps.myUserId,
-      points: [point],
+      points,
       color: pen.color,
-      size: pen.eraser ? pen.size * ERASER_FACTOR : pen.size,
-      eraser: pen.eraser,
+      size: pen.size,
+      eraser: false,
     };
+  }
+
+  /** This person puts the pen, highlighter or eraser down. Any other tool draws nothing this way. */
+  begin(pen: Pen, point: Point): void {
+    this.end();
+    if (pen.tool !== 'pen' && pen.tool !== 'highlighter' && pen.tool !== 'eraser') return;
+    const stroke = this.newStroke(pen, [point]);
+    if (pen.tool === 'eraser') {
+      stroke.eraser = true;
+      stroke.size = pen.size * ERASER_FACTOR;
+    } else if (pen.tool === 'highlighter') {
+      stroke.kind = 'highlighter';
+      stroke.size = pen.size * HIGHLIGHT_FACTOR;
+    }
     this.strokes.set(stroke.id, stroke);
     this.drawing = stroke;
     this.unsent = [point];
     this.announced = false;
+    this.undone = [];
     this.tell({ kind: 'segment', stroke, from: 0 });
     this.schedule();
   }
@@ -225,6 +302,34 @@ export class Whiteboard {
     return !!this.drawing;
   }
 
+  /** A finished shape, from one corner to the other: shown at once and sent whole. */
+  addShape(pen: Pen, kind: ShapeKind, from: Point, to: Point): Stroke {
+    this.end();
+    const stroke = this.newStroke(pen, [from, to]);
+    stroke.kind = kind;
+    return this.add(stroke);
+  }
+
+  /** Words put on the board at a point: shown at once and sent whole. Null when there are no words. */
+  addText(pen: Pen, point: Point, text: string): Stroke | null {
+    this.end();
+    const words = cleanText(text);
+    if (!words) return null;
+    const stroke = this.newStroke(pen, [point]);
+    stroke.kind = 'text';
+    stroke.text = words;
+    stroke.size = textSizeOf(pen.size);
+    return this.add(stroke);
+  }
+
+  private add(stroke: Stroke): Stroke {
+    this.strokes.set(stroke.id, stroke);
+    this.undone = [];
+    this.deps.send(describe(stroke, stroke.points));
+    this.tell({ kind: 'segment', stroke, from: 0 });
+    return stroke;
+  }
+
   private schedule() {
     if (this.timer) return;
     this.timer = this.timers.setTimeout(() => {
@@ -241,15 +346,7 @@ export class Whiteboard {
     const points = this.unsent;
     this.unsent = [];
     if (this.announced) this.deps.send({ type: 'stroke', id: stroke.id, points });
-    else
-      this.deps.send({
-        type: 'stroke',
-        id: stroke.id,
-        points,
-        color: stroke.color,
-        size: stroke.size,
-        eraser: stroke.eraser,
-      });
+    else this.deps.send(describe(stroke, points));
     this.announced = true;
   }
 
@@ -261,9 +358,22 @@ export class Whiteboard {
       .find((s) => s.userId === this.deps.myUserId);
     if (!mine) return false;
     this.strokes.delete(mine.id);
+    this.undone.push(mine);
+    if (this.undone.length > MAX_REDO) this.undone.shift();
     this.full = false;
     this.deps.send({ type: 'undo', stroke_id: mine.id });
     this.tell({ kind: 'redraw' });
+    return true;
+  }
+
+  /** Puts back the stroke undone last. False when there is none. */
+  redoMine(): boolean {
+    this.end();
+    const stroke = this.undone.pop();
+    if (!stroke) return false;
+    this.strokes.set(stroke.id, stroke);
+    this.deps.send(describe(stroke, stroke.points));
+    this.tell({ kind: 'segment', stroke, from: 0 });
     return true;
   }
 
@@ -272,6 +382,7 @@ export class Whiteboard {
     this.drawing = null;
     this.unsent = [];
     this.strokes.clear();
+    this.undone = [];
     this.full = false;
     this.view = HOME_VIEW;
     this.deps.send({ type: 'clear' });

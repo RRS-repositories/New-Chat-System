@@ -267,7 +267,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 | `set_away { away }` | Away or back. |
 | `webrtc_signal { call_id, to_user_id, signal_data }` | Call set-up message for one other participant (64 KB at most). |
 | `call_reaction { call_id, emoji }` · `call_hand { call_id, up }` **(Phase 9)** | A reaction (five in three seconds at most) or a raised hand, from the tab that is in the call. |
-| `call_wb { call_id, op }` **(Phase 9)** | A whiteboard change: `stroke` (new, or more points), `undo` (own stroke), `clear` (host). |
+| `call_wb { call_id, op }` **(Phase 9)** | A whiteboard change: `stroke` (new — a pen or highlighter stroke, a shape by its two corners, or text by its point and words, told apart by `kind` — or more points for a freehand stroke), `undo` (own stroke), `clear` (host), `view` (where the host is looking). |
 | `call_rec { call_id, on }` **(Phase 9)** | The host says recording started or stopped. |
 | `call_bo_set { call_id, groups }` · `call_bo_start` · `call_bo_end` **(Phase 9)** | Host only: the arrangement of breakout groups, opening them, bringing everyone back. |
 
@@ -293,7 +293,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 | `call_host_changed { host_user_id }` **(Phase 9)** | The host of the call changed (the starter left, or came back). |
 | `call_reaction`, `call_hand_changed` **(Phase 9)** | A reaction to float up the screen; a hand went up or down. |
 | `call_invited`, `call_invite_pending`, `call_invite_ended { reason }`, `call_merge { join_call_id }` **(Phase 9)** | Ringing a person into a call: to that person; to the call (the "Ringing…" tile); the ring is over (`cancelled`, `timeout`, `declined`); and "join this call instead" to a caller who was merged. |
-| `call_wb { from_user_id, op }` **(Phase 9)** | A whiteboard change by someone else (or `full`: the board holds 2,000 strokes and took no more). |
+| `call_wb { from_user_id, op }` **(Phase 9)** | A whiteboard change by someone else — a stroke, shape or text (`kind`, `text`), more points, an undo, a clear, the host's view — or `full`: the board holds 2,000 strokes and took no more. |
 | `call_rec_changed { on, by }` **(Phase 9)** | Recording started or stopped. Everyone in the call is told. |
 | `call_bo_state { active, groups }` **(Phase 9)** | The breakout groups as they are now. |
 
@@ -448,7 +448,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Merge.** A person in a call who is rung one-to-one can accept and bring the caller in: the one-to-one ring ends ("Call joined to a call already going on") and the caller's tab joins the other call by itself. A one-to-one call that grew to three or more goes on until one person is left.
 
-**Whiteboard.** One board per call. **Only the host draws** (changed 5 Oct 2026 on the owner's word; the server refuses anyone else); everyone in the call sees it. Strokes are lists of points given as fractions of the board, so they land in the same place on every screen. The board is larger than the screen: the host moves it with Ctrl + drag, the hand tool or the scroll wheel, and zooms from 25% to 400% with Ctrl + scroll or the − and + buttons; everyone else's view follows the host's (they can look around themselves until the host next moves). Strokes are sent in batches about ten times a second, relayed by the server, and kept in memory (2,000 at most) with the host's view, so a late joiner sees the board as it is. Undo takes back the host's own latest stroke; clear wipes the board and puts the view back. Nothing is stored; the board is gone when the call ends.
+**Whiteboard.** One board per call. **Only the host draws** (changed 5 Oct 2026 on the owner's word; the server refuses anyone else); everyone in the call sees it. Strokes are lists of points given as fractions of the board, so they land in the same place on every screen. **Tools (28 Oct 2026):** pen, highlighter (three times as wide, see-through, drawn over the ink beneath), eraser, text, line, arrow, rectangle and ellipse, in eight colours and three thicknesses, with undo, redo and clear. A shape is its two corners, dragged out with a live outline on a second canvas and sent whole when let go; text is one point and the words (1–500 characters, typed in a box on the board in the colour and size they will have; Enter keeps them, Shift + Enter breaks a line, Escape cancels); the font size follows the thickness (16, 22 or 30 px on a board 1100 px wide). A stroke carries an optional `kind` (`highlighter`, `line`, `arrow`, `rect`, `ellipse`, `text`; missing means pen) and, for text, `text`; the server accepts only those kinds, the right number of points for each, and lets no more points be added to a shape or text. Keys for the host, never while typing: P H E T L A R O pick a tool, V the hand, Ctrl+Z undo, Ctrl+Y or Ctrl+Shift+Z redo. Code: `web/src/utils/boardTools.ts` (pure), `services/whiteboard.ts`, `components/calls/WhiteboardView.tsx` (`drawStroke`), `server/src/services/calls/call.board.js`. The board is larger than the screen: the host moves it with Ctrl + drag, the hand tool or the scroll wheel, and zooms from 25% to 400% with Ctrl + scroll or the − and + buttons; everyone else's view follows the host's (they can look around themselves until the host next moves). Strokes are sent in batches about ten times a second, relayed by the server, and kept in memory (2,000 at most) with the host's view, so a late joiner sees the board as it is. Undo takes back the host's own latest stroke; clear wipes the board and puts the view back. Nothing is stored; the board is gone when the call ends.
 
 **Sending takes you to the newest message.** Whatever the person was reading, sending a message scrolls the feed to the bottom (and loads the newest page if they were in far-back history); `sentCount` from `MessagePanel` to `MessageFeed`.
 
@@ -658,8 +658,8 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 478, 49 files |
-| Web | `cd web && npm test` | 238, 37 files |
+| Server | `cd server && npm test` | 525, 57 files |
+| Web | `cd web && npm test` | 251, 38 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
@@ -676,7 +676,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: profile photos **(Phase 9)** | `node server/dev/e2e/browser-avatars.cjs` | 6 |
 | Real browser: the call screen, reactions, hands, stand-in host **(Phase 9)** | `node server/dev/e2e/browser-callscreen.cjs` | 11 |
 | Real browser: incoming-call card, add to call, merge **(Phase 9)** | `node server/dev/e2e/browser-invite.cjs` | 9 |
-| Real browser: whiteboard **(Phase 9)** | `node server/dev/e2e/browser-board.cjs` | 7 |
+| Real browser: whiteboard — host only, late joiner, zoom and move, eraser, text, shapes with undo and redo, tool keys **(Phase 9, tools 28 Oct 2026)** | `node server/dev/e2e/browser-board.cjs` | 12 |
 | Real browser: recording (the saved file is played back) **(Phase 9)** | `node server/dev/e2e/browser-record.cjs` | 4 |
 | Real browser: breakout groups (checked on the real audio connections) **(Phase 9)** | `node server/dev/e2e/browser-breakout.cjs` | 7 |
 | Real browser: add people, the signed-in rule, Management or IT setting a password | `node server/dev/e2e/browser-people.cjs` | 5 |

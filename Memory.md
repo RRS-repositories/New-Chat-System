@@ -169,6 +169,24 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 28 Oct 2026 — the whiteboard gets text, a highlighter, shapes, redo and tool keys
+The owner, with a screenshot of a board in a call: "add more things here, text, pencil likewise, for better user
+benefits and use case". The host now has eight tools in a row on the left of the bar: pen, highlighter (wide,
+see-through, drawn over ink), eraser, text, line, arrow, rectangle, ellipse; eight colours (blue, yellow and red
+added) and the three thicknesses; undo, **redo** and clear; the hand and the zoom as before. Text: click where the
+words go, type in a box in the colour and size they will have, Enter keeps them (Shift + Enter for a new line, Escape
+cancels, or click elsewhere). Shapes are dragged out corner to corner with a live outline, then sent whole. A letter
+picks a tool (P H E T L A R O, V for the hand), Ctrl+Z takes back, Ctrl+Y or Ctrl+Shift+Z puts back; never while
+typing. Only the host draws, as before; watchers' screens show every kind. The wire format is the same `stroke` with
+two new optional fields, `kind` and `text`; the server accepts only the seven kinds, two corners for a shape, one point
+and 1–500 characters for text, and lets no more points be added to a shape or text; old clients ignore nothing they
+know. Where: `web/src/utils/boardTools.ts` (kinds, text sizes and cleaning, box and arrow-head geometry, the tool keys —
+pure, tested), `services/whiteboard.ts` (`addShape`, `addText`, `redoMine`, `canRedo`; the pen's `eraser` flag became a
+`tool`), `components/calls/WhiteboardView.tsx` (`drawStroke` for every kind, a second canvas for the shape being
+dragged, the text box), `server/src/services/calls/call.board.js` (`KINDS`, `cleanText`). Checked: web 251 (13 new),
+server 525 (3 new), type check and build clean, `browser-board.cjs` 12 of 12 in Edge (three new: text seen by everyone,
+rectangle and arrow with undo and redo, the tool keys and Ctrl+Z). Pull request opened for the owner to merge.
+
 ### 27 Oct 2026 — the picture viewer: opens whole, zooms, downloads
 The owner, with two screenshots: a picture opened in the viewer "gets zoomed a lot" (a tall screenshot ran off the
 bottom of the window), and he wants a Download button on pictures. Cause: the 23 Oct enlargement (up to three times)
