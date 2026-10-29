@@ -10,9 +10,9 @@ test('empty or whitespace-only is refused', () => {
   assert.throws(() => cleanMessageContent('   '), { code: 'empty' });
   assert.throws(() => cleanMessageContent('<br>'), { code: 'empty' });
 });
-test('over 4000 chars is refused', () => {
-  assert.equal(MAX_MESSAGE_LENGTH, 4000);
-  assert.throws(() => cleanMessageContent('a'.repeat(4001)), { code: 'too_long' });
+test('over 20,000 chars is refused', () => {
+  assert.equal(MAX_MESSAGE_LENGTH, 20000);
+  assert.throws(() => cleanMessageContent('a'.repeat(20001)), { code: 'too_long' });
 });
 test('emoji and angle brackets in prose survive', () => {
   assert.equal(cleanMessageContent('3 < 5 and 7 > 2 🎉'), '3 < 5 and 7 > 2 🎉');

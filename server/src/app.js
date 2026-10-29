@@ -38,7 +38,8 @@ export function createApp({
   app.disable('x-powered-by');
   app.use(createSecurityHeaders(config.frameAncestors ?? undefined));
   if (config.corsOrigins.length) app.use(cors({ origin: config.corsOrigins, credentials: false }));
-  app.use(express.json({ limit: '64kb' }));
+  // A message may be 20,000 characters: in a non-Latin script that is about 60 KB of UTF-8 before JSON escaping.
+  app.use(express.json({ limit: '256kb' }));
 
   app.get('/health', (_req, res) => res.json({ ok: true, service: 'chat' }));
 

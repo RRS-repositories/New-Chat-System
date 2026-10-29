@@ -30,7 +30,7 @@ test('a lone backtick does not switch tidying off', () => {
 
 test('a message that is only an empty tag is still refused, and length is still checked', () => {
   assert.throws(() => cleanMessageContent('<br>'), { code: 'empty' });
-  assert.throws(() => cleanMessageContent(`${FENCE}${'x'.repeat(4000)}${FENCE}`), { code: 'too_long' });
+  assert.throws(() => cleanMessageContent(`${FENCE}${'x'.repeat(20000)}${FENCE}`), { code: 'too_long' });
 });
 
 test('Windows line endings inside code become plain line breaks', () => {

@@ -169,6 +169,15 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 29 Oct 2026 — messages up to 20,000 characters
+The owner said 4,000 characters a message was too few and asked for 20,000. One constant, `MAX_MESSAGE_LENGTH` in
+`server/src/utils/sanitize.js`, is the whole limit: the web app has no count of its own and shows the server's "Message
+is over 20000 characters" if a message is longer. The JSON body limit in `server/src/app.js` goes from 64 KB to 256 KB
+with it, because 20,000 characters of a non-Latin script is about 60 KB before JSON escaping and would otherwise have
+been refused with an unhelpful error. The `messages.content` column is TEXT, so the database needs nothing. The
+Mattermost import cuts at the same constant. Tests, IMPLEMENTATION.md and the limits table updated. Pull request
+opened for the owner to merge.
+
 ### 29 Oct 2026 — files up to 50 MB
 The owner asked what the file limit was (20 MB, 5 files a message) and first said "take it to 50GB". Three facts
 against that: Cloudflare, which chat2 is behind, takes at most 100 MB in one request on any plan short of Enterprise
