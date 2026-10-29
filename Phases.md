@@ -186,7 +186,7 @@ adds), then run the deploy script. Then try it on real phones.
 - The font is served by the chat itself: the security headers do not allow fonts from another site.
 - Pins moved into the right-hand panel; Sign out moved into Settings.
 - Things the chat already had that the prototype does not show were kept: reply quotes, the notification bell, the formatting hint, channel Options, mentions.
-- Recording: a screen share that starts after recording began is heard but not seen in the file; the file is limited to 20 MB (the upload limit).
+- Recording: a screen share that starts after recording began is heard but not seen in the file; the file is limited to 50 MB (the upload limit).
 - Merge (bringing a caller into your call) works for one-to-one rings. For a ring from a channel call, Accept changes calls.
 
 ## Later — only on the owner's word 🔒

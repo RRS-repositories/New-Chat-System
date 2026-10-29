@@ -98,7 +98,7 @@ test('safeFilename strips paths and control characters', () => {
       ALLOWED_MIME.has('application/pdf') &&
       !ALLOWED_MIME.has('application/x-msdownload'),
   );
-  assert.equal(MAX_FILE_BYTES, 20 * 1024 * 1024);
+  assert.equal(MAX_FILE_BYTES, 50 * 1024 * 1024);
 });
 
 test('a PNG upload stores the file, makes a 480px thumbnail, creates a file message and broadcasts it', async () => {

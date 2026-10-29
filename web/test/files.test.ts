@@ -9,14 +9,14 @@ test('formatBytes', () => {
   assert.equal(formatBytes(2.5 * 1024 * 1024), '2.5 MB');
 });
 test('validateFiles: size, count and extension rules with readable errors', () => {
-  const r = validateFiles([f('a.png', 10), f('b.exe', 10), f('c.pdf', 21 * 1024 * 1024)]);
+  const r = validateFiles([f('a.png', 10), f('b.exe', 10), f('c.pdf', 51 * 1024 * 1024)]);
   assert.deepEqual(
     r.ok.map((x) => x.name),
     ['a.png'],
   );
   assert.equal(r.errors.length, 2);
   assert.match(r.errors[0]!, /b\.exe/);
-  assert.match(r.errors[1]!, /20 MB/);
+  assert.match(r.errors[1]!, /50 MB/);
   const six = validateFiles(Array.from({ length: 6 }, (_, i) => f(`${i}.txt`, 1)));
   assert.equal(six.ok.length, 5);
   assert.match(six.errors[0]!, /5 files/);
