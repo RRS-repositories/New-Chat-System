@@ -228,7 +228,7 @@ All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks
 | `GET /channels/:id/pins` · `POST /messages/:id/pin` · `DELETE /messages/:id/pin` | Pinned messages, 50 per channel at most. |
 | `POST /messages/:id/reactions` · `DELETE /messages/:id/reactions/:emoji` | Reactions (emoji up to 8 characters). |
 | `DELETE /channels/:id` | Management or IT: delete the channel and everything in it (messages, threads, files, mentions, reactions, calls, memberships) for good, in one transaction; files come off the disk after. Never General or a direct message; 409 while a call is going on. Audit row `channel.delete`. Everyone in it gets `channel_deleted`. |
-| `POST /channels/:id/upload` | Upload up to 5 files of 20 MB each, with an optional caption. Limit: 5 uploads per minute per person. |
+| `POST /channels/:id/upload` | Upload up to 5 files of 50 MB each, with an optional caption. Limit: 5 uploads per minute per person. |
 | `GET /channels/:id/files` | Files shared in a channel. |
 | `GET /files/:id/download` · `GET /files/:id/thumb` | The file, or its thumbnail. Channel members only. |
 | `GET /search?q=&channelId=&page=` | Message search, 20 results per page (see 9.4). |
@@ -324,7 +324,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 
 ### 9.3 Files
 
-- Up to **5 files per message, 20 MB each**.
+- Up to **5 files per message, 50 MB each** (20 MB until 29 Oct 2026).
 - Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, ZIP, MP4, WebM, and sound files (MP3, WAV, M4A, AAC, OGG; since 7 Oct 2026, for call recordings from the CRM's phone system). A sound file's card plays it in place on tap, then offers the download. Each type's content is checked against its first bytes (`server/src/utils/fileSignature.js`).
 - Stored under `CHAT_UPLOADS_DIR` (`/data/chat-uploads` on the server), in a folder per channel, under a generated name. File names are cleaned and sent back with a safe `Content-Disposition`.
 - Images get a JPEG **thumbnail** (`sharp`; 480 px wide since 23 Oct 2026, 200 px before). Clicking opens the viewer: the picture opens whole (a big one shrunk to the window both ways, a small one enlarged to read, at most twice), then zooms with + / −, the wheel, the keys or a double-click, scrolling once it is bigger than the window; its toolbar has Download, and the preview in the feed has a Download button in its corner (`utils/viewer.ts`, `components/messages/Lightbox.tsx`).
@@ -490,7 +490,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Keyboard shortcuts in a call (14 Oct 2026).** Ctrl+D (Command+D on a Mac) mutes or unmutes, Ctrl+Shift+S shares the screen or stops sharing, Ctrl+Shift+H raises or lowers the hand; the buttons show the keys in their hover hint. No shortcut leaves a call. `web/src/utils/callShortcuts.ts`, handled in `CallScreen` while in a call.
 
-**Recording.** Host only. Made in the host's browser: every voice is mixed into one track (plus the shared screen, if one is being shared when recording starts) and written as WebM. Everyone sees a REC pill and is told, including people who join meanwhile. When recording stops, or the host leaves or is cut off, the file is uploaded into the call's conversation as "Call recording" (`metadata.kind = call_recording`). Limits: closing the host's tab loses it; 20 MB at most (about 80 minutes of voice), then it stops and saves by itself.
+**Recording.** Host only. Made in the host's browser: every voice is mixed into one track (plus the shared screen, if one is being shared when recording starts) and written as WebM. Everyone sees a REC pill and is told, including people who join meanwhile. When recording stops, or the host leaves or is cut off, the file is uploaded into the call's conversation as "Call recording" (`metadata.kind = call_recording`). Limits: closing the host's tab loses it; 50 MB at most (about 200 minutes of voice), then it stops and saves by itself.
 
 **Breakout groups.** Host only: up to six named groups; anyone not in a group stays in the main room with the host. The server keeps the arrangement and tells the call. The separation of sound is done by each browser: it takes its microphone off the connection to everyone outside its room (`CallManager.setRoom`), which needs no new call set-up and means those people receive no sound at all. People can be moved while groups are open. Screen sharing and the whiteboard are refused while groups are open. Someone who leaves the call leaves their group; when nobody is left in any group, the groups close.
 
@@ -568,7 +568,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 |---|---|
 | Message length | 4,000 characters |
 | Messages | 1 per second per person |
-| Files per message / size each | 5 / 20 MB |
+| Files per message / size each | 5 / 50 MB |
 | Uploads | 5 per minute per person |
 | All requests **(PR #9)** | 600 per minute per person |
 | JSON request body | 64 KB |

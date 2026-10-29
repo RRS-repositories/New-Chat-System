@@ -115,7 +115,7 @@ export function FileAttachment({ file }: { file: ChatFile }) {
   );
 }
 
-/** Nothing is fetched until the person taps play — a 20 MB video must not pull itself onto a phone unasked. */
+/** Nothing is fetched until the person taps play — a 50 MB video must not pull itself onto a phone unasked. */
 function VideoAttachment({ file, src }: { file: ChatFile; src: string }) {
   const { actions } = useChat();
   const [url, setUrl] = useState<string | null>(null);

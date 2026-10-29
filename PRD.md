@@ -38,7 +38,7 @@ These come from the owner (Brad) and do not change without his say.
 | **Channels** | Public channels anyone can browse and join. Private channels by invitation. The owner of a channel, a channel admin or Management can rename it and archive it; anyone can leave one. |
 | **Direct messages** | One-to-one and small group conversations. |
 | **Messages** | Send, edit, delete. Replies, threads, @mentions, emoji reactions, pinned messages. Web addresses are clickable. Simple formatting: bold, code, lists. |
-| **Files** | Share files and images up to 20 MB, with image previews. |
+| **Files** | Share files and images up to 50 MB, with image previews. |
 | **Search** | One box finds messages (part of a word is enough, and a person's name finds what they wrote), people and channels. Newest first. |
 | **Unread tracking** | Unread counts, a red badge for mentions, the count in the browser tab title. A channel is not marked read while you are not looking at it. |
 | **Presence** | Green dot online, amber away, and a status message each person can set. |

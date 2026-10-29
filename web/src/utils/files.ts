@@ -1,4 +1,4 @@
-export const MAX_FILE_BYTES = 20 * 1024 * 1024;
+export const MAX_FILE_BYTES = 50 * 1024 * 1024;
 export const MAX_FILES = 5;
 const EXT = [
   'jpg',
@@ -51,7 +51,7 @@ export function validateFiles(files: File[]): { ok: File[]; errors: string[] } {
       continue;
     }
     if (f.size > MAX_FILE_BYTES) {
-      errors.push(`${f.name}: files must be 20 MB or smaller`);
+      errors.push(`${f.name}: files must be 50 MB or smaller`);
       continue;
     }
     ok.push(f);

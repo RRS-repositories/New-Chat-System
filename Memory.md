@@ -169,6 +169,17 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 29 Oct 2026 — files up to 50 MB
+The owner asked what the file limit was (20 MB, 5 files a message) and first said "take it to 50GB". Three facts
+against that: Cloudflare, which chat2 is behind, takes at most 100 MB in one request on any plan short of Enterprise
+(bigger needs chunked uploads, a new system); the server holds each upload in memory (23 GB in the box, shared with
+about sixty processes); the data disk has 604 GB free. Offered 50 MB today, 100 MB streamed to disk (a day), or
+multi-gigabyte with chunking (days, planned first); he chose **50 MB**. Changed: `MAX_FILE_BYTES` in
+`web/src/utils/files.ts` and `server/src/services/files/storage.js`, the two messages, the recording limit text (a
+recording now runs to about 200 minutes), tests, docs. **On the server, not in the repository:** nginx's
+`client_max_body_size` for the chat2 site goes from 25M to 60M at deploy time, or uploads over 25 MB are refused
+before they reach the chat. Still 5 files a message. Pull request opened for the owner to merge.
+
 ### 28 Oct 2026 — the whiteboard gets text, a highlighter, shapes, redo and tool keys
 The owner, with a screenshot of a board in a call: "add more things here, text, pencil likewise, for better user
 benefits and use case". The host now has eight tools in a row on the left of the bar: pen, highlighter (wide,

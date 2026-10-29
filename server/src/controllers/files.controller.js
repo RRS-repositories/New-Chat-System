@@ -34,7 +34,7 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
       upload.array('files', MAX_FILES)(req, res, (err) => {
         if (!err) return next();
         if (err.code === 'LIMIT_FILE_SIZE')
-          return sendError(res, httpError(400, 'file_too_large', 'Files must be 20 MB or smaller'));
+          return sendError(res, httpError(400, 'file_too_large', 'Files must be 50 MB or smaller'));
         if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE')
           return sendError(res, httpError(400, 'too_many_files', 'Up to 5 files per message'));
         return sendError(res, err);

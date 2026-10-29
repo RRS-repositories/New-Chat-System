@@ -72,7 +72,7 @@ export function useCallRecording({ socket, callApi, userId, callId, ui, snapshot
           await callApi.uploadRecording(target.channelId, file, target.callId, result.durationSecs);
           tell(
             result.hitLimit
-              ? 'The recording reached the 20 MB limit. It was stopped and saved to the conversation.'
+              ? 'The recording reached the 50 MB limit. It was stopped and saved to the conversation.'
               : 'Recording saved to the conversation',
           );
         })
