@@ -145,7 +145,7 @@ const MM = {
         id: 'p6',
         userid: 'u-ann',
         rootid: '',
-        message: 'x'.repeat(5000),
+        message: 'x'.repeat(25000),
         props: '{}',
         createat: T0 + 60_000,
         editat: 0,
@@ -228,8 +228,8 @@ test('convertContent: mentions become the chat’s form, everyone-mentions becom
     'Hello @Ann Agent and @all, see x@y.com and @unknown',
   );
   assert.equal(convertContent('@here now', names), '@all now');
-  const cut = convertContent('x'.repeat(5000), names);
-  assert.ok(cut.length <= 4000 && cut.endsWith('[cut: the original was longer]'));
+  const cut = convertContent('x'.repeat(25000), names);
+  assert.ok(cut.length <= 20000 && cut.endsWith('[cut: the original was longer]'));
   assert.equal(normaliseMime('text/csv; charset=utf-8'), 'text/csv');
   assert.equal(emojiOf('white_check_mark'), '✅');
   assert.equal(emojiOf('+1_skin-tone-3'), '👍');

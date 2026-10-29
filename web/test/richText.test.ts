@@ -132,7 +132,8 @@ test('a very long message is handled quickly', () => {
     (_, i) => `line ${i} with **bold** and https://example.com/${i} and \`code\``,
   ).join('\n');
   const started = performance.now();
-  const blocks = parseRich(long.slice(0, 4000));
+  assert.ok(long.length >= 20000, 'the fixture is at least a full-length message');
+  const blocks = parseRich(long.slice(0, 20000));
   assert.ok(blocks.length >= 1);
   assert.ok(performance.now() - started < 50, 'well under a frame or two');
 });

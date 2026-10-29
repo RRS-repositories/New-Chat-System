@@ -201,7 +201,7 @@ Every database connection opens with `search_path` set to `chat, public` (a conn
 
 ## 7. HTTP API
 
-All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks in section 5. Errors come back in one shape: `{ success: false, code, message }`; a server fault says only "Something went wrong". JSON bodies are limited to 64 KB.
+All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks in section 5. Errors come back in one shape: `{ success: false, code, message }`; a server fault says only "Something went wrong". JSON bodies are limited to 256 KB (room for a 20,000-character message in any script).
 
 | Method and address | What it does |
 |---|---|
@@ -312,7 +312,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 
 ### 9.2 Messages
 
-- Plain text, up to **4,000 characters**. HTML tags are removed and their text kept ("3 < 5" stays as written). Trailing spaces and runs of spaces are tidied. **Code is the exception:** a fenced block and `inline code` are stored exactly as typed.
+- Plain text, up to **20,000 characters**. HTML tags are removed and their text kept ("3 < 5" stays as written). Trailing spaces and runs of spaces are tidied. **Code is the exception:** a fenced block and `inline code` are stored exactly as typed.
 - **Formatting** (shown when the message is drawn, never stored as HTML): `**bold**`, `` `code` ``, fenced code blocks, lists (lines starting with `-`, `*` or `1.`), tables (a `| a | b |` row with a `|---|---|` line under it, then rows; `\|` is a pipe inside a cell), and web addresses as links. Links are `http` and `https` only, open in a new tab, and pass no referrer. A full stop or bracket after an address is not part of it. Code: `web/src/utils/richText.ts` (pure parser) and `web/src/components/messages/RichText.tsx`. **Pasting a table** (cells copied from Excel or Google Sheets, or a table from a web page) puts a Markdown table in the message box, the way Mattermost does (`web/src/utils/tablePaste.ts`, from the clipboard's HTML `<table>` or its tab-separated text); one row or one column is left as text.
 - **Edit** your own message (shows as edited). **Delete** is soft; a channel admin can delete anyone's message, and that is written to `audit_log`.
 - **Reply** quotes one message. **Threads** hang replies off a root message and open in a side panel.
@@ -545,7 +545,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 - One error handler; server faults reveal nothing ("Something went wrong").
 - Message content is plain text with tags removed. Formatting and links are built on screen from text pieces, never from HTML, so nothing typed in a message can run as code. Links are `http`/`https` only.
 - Files: type allowlist, size and count limits, cleaned names, members-only downloads, SVG never rendered.
-- Request body limit 64 KB. `X-Powered-By` removed. CORS is off unless origins are listed.
+- Request body limit 256 KB. `X-Powered-By` removed. CORS is off unless origins are listed.
 - Push subscription endpoints are validated (https only, a public host, never localhost or a private address) and capped at 10 per person.
 - Call set-up messages are capped at 64 KB and only relayed between participants of the same call.
 - The settings file on the server is readable by its owner only and holds only what the chat needs. No secret is in the repository, which is public.
@@ -566,12 +566,12 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 | What | Limit |
 |---|---|
-| Message length | 4,000 characters |
+| Message length | 20,000 characters |
 | Messages | 1 per second per person |
 | Files per message / size each | 5 / 50 MB |
 | Uploads | 5 per minute per person |
 | All requests **(PR #9)** | 600 per minute per person |
-| JSON request body | 64 KB |
+| JSON request body | 256 KB |
 | Messages per page | 50 (100 at most) |
 | Messages of one channel kept on the page | 400 |
 | Search results per page | 20 |

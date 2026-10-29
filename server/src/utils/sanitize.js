@@ -1,4 +1,4 @@
-export const MAX_MESSAGE_LENGTH = 4000;
+export const MAX_MESSAGE_LENGTH = 20000;
 
 const fail = (code, message) => Object.assign(new Error(message), { code, status: 400 });
 

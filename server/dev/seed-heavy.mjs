@@ -8,7 +8,7 @@ const int = (value, fallback) => (Number(value) > 0 ? Math.floor(Number(value)) 
 
 /**
  * people: extra staff (the office has about 120).
- * messages: messages in #general, one second apart, newest last. Every 50th is a long one (about 4,000 characters).
+ * messages: messages in #general, one second apart, newest last. Every 50th is a long one (about 4,000 characters; the limit is 20,000).
  * channels: extra public channels everyone is in, each with a few unread messages.
  */
 export async function seedHeavy(pg, env = process.env) {
