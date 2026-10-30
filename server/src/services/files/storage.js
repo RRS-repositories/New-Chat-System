@@ -19,6 +19,8 @@ export const ALLOWED_MIME = new Map([
   // Markdown notes. Windows browsers often send a .md file with no type at all (see checkUploads).
   ['text/markdown', 'md'],
   ['text/x-markdown', 'md'],
+  // Web pages (30 Oct 2026): kept and downloaded like any file, never served as a page (see the download route).
+  ['text/html', 'html'],
   // Data and settings files (plain text; content checked for binary bytes like the others).
   ['application/json', 'json'],
   ['text/xml', 'xml'],

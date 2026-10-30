@@ -11,6 +11,7 @@ import { contentDisposition } from '../utils/filenames.js';
 import { cleanMessageContent } from '../utils/sanitize.js';
 
 const MAX_FILES = 5;
+const NEVER_INLINE = new Set(['image/svg+xml', 'text/html']);
 
 export function createFileController({ db, emit, uploadsDir, notifier = null }) {
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_FILE_BYTES, files: MAX_FILES } });
@@ -64,8 +65,9 @@ export function createFileController({ db, emit, uploadsDir, notifier = null }) 
 
     download: wrap(async (req, res) => {
       const file = await fileForMember(req.params.id, req.user.id);
-      // An SVG is never served as an image: it can carry script.
-      res.setHeader('Content-Type', file.mimeType === 'image/svg+xml' ? 'application/octet-stream' : file.mimeType);
+      // An SVG is never served as an image and a web page never as a page: both can carry script,
+      // and a page shown from this address could read the sign-in token. They download as plain bytes.
+      res.setHeader('Content-Type', NEVER_INLINE.has(file.mimeType) ? 'application/octet-stream' : file.mimeType);
       res.setHeader('Content-Disposition', contentDisposition(file.filename));
       res.setHeader('X-Content-Type-Options', 'nosniff');
       stream(res, file.filePath);

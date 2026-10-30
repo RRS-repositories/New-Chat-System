@@ -182,6 +182,45 @@ test('settings, log and data files are allowed as plain text; a script is still 
   assert.equal(r.body.code, 'file_type', 'a script is not a kind the chat carries');
 });
 
+test('a web page is allowed, also untyped; it downloads as plain bytes, never as a page', async () => {
+  const page = Buffer.from('<!doctype html><html><body><script>alert(1)</script>Hello</body></html>');
+  let db = makeDb();
+  let a = app(db);
+  let r = await request(a)
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', page, { filename: 'report.html', contentType: 'text/html' });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(db.inserted[0].mime_type, 'text/html');
+  const dl = await request(a).get(`/api/chat/files/${db.inserted[0].id}/download`).set('Authorization', token(7));
+  assert.equal(dl.status, 200);
+  assert.equal(
+    dl.headers['content-type'].split(';')[0],
+    'application/octet-stream',
+    'a page is never served as a page',
+  );
+  assert.match(dl.headers['content-disposition'], /^attachment; filename="report\.html"/);
+  assert.equal(dl.headers['x-content-type-options'], 'nosniff');
+
+  db = makeDb();
+  r = await request(app(db))
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', page, { filename: 'offer.htm', contentType: 'application/octet-stream' });
+  assert.equal(r.status, 201, 'the name says what an untyped page is');
+  assert.equal(db.inserted[0].mime_type, 'text/html');
+
+  r = await request(app(makeDb()))
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', Buffer.concat([Buffer.from('MZ\0\0'), Buffer.alloc(64)]), {
+      filename: 'program.html',
+      contentType: 'text/html',
+    });
+  assert.equal(r.status, 400, 'binary content wearing a .html name');
+  assert.equal(r.body.code, 'file_content');
+});
+
 test('too large, disallowed type, and no file are refused and leave nothing on disk', async () => {
   const before = countOnDisk();
   const a = app(makeDb());

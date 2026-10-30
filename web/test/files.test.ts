@@ -43,6 +43,13 @@ test('Markdown notes are allowed and known as Markdown', () => {
   assert.equal(r.errors.length, 0);
   assert.equal(fileKind('', 'notes.md'), 'Markdown');
 });
+test('web pages are allowed and known as Web page', () => {
+  const r = validateFiles([f('report.html', 10), f('offer.htm', 10)]);
+  assert.equal(r.errors.length, 0);
+  assert.equal(r.ok.length, 2);
+  assert.equal(fileKind('text/html', 'report.html'), 'Web page');
+  assert.equal(isImage('text/html'), false);
+});
 test('sound files (call recordings) are allowed and known as Audio', () => {
   const r = validateFiles([f('call-2026-10-07.mp3', 10), f('note.wav', 10), f('voice.m4a', 10), f('x.ogg', 10)]);
   assert.equal(r.errors.length, 0);

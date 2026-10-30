@@ -169,6 +169,15 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 30 Oct 2026 — HTML files can be sent
+The owner asked for HTML files to be allowed as attachments. Added `text/html` to the allowlist in
+`server/src/services/files/storage.js`, to the content checks (text: no binary bytes) and to the name-to-type map for
+browsers that send a page untyped (`.html`, `.htm`); the web app accepts both endings and calls them "Web page". The one
+safety point: a page served from the chat's own address would run its scripts with the chat's sign-in token in reach, so
+the download route serves `text/html` as `application/octet-stream`, the way it already does SVG (`NEVER_INLINE` in
+`server/src/controllers/files.controller.js`). The web app never shows a page in place; the card offers the download.
+Tests and docs updated. Pull request opened for the owner to merge.
+
 ### 29 Oct 2026 — messages up to 20,000 characters
 The owner said 4,000 characters a message was too few and asked for 20,000. One constant, `MAX_MESSAGE_LENGTH` in
 `server/src/utils/sanitize.js`, is the whole limit: the web app has no count of its own and shows the server's "Message
