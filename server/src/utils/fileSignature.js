@@ -33,6 +33,7 @@ const CHECKS = {
   'text/plain': isText,
   'text/markdown': isText,
   'text/x-markdown': isText,
+  'text/html': isText,
   'application/json': isText,
   'text/xml': isText,
   'application/xml': isText,

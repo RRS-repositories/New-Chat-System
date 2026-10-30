@@ -28,6 +28,8 @@ const TEXT_BY_EXTENSION = {
   yaml: 'text/yaml',
   json: 'application/json',
   xml: 'text/xml',
+  html: 'text/html',
+  htm: 'text/html',
 };
 const NO_TYPE = new Set(['', 'application/octet-stream']);
 export function typeFromName(mimetype, filename) {

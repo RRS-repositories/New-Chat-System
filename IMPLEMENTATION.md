@@ -325,10 +325,10 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 ### 9.3 Files
 
 - Up to **5 files per message, 50 MB each** (20 MB until 29 Oct 2026).
-- Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, ZIP, MP4, WebM, and sound files (MP3, WAV, M4A, AAC, OGG; since 7 Oct 2026, for call recordings from the CRM's phone system). A sound file's card plays it in place on tap, then offers the download. Each type's content is checked against its first bytes (`server/src/utils/fileSignature.js`).
+- Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, HTML (since 30 Oct 2026), ZIP, MP4, WebM, and sound files (MP3, WAV, M4A, AAC, OGG; since 7 Oct 2026, for call recordings from the CRM's phone system). A sound file's card plays it in place on tap, then offers the download. Each type's content is checked against its first bytes (`server/src/utils/fileSignature.js`).
 - Stored under `CHAT_UPLOADS_DIR` (`/data/chat-uploads` on the server), in a folder per channel, under a generated name. File names are cleaned and sent back with a safe `Content-Disposition`.
 - Images get a JPEG **thumbnail** (`sharp`; 480 px wide since 23 Oct 2026, 200 px before). Clicking opens the viewer: the picture opens whole (a big one shrunk to the window both ways, a small one enlarged to read, at most twice), then zooms with + / −, the wheel, the keys or a double-click, scrolling once it is bigger than the window; its toolbar has Download, and the preview in the feed has a Download button in its corner (`utils/viewer.ts`, `components/messages/Lightbox.tsx`).
-- Files are fetched with the sign-in token and shown from memory; only channel members can fetch them. An SVG is never served as an image (it can carry script); it downloads instead.
+- Files are fetched with the sign-in token and shown from memory; only channel members can fetch them. An SVG is never served as an image and an HTML file never as a page (both can carry script, and a page shown from the chat's address could read the sign-in token); they download as plain bytes instead.
 - **(PR #9)** The content must match the type: a real JPEG, PNG, PDF and so on is recognised by its first bytes. A program renamed to `photo.jpg` is refused with code `file_content`.
 
 ### 9.4 Search
@@ -544,7 +544,7 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 - All SQL uses parameters. No user input is ever placed in query text.
 - One error handler; server faults reveal nothing ("Something went wrong").
 - Message content is plain text with tags removed. Formatting and links are built on screen from text pieces, never from HTML, so nothing typed in a message can run as code. Links are `http`/`https` only.
-- Files: type allowlist, size and count limits, cleaned names, members-only downloads, SVG never rendered.
+- Files: type allowlist, size and count limits, cleaned names, members-only downloads, SVG and HTML never rendered.
 - Request body limit 256 KB. `X-Powered-By` removed. CORS is off unless origins are listed.
 - Push subscription endpoints are validated (https only, a public host, never localhost or a private address) and capped at 10 per person.
 - Call set-up messages are capped at 64 KB and only relayed between participants of the same call.
