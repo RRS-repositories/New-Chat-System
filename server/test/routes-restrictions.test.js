@@ -11,6 +11,7 @@ import { createChannelRoutes } from '../src/routes/channels.routes.js';
 import { createUserRoutes } from '../src/routes/users.routes.js';
 import { makeDb, token, user, secret, aud } from './route-helper.js';
 import { addRestriction } from '../src/models/restrictions.model.js';
+import { shareRefusal } from '../src/services/channels.service.js';
 import { createMessageRoutes } from '../src/routes/messages.routes.js';
 import { createFileRoutes } from '../src/routes/files.routes.js';
 import { perUserLimiter } from '../src/middleware/rate-limit.js';
@@ -243,6 +244,52 @@ test('POST /channels/:id/members (private): blocked pair → 403 and no member i
   const q = db.calls.find((c) => /LEAST\(user_id/.test(c.sql));
   assert.deepEqual([...q.params[0]].sort(), [3, 5, 7]);
   assert.equal(touched(db, /INSERT INTO chat\.channel_members/), false);
+});
+
+test('POST /channels/:id/members (private): the refusal names the pair, who set it and when, and where to lift it', async () => {
+  const row = (a, b, extra = {}) => ({
+    a,
+    b,
+    a_name: { 3: 'Bob', 5: 'Soham Jambhe', 7: 'Ann' }[a],
+    b_name: { 3: 'Bob', 5: 'Soham Jambhe', 7: 'Ann' }[b],
+    set_by: 'Jerusha Nair',
+    set_at: '2026-10-14T16:28:18.412Z',
+    ...extra,
+  });
+  // Bob (already in) and Soham (joining) may not share a channel.
+  let db = makeDb({ rows: { ...privateChannel, 'LEAST\\(user_id, target_user_id\\)': [row(3, 5)] } });
+  let r = await request(app(db))
+    .post('/api/chat/channels/c1/members')
+    .set('Authorization', token(7))
+    .send({ userIds: [5] });
+  assert.equal(r.status, 403);
+  assert.equal(r.body.code, 'restricted');
+  assert.equal(
+    r.body.message,
+    'Bob and Soham Jambhe may not share a channel (set by Jerusha Nair, 14 Oct 2026). Management can lift this under Admin → Restrictions.',
+  );
+  // The person asking is one of the pair: "You".
+  db = makeDb({ rows: { ...privateChannel, 'LEAST\\(user_id, target_user_id\\)': [row(5, 7, { set_by: null })] } });
+  r = await request(app(db))
+    .post('/api/chat/channels/c1/members')
+    .set('Authorization', token(7))
+    .send({ userIds: [5] });
+  assert.equal(
+    r.body.message,
+    'You and Soham Jambhe may not share a channel. Management can lift this under Admin → Restrictions.',
+  );
+  assert.equal(touched(db, /INSERT INTO chat\.channel_members/), false);
+});
+
+test('shareRefusal: two pairs shown, the rest counted; no names → the plain sentence', () => {
+  const p = (a, b, aName, bName) => ({ a, b, aName, bName, setBy: 'Meg', setAt: '2026-10-01T00:00:00Z' });
+  assert.equal(
+    shareRefusal([p(1, 2, 'Ann', 'Bob'), p(1, 3, 'Ann', 'Cy'), p(1, 4, 'Ann', 'Dee')], { actorId: 9 }),
+    'Ann and Bob may not share a channel (set by Meg, 1 Oct 2026); Ann and Cy may not share a channel (set by Meg, 1 Oct 2026); and 1 more pair. Management can lift this under Admin → Restrictions.',
+  );
+  assert.equal(shareRefusal([{ a: 1, b: 2 }]), 'Some of these people cannot share a private channel');
+  assert.equal(shareRefusal([]), 'Some of these people cannot share a private channel');
+  assert.match(shareRefusal([p(1, 2, 'Ann', 'Bob')], { actorId: 2 }), /^You and Ann may not share a channel/);
 });
 
 test('POST /channels/:id/members (private): no blocked pair → members added', async () => {
