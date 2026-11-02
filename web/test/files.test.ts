@@ -57,6 +57,9 @@ test('sound files (call recordings) are allowed and known as Audio', () => {
   assert.equal(isAudio('audio/mpeg'), true);
   assert.equal(isAudio('video/webm'), false);
   assert.equal(fileKind('audio/mpeg', 'call.mp3'), 'Audio');
+  assert.equal(fileKind('audio/webm', 'Voice note 2026-11-02 09.05.webm'), 'Voice note');
+  assert.equal(fileKind('audio/mp4', 'Voice note 2026-11-02 09.05.m4a'), 'Voice note');
+  assert.equal(fileKind('video/webm', 'Call recording 2026-11-02 09.05.webm'), 'Recording');
 });
 test('isImage', () => {
   assert.equal(isImage('image/png'), true);

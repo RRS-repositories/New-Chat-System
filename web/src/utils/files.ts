@@ -103,6 +103,7 @@ const KINDS: Record<string, string> = {
 };
 /** A plain word for what a file is, shown on its card: "PDF", "Spreadsheet", "Image". */
 export function fileKind(mime: string, filename: string): string {
+  if (/^Voice note /.test(filename)) return 'Voice note';
   const ext = (filename.split('.').pop() || '').toLowerCase();
   if (KINDS[ext]) return KINDS[ext];
   if (mime.startsWith('image/')) return 'Image';

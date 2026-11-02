@@ -8,14 +8,19 @@ import {
   type ClipboardEvent,
   type KeyboardEvent,
 } from 'react';
-import { Paperclip, Send, Smile, X } from 'lucide-react';
+import { AudioLines, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
 import type { Message } from '../../types/index.ts';
 import { ReplyingToBar } from './ReplyingToBar.tsx';
 import { EmojiPicker } from './EmojiPicker.tsx';
 import { MentionAutocomplete } from './MentionAutocomplete.tsx';
+import { VoiceNoteBar } from './VoiceNoteBar.tsx';
 import { mentionQueryAt, insertMention, mentionItems } from '../../utils/mentions.ts';
 import { ACCEPT, formatBytes, validateFiles } from '../../utils/files.ts';
 import { tableFromClipboard } from '../../utils/tablePaste.ts';
+import { joinSpeech, spliceSpoken, spokenMarks, type Range } from '../../utils/speechText.ts';
+import { Dictation, canDictate } from '../../services/dictation.ts';
+import { canRecordVoice } from '../../services/voiceNote.ts';
+import { useVoiceNote } from '../../hooks/useVoiceNote.ts';
 
 type Props = {
   onSend: (c: string) => Promise<void>;
@@ -62,6 +67,62 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
   const fileInput = useRef<HTMLInputElement>(null);
   const emojiButton = useRef<HTMLButtonElement>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+
+  // Dictation: the browser's speech recognition puts words where the cursor was when it started.
+  // The dictated span is kept as a range, so the words follow whatever was typed before or after.
+  const [dictating, setDictating] = useState(false);
+  const dictation = useRef<Dictation | null>(null);
+  const spoken = useRef<{ range: Range; committed: string }>({ range: { start: 0, end: 0 }, committed: '' });
+  const dictationOn = useMemo(() => canDictate(), []);
+  const voiceOn = useMemo(() => canRecordVoice(), []);
+  function heardWords(committed: string | null, interim: string) {
+    setText((prev) => {
+      const state = spoken.current;
+      const before = prev.slice(0, state.range.start);
+      if (committed)
+        state.committed = joinSpeech(before + state.committed, spokenMarks(committed)).slice(before.length);
+      const shown = joinSpeech(before + state.committed, spokenMarks(interim)).slice(before.length);
+      const next = spliceSpoken(prev, state.range, shown);
+      state.range = next.range;
+      return next.text;
+    });
+    const end = spoken.current.range.end;
+    setCaret(end);
+    requestAnimationFrame(() => ta.current?.setSelectionRange(end, end));
+  }
+  function toggleDictation() {
+    if (dictating) return dictation.current?.stop();
+    const at = ta.current?.selectionStart ?? text.length;
+    spoken.current = { range: { start: at, end: at }, committed: '' };
+    setError(null);
+    dictation.current ??= new Dictation({
+      onText: heardWords,
+      onListening: setDictating,
+      onProblem: (message) => {
+        setError(message);
+        setDictating(false);
+      },
+    });
+    dictation.current.start();
+    ta.current?.focus();
+  }
+  useEffect(() => () => dictation.current?.stop(), []);
+
+  // A voice note goes out through the same upload as an attached file, with whatever is typed as its caption.
+  const voice = useVoiceNote({
+    onSend: async (file) => {
+      if (!onUpload) throw new Error('Files cannot be sent here');
+      await onUpload([file], text.trim());
+      setText('');
+      setCaret(0);
+    },
+  });
+  function startVoiceNote() {
+    if (dictating) dictation.current?.stop();
+    setError(null);
+    void voice.start();
+  }
+
   // Opening a conversation puts the cursor in the box (the owner's rule, 12 Oct 2026). Not on a
   // phone or tablet, where that would throw the keyboard up over the messages.
   useEffect(() => {
@@ -206,69 +267,102 @@ export const MessageInput = forwardRef<MessageInputHandle, Props>(function Messa
           ))}
         </div>
       )}
-      {error && <p className="error">{error}</p>}
+      {(error || voice.error) && <p className="error">{error || voice.error}</p>}
       {listOpen && <MentionAutocomplete items={items} idx={idx} onPick={pick} />}
-      <div className="comp-in input-row">
-        {onUpload && (
-          <>
-            <input
-              ref={fileInput}
-              type="file"
-              multiple
-              accept={ACCEPT}
-              hidden
-              onChange={(e) => {
-                addFiles(Array.from(e.target.files || []));
-                e.target.value = '';
-              }}
-            />
+      {voice.phase !== 'idle' ? (
+        <VoiceNoteBar voice={voice} />
+      ) : (
+        <div className="comp-in input-row">
+          {onUpload && (
+            <>
+              <input
+                ref={fileInput}
+                type="file"
+                multiple
+                accept={ACCEPT}
+                hidden
+                onChange={(e) => {
+                  addFiles(Array.from(e.target.files || []));
+                  e.target.value = '';
+                }}
+              />
+              <button
+                className="cbtn"
+                aria-label="Attach files"
+                title="Attach"
+                disabled={disabled}
+                onClick={() => fileInput.current?.click()}
+              >
+                <Paperclip size={18} />
+              </button>
+            </>
+          )}
+          <textarea
+            ref={ta}
+            value={text}
+            rows={1}
+            placeholder={dictating ? 'Listening…' : pending.length ? 'Add a message (optional)' : placeholder}
+            disabled={disabled}
+            onChange={(e) => {
+              setText(e.target.value);
+              setCaret(e.target.selectionStart ?? e.target.value.length);
+              setMentionsOpen(true);
+            }}
+            onKeyDown={onKey}
+            onKeyUp={syncCaret}
+            onClick={syncCaret}
+            onSelect={syncCaret}
+            onPaste={onPaste}
+            onBlur={() => setMentionsOpen(false)}
+            onFocus={() => setMentionsOpen(true)}
+          />
+          <button
+            className={`cbtn dictate${dictating ? ' live' : ''}`}
+            aria-label={dictating ? 'Stop dictating' : 'Dictate'}
+            aria-pressed={dictating}
+            title={
+              dictationOn
+                ? dictating
+                  ? 'Stop dictating'
+                  : 'Dictate: speak and the words go into the box'
+                : 'Dictation is not available in this browser'
+            }
+            data-testid="dictate"
+            disabled={disabled || !dictationOn}
+            onClick={toggleDictation}
+          >
+            <Mic size={18} />
+          </button>
+          {onUpload && (
             <button
               className="cbtn"
-              aria-label="Attach files"
-              title="Attach"
-              disabled={disabled}
-              onClick={() => fileInput.current?.click()}
+              aria-label="Record a voice note"
+              title={voiceOn ? 'Record a voice note' : 'Voice notes are not available in this browser'}
+              data-testid="voice-start"
+              disabled={disabled || !voiceOn}
+              onClick={startVoiceNote}
             >
-              <Paperclip size={18} />
+              <AudioLines size={18} />
             </button>
-          </>
-        )}
-        <textarea
-          ref={ta}
-          value={text}
-          rows={1}
-          placeholder={pending.length ? 'Add a message (optional)' : placeholder}
-          disabled={disabled}
-          onChange={(e) => {
-            setText(e.target.value);
-            setCaret(e.target.selectionStart ?? e.target.value.length);
-            setMentionsOpen(true);
-          }}
-          onKeyDown={onKey}
-          onKeyUp={syncCaret}
-          onClick={syncCaret}
-          onSelect={syncCaret}
-          onPaste={onPaste}
-          onBlur={() => setMentionsOpen(false)}
-          onFocus={() => setMentionsOpen(true)}
-        />
-        <button
-          ref={emojiButton}
-          className="cbtn"
-          aria-label="Emoji"
-          title="Emoji"
-          disabled={disabled}
-          onClick={() => setEmojiOpen(!emojiOpen)}
-        >
-          <Smile size={18} />
-        </button>
-        {emojiOpen && (
-          <EmojiPicker anchor={emojiButton} verb="Insert" onPick={insertEmoji} onClose={() => setEmojiOpen(false)} />
-        )}
-        <button className="sendb send" aria-label="Send" disabled={!canSend} onClick={() => void submit()}>
-          <Send size={17} />
-        </button>
-      </div>
+          )}
+          <button
+            ref={emojiButton}
+            className="cbtn"
+            aria-label="Emoji"
+            title="Emoji"
+            disabled={disabled}
+            onClick={() => setEmojiOpen(!emojiOpen)}
+          >
+            <Smile size={18} />
+          </button>
+          {emojiOpen && (
+            <EmojiPicker anchor={emojiButton} verb="Insert" onPick={insertEmoji} onClose={() => setEmojiOpen(false)} />
+          )}
+          <button className="sendb send" aria-label="Send" disabled={!canSend} onClick={() => void submit()}>
+            <Send size={17} />
+          </button>
+        </div>
+      )}
       {hint && (
         <p className="input-hint" aria-hidden="true">
           **bold** · `code` · - list · links become clickable · Shift+Enter for a new line

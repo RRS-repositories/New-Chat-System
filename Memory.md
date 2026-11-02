@@ -87,6 +87,7 @@ node server/dev/e2e/browser-host.cjs     # 16 checks: search, own-screen preview
 node server/dev/e2e/browser-features.cjs # 12 checks: links, formatting, channel rename/leave/archive
 node server/dev/e2e/browser-pill.cjs     # 8 checks: dragging the minimised call pill
 node server/dev/e2e/browser-viewer.cjs   # 8 checks: the picture viewer (fit, zoom, download)
+node server/dev/e2e/browser-voice.cjs    # 12 checks: dictation and voice notes in the composer
 node server/dev/e2e/browser-real-share.cjs  # a call sharing the PC's real screen (opens a window)
 
 # Speed with heavy data (start the local chat with SEED_HEAVY=1 first; loading takes about 20 seconds):
@@ -168,6 +169,27 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 2 Nov 2026 — dictation and voice notes in the composer
+The owner asked for two buttons just left of Emoji: speech to text, and a voice recorder, "very good, tested and
+reverse engineered". **Dictation** uses the browser's own SpeechRecognition (`services/dictation.ts`; Chrome, Edge,
+Safari; Firefox has none and the button is shown off with the reason). Pure text rules in `utils/speechText.ts`: results
+split into settled and guessed words, spoken marks ("full stop", "comma", "question mark", "exclamation mark", "new
+line", "new paragraph"), typist spacing, a capital after a sentence, and the dictated span kept as a range so typed text
+around it stays. The browser ends recognition after a silence or about a minute: it is restarted at once while wanted,
+ceiling ten minutes. Hidden under 480 px (phone keyboards dictate). Note for the owner: the sound goes to the browser
+maker's speech service (Google for Chrome, Microsoft for Edge), not through our server; nothing is paid for.
+**Voice notes** record the microphone with MediaRecorder (`services/voiceNote.ts`: Opus/WebM, M4A on Safari, 32 kbit/s,
+ten-minute ceiling, a Web Audio analyser for the live level), driven by `hooks/useVoiceNote.ts` (asking → recording →
+preview → sending; discard at any point lets the microphone go, also while the permission prompt is up) and drawn by
+`components/messages/VoiceNoteBar.tsx` (red dot, clock, nine sound bars moved from a requestAnimationFrame loop, Stop,
+Discard, Send; Escape discards). Sent through the ordinary upload with the typed text as caption; the card says "Voice
+note" (`fileKind`). Nothing changed on the server. Tests: 30 new unit tests (speechText, dictation against a stand-in
+recognition, voiceNote against stand-in microphone and recorder) and `browser-voice.cjs` (12 checks in a real Edge; the
+recognition is a stand-in put in the page because a fake microphone cannot be understood, the voice note is recorded for
+real from Edge's fake microphone, which beeps once a second, and played back by the other person). Two things learned:
+Node's strip-types mode refuses TypeScript parameter properties in tests, and a regex written through a shell heredoc
+loses its backslashes (write such files with the editor, not a heredoc). Pull request opened for the owner to merge.
 
 ### 2 Nov 2026 — "Something went wrong" when creating a channel whose name exists
 The owner could not create "ADMIN TRAINING": the log showed the unique `(workspace_id, name)` constraint on

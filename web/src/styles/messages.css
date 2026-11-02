@@ -912,3 +912,86 @@ body[data-density='compact'] .msg.first {
     opacity: 1;
   }
 }
+
+/* Dictation and voice notes in the composer (2 Nov 2026). */
+.cbtn.live {
+  color: var(--red);
+  background: var(--red-soft);
+  animation: live-ring 1.4s ease-out infinite;
+}
+@keyframes live-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(229, 72, 77, 0);
+  }
+}
+.voice-row {
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+}
+.voice-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex: 0 0 auto;
+}
+.voice-dot.on {
+  background: var(--red);
+  animation: voice-blink 1s steps(2, start) infinite;
+}
+@keyframes voice-blink {
+  to {
+    opacity: 0.25;
+  }
+}
+.voice-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 36px;
+  color: var(--ink);
+}
+.voice-bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  flex: 1;
+  min-width: 0;
+}
+.voice-bars i {
+  display: block;
+  width: 4px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--violet-2);
+  transform: scaleY(0.12);
+  transform-origin: center;
+}
+.voice-hint {
+  color: var(--mut);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.voice-preview {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+}
+@media (max-width: 480px) {
+  /* Phones dictate from their keyboard already; the voice note stays. */
+  .cbtn.dictate,
+  .voice-hint {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cbtn.live,
+  .voice-dot.on {
+    animation: none;
+  }
+}
