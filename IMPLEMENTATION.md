@@ -315,6 +315,8 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 - Plain text, up to **20,000 characters**. HTML tags are removed and their text kept ("3 < 5" stays as written). Trailing spaces and runs of spaces are tidied. **Code is the exception:** a fenced block and `inline code` are stored exactly as typed.
 - **Formatting** (shown when the message is drawn, never stored as HTML): `**bold**`, `` `code` ``, fenced code blocks, lists (lines starting with `-`, `*` or `1.`), tables (a `| a | b |` row with a `|---|---|` line under it, then rows; `\|` is a pipe inside a cell), and web addresses as links. Links are `http` and `https` only, open in a new tab, and pass no referrer. A full stop or bracket after an address is not part of it. Code: `web/src/utils/richText.ts` (pure parser) and `web/src/components/messages/RichText.tsx`. **Pasting a table** (cells copied from Excel or Google Sheets, or a table from a web page) puts a Markdown table in the message box, the way Mattermost does (`web/src/utils/tablePaste.ts`, from the clipboard's HTML `<table>` or its tab-separated text); one row or one column is left as text.
 - **Edit** your own message (shows as edited). **Delete** is soft; a channel admin can delete anyone's message, and that is written to `audit_log`.
+- **Dictation (2 Nov 2026).** The microphone button left of Emoji turns the browser's own speech recognition on (Chrome, Edge and Safari have it; Firefox does not, and the button says so). Words appear in the box as they are guessed and settle in place; spoken marks become marks ("full stop", "comma", "question mark", "exclamation mark", "new line", "new paragraph"); a sentence starts with a capital. The dictated span is kept as a range, so words typed before or after it stay put. The browser stops listening after a silence or about a minute: listening is started again at once, up to ten minutes in one go. Hidden on phone-width screens, whose keyboards dictate already. The sound goes to the browser maker's speech service, not through the chat's server. Code: `web/src/utils/speechText.ts` (pure), `web/src/services/dictation.ts`, wired in `MessageInput.tsx`.
+- **Voice notes (2 Nov 2026).** The waveform button records the microphone into one small sound file (Opus in WebM on Chrome, Edge and Firefox; M4A on Safari; 32 kbit/s, so ten minutes is about 2.5 MB). While recording, the bar shows a red dot, the clock and live sound bars; Discard (or Escape) throws it away, Stop lets the person listen back first, Send sends it, straight from recording or after listening. It goes out through the ordinary file upload with whatever was typed as its caption, named "Voice note 2026-11-02 10.15.webm", and the card plays it in place like any sound file, labelled "Voice note". Ten-minute ceiling: the recording stops by itself and what there is, is kept. Code: `web/src/services/voiceNote.ts`, `web/src/hooks/useVoiceNote.ts`, `web/src/components/messages/VoiceNoteBar.tsx`. Nothing new on the server: `audio/webm`, `audio/mp4` and `audio/ogg` were already allowed and content-checked.
 - **Reply** quotes one message. **Threads** hang replies off a root message and open in a side panel.
 - **Reactions:** any emoji, one per person per emoji.
 - **Pins:** up to 50 per channel, shown in a bar at the top.
@@ -658,8 +660,8 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 525, 57 files |
-| Web | `cd web && npm test` | 251, 38 files |
+| Server | `cd server && npm test` | 530, 57 files |
+| Web | `cd web && npm test` | 275, 41 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
@@ -678,6 +680,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: incoming-call card, add to call, merge **(Phase 9)** | `node server/dev/e2e/browser-invite.cjs` | 9 |
 | Real browser: whiteboard — host only, late joiner, zoom and move, eraser, text, shapes with undo and redo, tool keys **(Phase 9, tools 28 Oct 2026)** | `node server/dev/e2e/browser-board.cjs` | 12 |
 | Real browser: recording (the saved file is played back) **(Phase 9)** | `node server/dev/e2e/browser-record.cjs` | 4 |
+| Real browser: dictation (a stand-in recognition fed results the way the browser fires them) and voice notes (Edge's fake microphone, the note played back by the other person) **(2 Nov 2026)** | `node server/dev/e2e/browser-voice.cjs` | 12 |
 | Real browser: breakout groups (checked on the real audio connections) **(Phase 9)** | `node server/dev/e2e/browser-breakout.cjs` | 7 |
 | Real browser: add people, the signed-in rule, Management or IT setting a password | `node server/dev/e2e/browser-people.cjs` | 5 |
 | Real browser: dragging the minimised call pill (edges, resize, remembered, buttons still click, Send button clear) | `node server/dev/e2e/browser-pill.cjs` | 8 |

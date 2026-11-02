@@ -190,7 +190,8 @@ function AudioAttachment({ file, src }: { file: ChatFile; src: string }) {
         <span className="fmeta file-meta">
           <b className="file-name">{file.filename}</b>
           <span>
-            {formatBytes(file.sizeBytes)} · {url ? 'Audio · tap to download' : 'Audio · tap to play'}
+            {formatBytes(file.sizeBytes)} · {fileKind(file.mimeType, file.filename)} ·{' '}
+            {url ? 'tap to download' : 'tap to play'}
             {error ? ` · ${error}` : ''}
           </span>
         </span>
