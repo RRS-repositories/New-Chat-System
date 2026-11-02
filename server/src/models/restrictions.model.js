@@ -171,17 +171,36 @@ export async function dmPostBlocked(db, { channelId, userId }) {
  * or 'all', in either direction, each once.
  */
 export async function blockedPairs(db, { userIds, kind = 'channel' }) {
+  return (await blockedPairDetails(db, { userIds, kind })).map((r) => [r.a, r.b]);
+}
+
+/**
+ * The same pairs with the people's names and who set the (oldest) restriction and when, so a
+ * refusal can say who may not share a channel: `{ a, b, aName, bName, setBy, setAt }`, ordered by pair.
+ */
+export async function blockedPairDetails(db, { userIds, kind = 'channel' }) {
   const ids = [...new Set((userIds || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
   if (ids.length < 2) return [];
   const kinds = [...new Set([...(Array.isArray(kind) ? kind : [kind]), 'all'])];
   const { rows } = await db.query(
-    `SELECT DISTINCT LEAST(user_id, target_user_id) AS a, GREATEST(user_id, target_user_id) AS b
-       FROM chat.communication_restrictions
+    `SELECT DISTINCT ON (a, b) LEAST(user_id, target_user_id) AS a, GREATEST(user_id, target_user_id) AS b,
+            ua.full_name AS a_name, ub.full_name AS b_name, s.full_name AS set_by, r.created_at AS set_at
+       FROM chat.communication_restrictions r
+       LEFT JOIN public.users ua ON ua.id = LEAST(user_id, target_user_id)
+       LEFT JOIN public.users ub ON ub.id = GREATEST(user_id, target_user_id)
+       LEFT JOIN public.users s ON s.id = r.restricted_by
       WHERE user_id = ANY($1::int[]) AND target_user_id = ANY($1::int[]) AND restriction = ANY($2::text[])
-      ORDER BY a, b`,
+      ORDER BY a, b, r.created_at`,
     [ids, kinds],
   );
-  return rows.map((r) => [Number(r.a), Number(r.b)]);
+  return rows.map((r) => ({
+    a: Number(r.a),
+    b: Number(r.b),
+    aName: r.a_name ?? null,
+    bName: r.b_name ?? null,
+    setBy: r.set_by ?? null,
+    setAt: r.set_at ?? null,
+  }));
 }
 
 /** Ids the user may not open a DM with (their own dm/all rows). */

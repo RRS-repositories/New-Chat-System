@@ -170,6 +170,16 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 2 Nov 2026 — the private-channel refusal names the people
+The owner could not add Soham Jambhe to #DEBT: "Some of these people cannot share a private channel", with no word
+on who or why. Cause, found in the database: Jerusha Nair set `all` restrictions between Soham and about twenty agents
+on 12–26 Oct 2026, and one of them (Shiksha Kathy Naidoo) is in #DEBT. On the owner's word Soham was added directly
+(`chat.channel_members`, with an audit row); the restriction with Shiksha stands, so the two now share that one channel
+(the documented known gap). Code: `blockedPairDetails` in the restrictions model returns names, who set it and when;
+`shareRefusal` in the channels service turns the offending pairs into the message (two pairs shown, the rest counted,
+"You and …" for the person asking, the old sentence when names are unknown, "Management can lift this under Admin →
+Restrictions" at the end). Tests updated. Pull request opened for the owner to merge.
+
 ### 2 Nov 2026 — dictation and voice notes in the composer
 The owner asked for two buttons just left of Emoji: speech to text, and a voice recorder, "very good, tested and
 reverse engineered". **Dictation** uses the browser's own SpeechRecognition (`services/dictation.ts`; Chrome, Edge,

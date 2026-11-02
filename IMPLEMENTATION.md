@@ -428,7 +428,7 @@ System, join, leave and call-summary messages never notify.
 - **One person's access:** a row per colleague with three ticks — Messages, Calls, Private channels. Saved in one request. Blocking all three is stored as one `all` row; otherwise one row per kind. Every change is written to `audit_log`.
 - **Restrictions list:** every block in force, with who set it and why; add and remove.
 
-A restriction applies when opening a direct message, calling, and creating or adding to a private channel. **Known gap:** it does not remove two people from a private channel they already share.
+A restriction applies when opening a direct message, calling, and creating or adding to a private channel. Since 2 Nov 2026 the refusal says who: "Soham Jambhe and Shiksha Kathy Naidoo may not share a channel (set by Jerusha Nair, 14 Oct 2026). Management can lift this under Admin → Restrictions." ("You and …" when the person asking is one of the pair; two pairs shown, the rest counted; the plain sentence when names are unknown; `shareRefusal` in `services/channels.service.js`, names from `blockedPairDetails`). **Known gap:** it does not remove two people from a private channel they already share.
 
 ### 9.11 Settings
 
