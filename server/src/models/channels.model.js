@@ -182,17 +182,61 @@ export async function countMembers(db, channelId) {
 
 const cleanIds = (ids) => [...new Set((ids || []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];
 
+/** The refusal for a name a live channel holds, with a word on where that channel is. */
+const nameTaken = (display, { type = null, mine = false } = {}) => {
+  const where = mine
+    ? 'You are already in it.'
+    : type === 'public'
+      ? 'Join it from Browse channels.'
+      : type
+        ? 'It is private, so you cannot see it. Choose another name.'
+        : '';
+  return fail('name_taken', `A channel called “${display}” already exists. ${where}`.trim(), 409);
+};
+
+/**
+ * A channel's slug is unique in the workspace, archived channels included. A name an archived
+ * channel still holds is handed over: the archived row keeps its display name under a suffixed
+ * slug nobody sees. A name a live channel holds is refused (409 name_taken), saying where it is.
+ */
+async function freeName(db, slug, userId) {
+  const {
+    rows: [taken],
+  } = await db.query(
+    `SELECT c.id, c.display_name, c.type, c.archived_at,
+            EXISTS (SELECT 1 FROM chat.channel_members m WHERE m.channel_id = c.id AND m.user_id = $2) AS mine
+       FROM chat.channels c WHERE c.name = $1`,
+    [slug, userId],
+  );
+  if (!taken) return;
+  if (taken.archived_at) {
+    await db.query(`UPDATE chat.channels SET name = name || '--archived-' || left(id::text, 8) WHERE id = $1`, [
+      taken.id,
+    ]);
+    return;
+  }
+  throw nameTaken(taken.display_name, { type: taken.type, mine: taken.mine === true });
+}
+
 export async function createChannel(db, { name, displayName, type, purpose = '', createdBy, memberIds = [] }) {
   const display = String(displayName || '').trim();
   const slug = slugify(name || display);
   if (!display || !slug) throw fail('bad_name', 'Channel needs a name');
   if (!TYPES.has(type)) throw fail('bad_type', 'type must be public, private or group_dm');
-  const {
-    rows: [row],
-  } = await db.query(
-    `INSERT INTO chat.channels (name, display_name, type, purpose, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [slug, display, type, purpose, createdBy],
-  );
+  await freeName(db, slug, createdBy);
+  let row;
+  try {
+    ({
+      rows: [row],
+    } = await db.query(
+      `INSERT INTO chat.channels (name, display_name, type, purpose, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [slug, display, type, purpose, createdBy],
+    ));
+  } catch (e) {
+    // Two people creating the same name at the same moment: the second is told the same way.
+    if (e.code === '23505') throw nameTaken(display);
+    throw e;
+  }
   const ids = cleanIds([createdBy, ...memberIds]);
   await db.query(
     `INSERT INTO chat.channel_members (channel_id, user_id, role)

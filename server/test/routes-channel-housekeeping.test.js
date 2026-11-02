@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { createApp } from '../src/app.js';
 import { createCallService } from '../src/services/calls/call.service.js';
 import { createTestDb } from './pg-helper.js';
-import { createChannel, openDm } from '../src/models/channels.model.js';
+import { createChannel, openDm, archiveChannel } from '../src/models/channels.model.js';
 import { secret, aud } from './route-helper.js';
 
 const { db, close } = await createTestDb();
@@ -59,6 +59,35 @@ const room = async (others = []) =>
   ).id;
 
 // ---- rename ------------------------------------------------------------------
+
+test('a second channel with the same name is refused with 409; after the first is archived the name is free again', async () => {
+  const first = await as(2).post('/channels', { displayName: 'Admin Training', type: 'public', memberIds: [] });
+  assert.equal(first.status, 201, JSON.stringify(first.body));
+  assert.equal(first.body.channel.name, 'admin-training');
+
+  const again = await as(3).post('/channels', { displayName: 'ADMIN TRAINING', type: 'public', memberIds: [] });
+  isErr(again, 409, 'name_taken');
+  assert.equal(again.body.message, 'A channel called “Admin Training” already exists. Join it from Browse channels.');
+  const byMember = await as(2).post('/channels', { displayName: 'admin   training', type: 'private', memberIds: [] });
+  isErr(byMember, 409, 'name_taken');
+  assert.match(byMember.body.message, /You are already in it/);
+
+  await archiveChannel(db, first.body.channel.id, { actorId: 2 });
+  const fresh = await as(3).post('/channels', { displayName: 'Admin Training', type: 'public', memberIds: [] });
+  assert.equal(fresh.status, 201, JSON.stringify(fresh.body));
+  assert.equal(fresh.body.channel.name, 'admin-training');
+  assert.notEqual(fresh.body.channel.id, first.body.channel.id);
+  const {
+    rows: [old],
+  } = await db.query(`SELECT name, display_name, archived_at FROM chat.channels WHERE id = $1`, [
+    first.body.channel.id,
+  ]);
+  assert.match(old.name, /^admin-training--archived-[0-9a-f]{8}$/, 'the archived row gave the name up');
+  assert.equal(old.display_name, 'Admin Training', 'and kept what it was called');
+  assert.ok(old.archived_at);
+  assert.ok(!(await listed(3)).includes(first.body.channel.id), 'the archived one is not listed');
+  assert.ok((await listed(3)).includes(fresh.body.channel.id));
+});
 
 test('the channel owner renames it and changes its purpose; everyone in it is told', async () => {
   const id = await room();

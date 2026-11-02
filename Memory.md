@@ -169,6 +169,17 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 2 Nov 2026 — "Something went wrong" when creating a channel whose name exists
+The owner could not create "ADMIN TRAINING": the log showed the unique `(workspace_id, name)` constraint on
+`chat.channels` refusing the slug `admin-training`, which an earlier channel (live or archived; archived rows kept
+their slug) still held, and the raw database error came out as a 500 "Something went wrong". Now `createChannel`
+looks the slug up first: held by an archived channel, the archived row is renamed to `<slug>--archived-<8 chars of
+its id>` (display name kept; nobody sees archived rows) and the new channel takes the name; held by a live channel,
+409 `name_taken` with a message saying where it is (public: Browse channels; private: choose another name; or you
+are already in it). A clash the look-up missed (two creates at the same moment) is caught on the insert and answered
+the same way. The web dialog already shows the server's message. Tests: stub (repo-channels), real app on PGlite
+(routes-channel-housekeeping). Pull request opened for the owner to merge.
+
 ### 30 Oct 2026 — HTML files can be sent
 The owner asked for HTML files to be allowed as attachments. Added `text/html` to the allowlist in
 `server/src/services/files/storage.js`, to the content checks (text: no binary bytes) and to the name-to-type map for
