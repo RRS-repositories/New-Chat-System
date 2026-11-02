@@ -304,7 +304,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 ### 9.1 Channels and direct messages
 
 - **Public** channels can be browsed and joined by anyone with chat access. **Private** channels are by invitation. **Direct messages** are between exactly two people (members cannot be added). **Group** conversations are `group_dm`.
-- Channel names are turned into a unique slug; creating needs a name.
+- Channel names are turned into a unique slug; creating needs a name. A name a live channel already holds is refused with 409 `name_taken` and a message saying where that channel is (public: join it from Browse channels; private: choose another name; or "you are already in it"). A name an archived channel held is free again: the archived row keeps its display name under a suffixed slug (since 2 Nov 2026; before that the dialog only said "Something went wrong").
 - A direct message cannot be opened with yourself, or with someone you are blocked from messaging.
 - A private channel cannot be created, or added to, with two people who are blocked from sharing private channels.
 - The sidebar has two sections, Channels and Direct messages, each foldable; the folded state is kept in the browser (`chat.collapsed`). The last open channel is remembered (`chat_last_channel`).
