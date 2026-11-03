@@ -221,6 +221,48 @@ test('a web page is allowed, also untyped; it downloads as plain bytes, never as
   assert.equal(r.body.code, 'file_content');
 });
 
+test('code files are allowed whatever the browser calls them; they download as plain bytes; binary content is refused', async () => {
+  const code = Buffer.from('export const App = () => <div>Hello</div>;\n');
+  const send = (db, filename, contentType) =>
+    request(app(db))
+      .post('/api/chat/channels/c1/upload')
+      .set('Authorization', token(7))
+      .attach('files', code, { filename, contentType });
+  // .jsx comes with no type; .ts arrives labelled as an MPEG video stream; .js as application/javascript.
+  for (const [filename, contentType, stored] of [
+    ['App.jsx', 'application/octet-stream', 'text/jsx'],
+    ['types.ts', 'video/mp2t', 'text/typescript'],
+    ['index.js', 'application/javascript', 'text/javascript'],
+    ['Panel.tsx', '', 'text/tsx'],
+    ['site.css', 'text/css', 'text/css'],
+  ]) {
+    const db = makeDb();
+    const r = await send(db, filename, contentType);
+    assert.equal(r.status, 201, `${filename}: ${JSON.stringify(r.body)}`);
+    assert.equal(db.inserted[0].mime_type, stored, filename);
+  }
+  const db = makeDb();
+  const a = app(db);
+  await request(a)
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', code, { filename: 'App.jsx', contentType: '' });
+  const dl = await request(a).get(`/api/chat/files/${db.inserted[0].id}/download`).set('Authorization', token(7));
+  assert.equal(dl.status, 200);
+  assert.equal(dl.headers['content-type'].split(';')[0], 'application/octet-stream', 'code is never served as code');
+  assert.match(dl.headers['content-disposition'], /^attachment; filename="App\.jsx"/);
+
+  const r = await request(app(makeDb()))
+    .post('/api/chat/channels/c1/upload')
+    .set('Authorization', token(7))
+    .attach('files', Buffer.concat([Buffer.from('MZ\0\0'), Buffer.alloc(64)]), {
+      filename: 'tool.js',
+      contentType: '',
+    });
+  assert.equal(r.status, 400, 'a program wearing a .js name');
+  assert.equal(r.body.code, 'file_content');
+});
+
 test('too large, disallowed type, and no file are refused and leave nothing on disk', async () => {
   const before = countOnDisk();
   const a = app(makeDb());

@@ -31,13 +31,28 @@ const TEXT_BY_EXTENSION = {
   html: 'text/html',
   htm: 'text/html',
 };
+/**
+ * Code files (3 Nov 2026). Browsers label these every which way (.js as text/javascript or
+ * application/javascript, .jsx with nothing, .ts as an MPEG video stream), so for these names the
+ * name decides the type whatever the label says. All plain text; the same no-binary-bytes check applies.
+ */
+const CODE_BY_EXTENSION = {
+  js: 'text/javascript',
+  mjs: 'text/javascript',
+  cjs: 'text/javascript',
+  jsx: 'text/jsx',
+  ts: 'text/typescript',
+  tsx: 'text/tsx',
+  css: 'text/css',
+};
 const NO_TYPE = new Set(['', 'application/octet-stream']);
 export function typeFromName(mimetype, filename) {
-  if (!NO_TYPE.has(String(mimetype || '').toLowerCase())) return mimetype;
   const ext = String(filename || '')
     .split('.')
     .pop()
     .toLowerCase();
+  if (CODE_BY_EXTENSION[ext]) return CODE_BY_EXTENSION[ext];
+  if (!NO_TYPE.has(String(mimetype || '').toLowerCase())) return mimetype;
   return TEXT_BY_EXTENSION[ext] || mimetype;
 }
 

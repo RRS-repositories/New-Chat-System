@@ -173,6 +173,15 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 3 Nov 2026 — code files can be shared
+The owner asked why a `.jsx` file could not be sent. Code was never on the allowed list (the 23 Oct note kept
+scripts out). Now `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx` and `.css` are allowed as plain text, handled like a
+web page: content checked for binary bytes, stored under their own text types, always downloaded as plain bytes with
+`attachment`, never served as code. The name decides the type for these (`CODE_BY_EXTENSION` in the upload service),
+because browsers label them inconsistently (`.ts` even comes as an MPEG video stream). `.ps1`, `.bat`, `.sh`, `.exe`
+stay refused. Tests: server files (five names and labels, the download headers, a program wearing `.js`), web files.
+Pull request opened for the owner; the owner was told that Windows runs a double-clicked `.js`.
+
 ### 3 Nov 2026 — eight channels deleted and restored; delete is now for two named people
 The owner saw far fewer channels than before. `chat.audit_log` had the answer: Prinal Reddy (Management) used the
 permanent delete on seven private channels between 08:56 and 10:11 (SALES, PAYMENTS DEPT, DEBT, SALES TRAINING,

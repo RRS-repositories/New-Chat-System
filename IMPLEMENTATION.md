@@ -327,7 +327,7 @@ Namespace `/chat`, path `/socket.io`, transports websocket then polling, reconne
 ### 9.3 Files
 
 - Up to **5 files per message, 50 MB each** (20 MB until 29 Oct 2026).
-- Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, HTML (since 30 Oct 2026), ZIP, MP4, WebM, and sound files (MP3, WAV, M4A, AAC, OGG; since 7 Oct 2026, for call recordings from the CRM's phone system). A sound file's card plays it in place on tap, then offers the download. Each type's content is checked against its first bytes (`server/src/utils/fileSignature.js`).
+- Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, Word, Excel, PowerPoint, CSV, plain text, HTML (since 30 Oct 2026), code (`.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`, `.css`; since 3 Nov 2026), ZIP, MP4, WebM, and sound files (MP3, WAV, M4A, AAC, OGG; since 7 Oct 2026, for call recordings from the CRM's phone system). A sound file's card plays it in place on tap, then offers the download. Each type's content is checked against its first bytes (`server/src/utils/fileSignature.js`).
 - Stored under `CHAT_UPLOADS_DIR` (`/data/chat-uploads` on the server), in a folder per channel, under a generated name. File names are cleaned and sent back with a safe `Content-Disposition`.
 - Images get a JPEG **thumbnail** (`sharp`; 480 px wide since 23 Oct 2026, 200 px before). Clicking opens the viewer: the picture opens whole (a big one shrunk to the window both ways, a small one enlarged to read, at most twice), then zooms with + / −, the wheel, the keys or a double-click, scrolling once it is bigger than the window; its toolbar has Download, and the preview in the feed has a Download button in its corner (`utils/viewer.ts`, `components/messages/Lightbox.tsx`).
 - Files are fetched with the sign-in token and shown from memory; only channel members can fetch them. An SVG is never served as an image and an HTML file never as a page (both can carry script, and a page shown from the chat's address could read the sign-in token); they download as plain bytes instead.
@@ -480,7 +480,9 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Presence holds while people work in other apps (16 Oct 2026).** Three things made people who had the chat open show Offline. (1) The online snapshot (`GET /api/chat/users/online`, read on connect and every minute) listed an away person only under `away`, and the web app counted only `online` as connected, so every refresh turned Away people Offline: the snapshot now lists everyone connected under `online` (away ones also under `away`), and the web app treats anyone in `away` as connected too. (2) Chromium browsers freeze background tabs (Edge puts them to sleep), and a frozen page cannot answer the server's pings, so the connection was called dead after 20 s and the person went Offline a minute later: the page now holds a shared Web Lock (`web/src/utils/keepAwake.ts`), which Chromium honours as a reason not to freeze the tab. (3) Socket.IO's ping timeout is 60 s instead of 20 s, so a slow answer from a busy or throttled tab is not a disconnect. A person who really closes the browser still goes Offline after the 60 s grace; a laptop that sleeps goes Offline too.
 
-**Settings, log and data files (23 Oct 2026).** `.env`, `.log`, `.ini`, `.cfg`, `.conf`, `.toml`, `.sql`, `.yml`/`.yaml`, `.json` and `.xml` can be shared; they are plain text, so the same no-binary-bytes check applies, and a browser that sends no type for them is answered by the name (`TEXT_BY_EXTENSION`). Scripts and programs (`.ps1`, `.bat`, `.sh`, `.js`, `.exe`, …) stay refused.
+**Settings, log and data files (23 Oct 2026).** `.env`, `.log`, `.ini`, `.cfg`, `.conf`, `.toml`, `.sql`, `.yml`/`.yaml`, `.json` and `.xml` can be shared; they are plain text, so the same no-binary-bytes check applies, and a browser that sends no type for them is answered by the name (`TEXT_BY_EXTENSION`). Scripts and programs (`.ps1`, `.bat`, `.sh`, `.exe`, …) stay refused; `.js` joined the allowed code files on 3 Nov 2026 (below).
+
+**Code files (3 Nov 2026).** The owner asked to share `.jsx`. `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx` and `.css` are allowed as plain text: the no-binary-bytes check applies, and for these names the name decides the type whatever the browser says (`CODE_BY_EXTENSION`: `.jsx` arrives untyped, `.ts` labelled as an MPEG video stream, `.js` as either of two JavaScript types). Stored as `text/javascript`, `text/jsx`, `text/typescript`, `text/tsx`, `text/css`; downloaded as `application/octet-stream` with `attachment`, like a page, so the browser never runs or renders them. The card says "Code" ("Stylesheet" for `.css`). Note for people: Windows runs a double-clicked `.js` file as a script, as it would one from an email; the chat only carries files between colleagues who are signed in.
 
 **Markdown files (16 Oct 2026).** `.md` is an allowed upload (`text/markdown`, `text/x-markdown`, content check: no binary bytes). Windows browsers send a `.md` (and sometimes `.txt`/`.csv`) file with no type or `application/octet-stream`; `typeFromName` in `server/src/services/files/upload.service.js` takes the type from the name for those plain-text kinds only, and the content check still applies, so a program renamed `.md` is refused.
 
@@ -661,8 +663,8 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 533, 57 files |
-| Web | `cd web && npm test` | 276, 41 files |
+| Server | `cd server && npm test` | 534, 57 files |
+| Web | `cd web && npm test` | 277, 41 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |

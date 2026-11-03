@@ -50,6 +50,15 @@ test('web pages are allowed and known as Web page', () => {
   assert.equal(fileKind('text/html', 'report.html'), 'Web page');
   assert.equal(isImage('text/html'), false);
 });
+test('code files are allowed and known as Code (a stylesheet as Stylesheet)', () => {
+  const r = validateFiles([f('App.jsx', 10), f('index.js', 10), f('types.ts', 10), f('Panel.tsx', 10), f('a.css', 10)]);
+  assert.equal(r.errors.length, 0);
+  assert.equal(r.ok.length, 5);
+  assert.equal(fileKind('', 'App.jsx'), 'Code');
+  assert.equal(fileKind('text/typescript', 'types.ts'), 'Code');
+  assert.equal(fileKind('text/css', 'a.css'), 'Stylesheet');
+  assert.equal(validateFiles([f('run.ps1', 10)]).errors.length, 1, 'scripts that run on a double click stay out');
+});
 test('sound files (call recordings) are allowed and known as Audio', () => {
   const r = validateFiles([f('call-2026-10-07.mp3', 10), f('note.wav', 10), f('voice.m4a', 10), f('x.ogg', 10)]);
   assert.equal(r.errors.length, 0);
