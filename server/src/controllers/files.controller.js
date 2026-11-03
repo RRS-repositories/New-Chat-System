@@ -11,7 +11,16 @@ import { contentDisposition } from '../utils/filenames.js';
 import { cleanMessageContent } from '../utils/sanitize.js';
 
 const MAX_FILES = 5;
-const NEVER_INLINE = new Set(['image/svg+xml', 'text/html']);
+// Served as plain bytes, never with a type a browser might act on: pages, SVG, and code.
+const NEVER_INLINE = new Set([
+  'image/svg+xml',
+  'text/html',
+  'text/javascript',
+  'text/jsx',
+  'text/typescript',
+  'text/tsx',
+  'text/css',
+]);
 
 export function createFileController({ db, emit, uploadsDir, notifier = null }) {
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_FILE_BYTES, files: MAX_FILES } });

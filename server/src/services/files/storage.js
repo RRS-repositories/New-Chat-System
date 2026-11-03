@@ -21,6 +21,12 @@ export const ALLOWED_MIME = new Map([
   ['text/x-markdown', 'md'],
   // Web pages (30 Oct 2026): kept and downloaded like any file, never served as a page (see the download route).
   ['text/html', 'html'],
+  // Code (3 Nov 2026, the owner asked for .jsx): plain text, downloaded as bytes like a page, never run here.
+  ['text/javascript', 'js'],
+  ['text/jsx', 'jsx'],
+  ['text/typescript', 'ts'],
+  ['text/tsx', 'tsx'],
+  ['text/css', 'css'],
   // Data and settings files (plain text; content checked for binary bytes like the others).
   ['application/json', 'json'],
   ['text/xml', 'xml'],
