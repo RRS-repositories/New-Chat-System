@@ -8,8 +8,10 @@ import {
   toRestrictionInput,
   withSelfSorted,
   isManagement,
+  isManagementOrIT,
+  canDeleteChannels,
 } from '../src/utils/restrictions.ts';
-import type { Restriction } from '../src/types/index.ts';
+import type { ChatUser, Restriction } from '../src/types/index.ts';
 
 const row: Restriction = {
   id: 'r1',
@@ -112,4 +114,19 @@ test('isManagement only for the Management role', () => {
   assert.equal(isManagement({ role: 'Management' }), true);
   assert.equal(isManagement({ role: 'Sales' }), false);
   assert.equal(isManagement({ role: 'management ' }), false);
+});
+
+test('canDeleteChannels follows the server’s word in /users/me, never the role', () => {
+  const person = (u: ChatUser) => u;
+  assert.equal(
+    canDeleteChannels(person({ id: 470, fullName: 'B', role: 'Management', canDeleteChannels: true })),
+    true,
+  );
+  assert.equal(canDeleteChannels(person({ id: 9, fullName: 'S', role: 'Sales', canDeleteChannels: true })), true);
+  assert.equal(
+    canDeleteChannels(person({ id: 1, fullName: 'M', role: 'Management', canDeleteChannels: false })),
+    false,
+  );
+  assert.equal(canDeleteChannels(person({ id: 1, fullName: 'I', role: 'IT' })), false, 'not known yet: no button');
+  assert.equal(isManagementOrIT({ role: 'IT' }), true, 'the role check itself is unchanged for the admin screens');
 });

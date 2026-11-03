@@ -21,10 +21,10 @@ import { getLiveCall } from '../models/calls.model.js';
 import { blockedUserIds } from '../models/channelAccess.model.js';
 import { removeUpload } from '../services/files/storage.js';
 import { isBlocked, DM_BLOCKED_MESSAGE } from '../models/restrictions.model.js';
-import { assertMember, assertCanShareChannel, canModerate } from '../services/channels.service.js';
+import { assertMember, assertCanShareChannel, canDeleteChannels, canModerate } from '../services/channels.service.js';
 import { toIds } from '../utils/ids.js';
 
-export function createChannelController({ db, emit, uploadsDir = '' }) {
+export function createChannelController({ db, emit, uploadsDir = '', channelDeleters = [] }) {
   const joinRooms = (userIds, channelId) => {
     for (const userId of userIds) emit.joinRoom?.(userId, channelId);
   };
@@ -145,13 +145,14 @@ export function createChannelController({ db, emit, uploadsDir = '' }) {
     }),
 
     /**
-     * Deletes the channel for good, with everything in it. Management and IT only (the owner's rule,
-     * 8 Oct 2026), never General or a direct message, never while a call is going on in it.
+     * Deletes the channel for good, with everything in it. Only the people the owner named
+     * (`channelDeleters`, the owner's rule of 3 Nov 2026; Management and IT at large until then),
+     * never General or a direct message, never while a call is going on in it.
      */
     remove: wrap(async (req, res) => {
       const channelId = req.params.id;
-      if (!['Management', 'IT'].includes(req.user.role))
-        throw httpError(403, 'forbidden', 'Only Management and IT can delete a channel');
+      if (!canDeleteChannels(req.user, channelDeleters))
+        throw httpError(403, 'forbidden', 'Only the people the owner named can delete a channel. Archive it instead.');
       mustBeOrdinary(await channelOr404(channelId));
       if (await getLiveCall(db, channelId))
         throw httpError(409, 'call_in_progress', 'A call is going on in this channel. End it first.');

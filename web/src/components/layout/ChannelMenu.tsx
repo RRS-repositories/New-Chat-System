@@ -1,7 +1,7 @@
 import { useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { BellOff, Bell, CheckCheck, ExternalLink, Link2, LogOut, Star, StarOff, Trash2, UserPlus } from 'lucide-react';
-import { isManagementOrIT } from '../../utils/restrictions.ts';
+import { canDeleteChannels } from '../../utils/restrictions.ts';
 import { paths } from '../../config/routes.ts';
 import { useChat } from '../../context/chatContext.ts';
 import { useToast } from '../../context/ToastProvider.tsx';
@@ -95,7 +95,7 @@ export function ChannelMenu({ channel, anchor, onClose }: Props) {
             <LogOut size={15} />
             <span>Leave channel</span>
           </button>
-          {isManagementOrIT(user) && (
+          {canDeleteChannels(user) && (
             <button
               className="danger"
               data-testid="menu-delete"

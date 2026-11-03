@@ -227,7 +227,7 @@ All under `/api/chat`. Every route except `/auth/login` needs the sign-in checks
 | `GET /messages/:id/thread` | A thread: the root and its replies. |
 | `GET /channels/:id/pins` · `POST /messages/:id/pin` · `DELETE /messages/:id/pin` | Pinned messages, 50 per channel at most. |
 | `POST /messages/:id/reactions` · `DELETE /messages/:id/reactions/:emoji` | Reactions (emoji up to 8 characters). |
-| `DELETE /channels/:id` | Management or IT: delete the channel and everything in it (messages, threads, files, mentions, reactions, calls, memberships) for good, in one transaction; files come off the disk after. Never General or a direct message; 409 while a call is going on. Audit row `channel.delete`. Everyone in it gets `channel_deleted`. |
+| `DELETE /channels/:id` | Only the people the owner named (`CHAT_CHANNEL_DELETERS`, 3 Nov 2026; Management and IT at large before that; `GET /users/me` tells the screens with `canDeleteChannels`): delete the channel and everything in it (messages, threads, files, mentions, reactions, calls, memberships) for good, in one transaction; files come off the disk after. Never General or a direct message; 409 while a call is going on. Audit row `channel.delete`. Everyone in it gets `channel_deleted`. |
 | `POST /channels/:id/upload` | Upload up to 5 files of 50 MB each, with an optional caption. Limit: 5 uploads per minute per person. |
 | `GET /channels/:id/files` | Files shared in a channel. |
 | `GET /files/:id/download` · `GET /files/:id/thumb` | The file, or its thumbnail. Channel members only. |
@@ -610,6 +610,7 @@ Read in one place, `server/src/config/index.js`, from `/opt/chat/.env` on the se
 | `CHAT_CORS_ORIGINS` | Only for development on another origin. | empty |
 | `CHAT_FRAME_ANCESTORS` | The pages allowed to show the chat in a frame. Unset: the CRM's two addresses and the Sales CRM's two (`sales.`, `opsales.`). Empty: nobody but the chat itself. | unset |
 | `CHAT_REQUIRE_BETA` | `false` opens chat to all staff. | on |
+| `CHAT_CHANNEL_DELETERS` **(3 Nov 2026)** | CRM user ids, comma-separated, of the people who may delete a channel for good. Everyone else can only archive. | nobody |
 | `IP_RESTRICTION_ENFORCE` **(PR #9)** | `false` only logs what would be refused. | on |
 | `CHAT_VAPID_PUBLIC`, `CHAT_VAPID_PRIVATE`, `CHAT_VAPID_SUBJECT` | Web Push. | push off if empty |
 | `CHAT_STUN_URLS` | STUN servers. | Google and Cloudflare public STUN |
@@ -660,8 +661,8 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 
 | What | Command | Count |
 |---|---|---|
-| Server | `cd server && npm test` | 530, 57 files |
-| Web | `cd web && npm test` | 275, 41 files |
+| Server | `cd server && npm test` | 533, 57 files |
+| Web | `cd web && npm test` | 276, 41 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
@@ -682,6 +683,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | Real browser: recording (the saved file is played back) **(Phase 9)** | `node server/dev/e2e/browser-record.cjs` | 4 |
 | Real browser: dictation (a stand-in recognition fed results the way the browser fires them) and voice notes (Edge's fake microphone, the note played back by the other person) **(2 Nov 2026)** | `node server/dev/e2e/browser-voice.cjs` | 12 |
 | Real browser: breakout groups (checked on the real audio connections) **(Phase 9)** | `node server/dev/e2e/browser-breakout.cjs` | 7 |
+| Real browser: only a person named in `CHAT_CHANNEL_DELETERS` sees Delete channel and can use it; the server refuses the rest **(3 Nov 2026)** | `node server/dev/e2e/browser-delete.cjs` | 4 |
 | Real browser: add people, the signed-in rule, Management or IT setting a password | `node server/dev/e2e/browser-people.cjs` | 5 |
 | Real browser: dragging the minimised call pill (edges, resize, remembered, buttons still click, Send button clear) | `node server/dev/e2e/browser-pill.cjs` | 8 |
 | Real browser: the picture viewer (a tall picture fits, zoom, scroll, Download from the viewer and the feed) | `node server/dev/e2e/browser-viewer.cjs` | 8 |

@@ -8,6 +8,7 @@ import type {
   ChannelFileRow,
   ChannelMember,
   ChannelNotifyPref,
+  ChatUser,
   Message,
   Preferences,
   PresenceSnapshot,
@@ -49,6 +50,9 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
   };
 
   return {
+    /** The signed-in person as the server sees them, with what they may do (e.g. canDeleteChannels). */
+    me: async () => (await api.get<{ user: ChatUser }>('/api/chat/users/me')).user,
+
     // Channels
     channels: async () => (await api.get<{ channels: Channel[] }>('/api/chat/channels')).channels,
     createChannel: async (input: NewChannel) =>
@@ -63,7 +67,7 @@ export function createChatApi({ api, getToken, onAuthError }: Deps) {
       (await api.patch<{ channel: Channel }>(`/api/chat/channels/${channelId}`, change)).channel,
     /** Hide the channel for everyone; its messages are kept. */
     archiveChannel: (channelId: string) => api.post(`/api/chat/channels/${channelId}/archive`),
-    /** Management or IT: delete the channel and everything in it, for good. */
+    /** The people the owner named (see `me`): delete the channel and everything in it, for good. */
     deleteChannel: (channelId: string) => api.del(`/api/chat/channels/${channelId}`),
     addMembers: (channelId: string, userIds: number[]) =>
       api.post<{ added: number }>(`/api/chat/channels/${id(channelId)}/members`, { userIds }),

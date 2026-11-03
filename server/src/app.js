@@ -92,7 +92,10 @@ export function createApp({
   app.use('/api/chat/channels', createBrowseRoutes({ db, emit })); // /browse and /:id/join — before the channels router so /browse is not read as an id
   app.use('/api/chat/channels', createChannelPrefRoutes({ db })); // PATCH /:id/notify
   app.use('/api/chat', createCallRoutes({ db, calls, config })); // /calls/... and /channels/:id/calls — before the channels router
-  app.use('/api/chat/channels', createChannelRoutes({ db, emit, uploadsDir: config.uploadsDir }));
+  app.use(
+    '/api/chat/channels',
+    createChannelRoutes({ db, emit, uploadsDir: config.uploadsDir, channelDeleters: config.channelDeleters }),
+  );
   app.use('/api/chat/users', createPrefRoutes({ db, presence, emit })); // /online, /me/preferences, /me/status — before the users router
   app.use(
     '/api/chat/users',
@@ -100,6 +103,7 @@ export function createApp({
       db,
       emit,
       uploadsDir: config.uploadsDir,
+      channelDeleters: config.channelDeleters,
       avatarLimiter: perUserLimiter({ windowMs: 60_000, max: 5 }),
     }),
   );

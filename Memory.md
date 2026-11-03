@@ -88,6 +88,7 @@ node server/dev/e2e/browser-features.cjs # 12 checks: links, formatting, channel
 node server/dev/e2e/browser-pill.cjs     # 8 checks: dragging the minimised call pill
 node server/dev/e2e/browser-viewer.cjs   # 8 checks: the picture viewer (fit, zoom, download)
 node server/dev/e2e/browser-voice.cjs    # 12 checks: dictation and voice notes in the composer
+node server/dev/e2e/browser-delete.cjs   # 4 checks: only the named people (Meg here) see and can use Delete channel
 node server/dev/e2e/browser-real-share.cjs  # a call sharing the PC's real screen (opens a window)
 
 # Speed with heavy data (start the local chat with SEED_HEAVY=1 first; loading takes about 20 seconds):
@@ -124,6 +125,7 @@ The browser checks use the Microsoft Edge already installed on the PC.
 | 1 Oct 2026 | **The chat must stay lightweight and lag-free**, however long the channels get and however large the files. Measure with heavy data before saying something is fast. |
 | 1 Oct 2026 | To add: calls from outside the office, the CRM's automatic messages, clickable links, channel housekeeping, simple formatting. **Not** to add: "seen" marks, a mute-everyone button or host handover, an audit screen, Mattermost history import, install as an app, dark mode. |
 | 5 Oct 2026 | **The `Updates/` file is the plan**: build all ten sections exactly as written. This reverses two choices of 1 Oct: dark mode is now wanted, and so is a stand-in host. Deploys restart the chat and end live calls, so the owner deploys off-hours; the developer does not deploy this by itself. |
+| 3 Nov 2026 | **Only two people may delete a channel for good**: the owner (Brad Forbes) and Priyanshu Srivastava. Named by user id in `CHAT_CHANNEL_DELETERS` on the server, not by role. Everyone else, Management and IT included, archives. (After seven channels were deleted in one morning and had to be restored from the nightly backup.) |
 
 ## Blockers
 
@@ -143,6 +145,7 @@ The browser checks use the Microsoft Edge already installed on the PC.
 - **The CRM's `deploy.sh --all` restarts every pm2 process, chat included.**
 - **Sign-in for a request goes through `sessionUser`** (`services/session.service.js`), not `loadSessionUser` directly: it applies the IP restriction and removes the list before the person is passed on.
 - **A new allowed upload type needs a content check** in `utils/fileSignature.js`; a test fails if the two lists differ.
+- **Deleting a channel is final and the files go at once.** Messages come back from the nightly database dump (`/data/backups`, 02:15; recipe in the log, 3 Nov 2026); attachments do not, because `/data/chat-uploads` is not backed up. Who may delete is the id list `CHAT_CHANNEL_DELETERS` in `/opt/chat/.env`; a change needs `pm2 restart chat-server`.
 - **Tests build small apps from the route files** (`createXRoutes({ db, emit, … })`). Keep that factory shape: routes take their dependencies as arguments.
 - **Dependencies added, with reasons:**
   - `playwright-core` (server, development only) — drives the real-browser checks using the installed Edge. No browser download.
@@ -169,6 +172,27 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 ---
 
 ## Log
+
+### 3 Nov 2026 — eight channels deleted and restored; delete is now for two named people
+The owner saw far fewer channels than before. `chat.audit_log` had the answer: Prinal Reddy (Management) used the
+permanent delete on seven private channels between 08:56 and 10:11 (SALES, PAYMENTS DEPT, DEBT, SALES TRAINING,
+OFFERS, ESCALATION EMAIL, ClientPortalEscalations), and Priyanshu Srivastava had deleted FOS TEAM 1 the evening
+before. On the owner's word all eight were restored from the nightly dumps: a safety `pg_dump` first, the dump loaded
+into a scratch database (`cat dump | sudo -u postgres pg_restore -n chat --section=pre-data --section=data`: the
+postgres user cannot read `/var/backups`, and `-n chat` does not create the schema), the rows for those channel ids
+copied into a staging schema in the live database, then one transaction put back channels, members, blocks, 17,390
+messages (threads linked after the insert; `content_search` is generated, never in a column list), mentions,
+reactions, calls and an audit row `channel.restore`. Lost for good: 385 attached files (deleted from disk at once,
+and the uploads folder is not backed up) and whatever was posted between 02:15 and the deletion; a message that had a
+file keeps its words plus "📎 <names> (file lost when the channel was deleted, 3 Nov 2026)". Open tabs had to reload
+to rejoin the rooms. The owner then renamed ESCALATION EMAIL to ESCALATION (done directly, as the app's rename does:
+shown name only, audit `channel.rename`). **Code:** permanent delete is no longer a role. `CHAT_CHANNEL_DELETERS`
+(user ids) names who may; `canDeleteChannels` (channels service) is the one check, `DELETE /channels/:id` refuses
+everyone else with "Only the people the owner named can delete a channel. Archive it instead.", `GET /users/me`
+carries `canDeleteChannels`, and the web asks it once per sign-in (ChatProvider) and shows the Delete button only on
+a yes. Management and IT keep everything else. The server needs the line `CHAT_CHANNEL_DELETERS=470,68` in
+`/opt/chat/.env` (the owner and Priyanshu Srivastava) when this is deployed. Tests: config, housekeeping (a Sales
+person on the list deletes; a Management person off it is refused), web helper. Pull request opened for the owner.
 
 ### 2 Nov 2026 — the private-channel refusal names the people
 The owner could not add Soham Jambhe to #DEBT: "Some of these people cannot share a private channel", with no word

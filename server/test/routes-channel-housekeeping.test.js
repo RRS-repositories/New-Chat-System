@@ -11,7 +11,8 @@ import { secret, aud } from './route-helper.js';
 
 const { db, close } = await createTestDb();
 // Users from the helper: 1 Meg Manager (Management), 2 Ann Agent, 3 Bob Sales, 5 Cy Sales.
-const config = { sessionSecret: secret, sessionAud: aud, corsOrigins: [], requireBeta: false };
+// Cy alone is named to delete channels (CHAT_CHANNEL_DELETERS): a plain Sales person, on purpose.
+const config = { sessionSecret: secret, sessionAud: aud, corsOrigins: [], requireBeta: false, channelDeleters: [5] };
 const events = [];
 const emit = {
   toChannel: (id, ev, p) => events.push({ to: 'channel', id, ev, p }),
@@ -219,8 +220,7 @@ test('a channel with a call going on is not archived under the people in it', as
 
 // ---- delete ------------------------------------------------------------------
 
-test('Management or IT delete a channel for good: rows gone, members told, audit written', async () => {
-  await db.query(`UPDATE users SET role = 'IT' WHERE id = 5`);
+test('only a person named in CHAT_CHANNEL_DELETERS deletes a channel for good: rows gone, members told, audit written', async () => {
   const id = await room([1, 5]);
   const m = (
     await db.query(`INSERT INTO chat.messages (channel_id, user_id, content) VALUES ($1, 2, 'root') RETURNING id`, [id])
@@ -235,9 +235,15 @@ test('Management or IT delete a channel for good: rows gone, members told, audit
     `INSERT INTO chat.files (message_id, channel_id, user_id, filename, mime_type, size_bytes, file_path) VALUES ($1, $2, 2, 'a.txt', 'text/plain', 1, 'x/a.txt')`,
     [m, id],
   );
-  // A plain member may not, even the owner.
+  // Not the channel's owner, not a plain member, and not Management either: only the named people.
   isErr(await as(2).del(`/channels/${id}`), 403, 'forbidden');
   isErr(await as(3).del(`/channels/${id}`), 403, 'forbidden');
+  const meg = await as(1).del(`/channels/${id}`);
+  isErr(meg, 403, 'forbidden');
+  assert.equal(meg.body.message, 'Only the people the owner named can delete a channel. Archive it instead.');
+  // The screens learn who may from GET /users/me.
+  assert.equal((await as(1).get('/users/me')).body.user.canDeleteChannels, false);
+  assert.equal((await as(5).get('/users/me')).body.user.canDeleteChannels, true);
   const mark = events.length;
   const r = await as(5).del(`/channels/${id}`);
   ok(r);
@@ -270,20 +276,20 @@ test('Management or IT delete a channel for good: rows gone, members told, audit
   );
   assert.equal(audit.rows[0].actor_id, 5);
   assert.equal(audit.rows[0].detail.messages, 2);
-  isErr(await as(1).del(`/channels/${id}`), 404, 'not_found');
+  isErr(await as(5).del(`/channels/${id}`), 404, 'not_found');
 });
 
 test('General and direct messages cannot be deleted; a live call blocks it', async () => {
-  isErr(await as(1).del(`/channels/${await general()}`), 403, 'default_channel');
+  isErr(await as(5).del(`/channels/${await general()}`), 403, 'default_channel');
   const dm = await openDm(db, 1, 3);
-  isErr(await as(1).del(`/channels/${dm.id}`), 403, 'dm_fixed');
+  isErr(await as(5).del(`/channels/${dm.id}`), 403, 'dm_fixed');
   const id = await room([1]);
   await db.query(`INSERT INTO chat.calls (channel_id, initiated_by, type, status) VALUES ($1, 2, 'voice', 'active')`, [
     id,
   ]);
-  isErr(await as(1).del(`/channels/${id}`), 409, 'call_in_progress');
+  isErr(await as(5).del(`/channels/${id}`), 409, 'call_in_progress');
   await db.query(`UPDATE chat.calls SET status = 'ended', ended_at = now() WHERE channel_id = $1`, [id]);
-  ok(await as(1).del(`/channels/${id}`));
+  ok(await as(5).del(`/channels/${id}`));
   assert.equal(
     (await db.query(`SELECT count(*)::int AS n FROM chat.calls WHERE channel_id = $1`, [id])).rows[0].n,
     0,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Socket } from 'socket.io-client';
 import { useAttention } from '../hooks/useAttention.ts';
@@ -129,9 +129,26 @@ export function ChatProvider({
     void loadChannels();
   }, [loadChannels]);
 
+  // What the server lets this person do that the sign-in answer does not say: today, whether the
+  // owner named them to delete channels. Asked once per sign-in; until it answers, no delete button.
+  const [canDelete, setCanDelete] = useState(false);
+  useEffect(() => {
+    let current = true;
+    chatApi
+      .me()
+      .then((me) => {
+        if (current) setCanDelete(me.canDeleteChannels === true);
+      })
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [chatApi, user.id]);
+  const me = useMemo<ChatUser>(() => (canDelete ? { ...user, canDeleteChannels: true } : user), [user, canDelete]);
+
   const value = useMemo<ChatContextValue>(
-    () => ({ state, user, api, actions, currentChannelId, setCurrentChannelId }),
-    [state, user, api, actions, currentChannelId, setCurrentChannelId],
+    () => ({ state, user: me, api, actions, currentChannelId, setCurrentChannelId }),
+    [state, me, api, actions, currentChannelId, setCurrentChannelId],
   );
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
