@@ -38,6 +38,11 @@ export function loadConfig(env = process.env) {
     uploadsDir: env.CHAT_UPLOADS_DIR || '/data/chat-uploads',
     // The chat.beta gate defaults ON: unset or 'true' -> true, only 'false' turns it off.
     requireBeta: env.CHAT_REQUIRE_BETA !== 'false',
+    // Who may delete a channel for good (the owner's rule, 3 Nov 2026): the user ids listed here and
+    // nobody else, whatever their role. Empty: nobody can; channels are archived instead.
+    channelDeleters: list(env.CHAT_CHANNEL_DELETERS)
+      .map((x) => parseInt(x, 10))
+      .filter((n) => Number.isInteger(n) && n > 0),
     // Per-person IP restriction (set in the CRM). On unless 'false', which only logs what would be refused.
     enforceIpRestriction: env.IP_RESTRICTION_ENFORCE !== 'false',
     // Web Push (VAPID). Push is simply off when the keys are missing.

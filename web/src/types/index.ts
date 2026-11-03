@@ -1,5 +1,12 @@
 import type { Theme } from '../utils/theme.ts';
-export type ChatUser = { id: number; fullName: string; role: string; email?: string };
+export type ChatUser = {
+  id: number;
+  fullName: string;
+  role: string;
+  email?: string;
+  /** From GET /users/me: named by the owner to delete channels for good (not a role: a list on the server). */
+  canDeleteChannels?: boolean;
+};
 export type Reaction = { emoji: string; count: number; userIds: number[] };
 export type ChatFile = { id: string; filename: string; mimeType: string; sizeBytes: number; hasThumb: boolean };
 export type Message = {

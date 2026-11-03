@@ -104,3 +104,8 @@ export function withSelfSorted(users: UserOption[], self: UserOption): UserOptio
 export const isManagement = (u: { role: string }) => u.role === 'Management';
 /** Management and IT open the admin screen's people list and may set passwords; the rest is Management only. */
 export const isManagementOrIT = (u: { role: string }) => u.role === 'Management' || u.role === 'IT';
+/**
+ * Deleting a channel for good is for the people the owner named, not a role (3 Nov 2026). The server
+ * says who in GET /users/me; until that answer arrives nobody sees the button.
+ */
+export const canDeleteChannels = (u: { canDeleteChannels?: boolean }) => u.canDeleteChannels === true;

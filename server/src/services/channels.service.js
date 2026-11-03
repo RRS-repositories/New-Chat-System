@@ -16,6 +16,12 @@ export async function canModerate(db, channelId, user) {
 }
 
 /**
+ * Only the people the owner named may delete a channel for good (3 Nov 2026, after seven channels
+ * went in one morning): the user ids in CHAT_CHANNEL_DELETERS. Role no longer counts here.
+ */
+export const canDeleteChannels = (user, channelDeleters = []) => channelDeleters.includes(user?.id);
+
+/**
  * Refuses (403 `restricted`) when the people being added may not share this private channel or
  * group DM. Public channels are never restricted. A pair only counts when at least one of the two
  * is joining, so a restriction added later does not freeze a channel two people already share.

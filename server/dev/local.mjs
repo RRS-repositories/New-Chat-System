@@ -42,6 +42,7 @@ const config = {
     DB_USER: 'local',
     DB_PASSWORD: 'local',
     CHAT_REQUIRE_BETA: process.env.CHAT_REQUIRE_BETA || 'false',
+    CHAT_CHANNEL_DELETERS: process.env.CHAT_CHANNEL_DELETERS || '1', // Meg (m@x) may delete channels here
     // The browser checks watch someone go offline within seconds; the live server waits a minute.
     PRESENCE_OFFLINE_GRACE_MS: process.env.PRESENCE_OFFLINE_GRACE_MS || '5000',
     CHAT_VAPID_PUBLIC: vapid.publicKey,

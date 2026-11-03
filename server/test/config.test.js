@@ -42,3 +42,10 @@ test('requireBeta: on by default (unset), on when explicitly "true", off when "f
   assert.equal(loadConfig({ ...base, CHAT_REQUIRE_BETA: 'true' }).requireBeta, true);
   assert.equal(loadConfig({ ...base, CHAT_REQUIRE_BETA: 'false' }).requireBeta, false);
 });
+
+test('channelDeleters: the user ids in CHAT_CHANNEL_DELETERS; nobody when unset; junk is dropped', () => {
+  assert.deepEqual(loadConfig(base).channelDeleters, []);
+  assert.deepEqual(loadConfig({ ...base, CHAT_CHANNEL_DELETERS: '' }).channelDeleters, []);
+  assert.deepEqual(loadConfig({ ...base, CHAT_CHANNEL_DELETERS: '470, 68' }).channelDeleters, [470, 68]);
+  assert.deepEqual(loadConfig({ ...base, CHAT_CHANNEL_DELETERS: '470,,x,-1,0,7.5' }).channelDeleters, [470, 7]);
+});
