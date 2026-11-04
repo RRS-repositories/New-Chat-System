@@ -173,6 +173,15 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 4 Nov 2026 — bigger emoji, and more of them
+The owner: "make the EMOJI's double its size cant see, and add some more". The picker (`EmojiPicker.tsx`, used for
+reactions and the composer) now shows 76 emoji from `utils/emojiSet.ts` (the twelve usual ones first, then faces,
+hands, things, marks) at 38 px in 58 px round buttons, six to a row, scrolling inside a 340 px box; on a phone it
+takes 92 % of the width. The reaction chips under a message went from 13 px to 20 px, since those were the emoji
+nobody could make out. Checked in a real Edge at desktop and phone width (screenshots, not kept). Test
+`emojiSet.test.ts`: each one once, each a single emoji, the usual ones first. Web-only: a deploy does not restart the
+chat.
+
 ### 3 Nov 2026 — code files can be shared
 The owner asked why a `.jsx` file could not be sent. Code was never on the allowed list (the 23 Oct note kept
 scripts out). Now `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx` and `.css` are allowed as plain text, handled like a

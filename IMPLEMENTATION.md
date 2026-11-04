@@ -460,6 +460,8 @@ Built from the owner's `Updates/` file. The prototype in `Updates/chat-app-redes
 
 **Quick reactions.** The hover bar on every message starts with three one-tap reactions: the ones this person uses most on this device (`web/src/utils/quickEmojis.ts`, counts in the browser), the usual three filling in.
 
+**Bigger emoji, more of them (4 Nov 2026).** The picker (reactions and the composer) shows the 76 emoji in `web/src/utils/emojiSet.ts`, the usual twelve first, at 38 px in 58 px buttons, six to a row, scrolling inside a 340 px box (92 % of the width on a phone). Reaction chips under a message show the emoji at 20 px (was 13).
+
 **Finding a conversation, and marking a section read (15 Oct 2026).** A filter box under the brand narrows the sidebar to channels and people whose name matches as you type (every section opens, Recent is set aside); Enter opens the best match and clears the box; Escape clears it. Each section header (Favourites, Channels, Direct messages) shows a ✓✓ button while anything in it is unread: it marks every unread row in that section read. `web/src/utils/sidebarFilter.ts`.
 
 **The sidebar as arranged.** Rows can be dragged within Favourites and Channels; the order is kept in the browser (`web/src/utils/sidebarOrder.ts`). Direct messages are not arranged by hand: they are newest first (`byLatest`), so whoever just wrote is at the top (16 Oct 2026, on the owner's word; a conversation just opened leads until its first message). The Direct messages header has an All / Recent switch: Recent shows unread, open, favourite, or active in the last 14 days, with a "Show all · N more" row.
@@ -664,7 +666,7 @@ node server/dev/local.mjs        # http://localhost:5021 — the real server on 
 | What | Command | Count |
 |---|---|---|
 | Server | `cd server && npm test` | 534, 57 files |
-| Web | `cd web && npm test` | 277, 41 files |
+| Web | `cd web && npm test` | 279, 42 files |
 | Types | `cd web && npx tsc --noEmit` | clean |
 | End to end (API) | `node server/dev/e2e/api-smoke.mjs` | 13 |
 | Real browser: notifications | `node server/dev/e2e/browser-notify.cjs` | 10 |
