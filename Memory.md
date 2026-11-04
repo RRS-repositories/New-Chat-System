@@ -173,6 +173,13 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 4 Nov 2026 — emoji in message text drawn big
+After the picker change the owner sent a screenshot of a 👍 posted as a message: "its still very small". That is
+message text, drawn at 14 px like words. Now `emojiOnlyCount` (`utils/emojiText.ts`, grapheme-based) marks a message
+that is only emoji: one to three at 44 px, four to eight at 30 px (`msg-text.jumbo[.many]` in `Message.tsx`); nine or
+more stay ordinary. An emoji among words is wrapped by `RichText.tsx` in `span.emo` at 1.3× (18 px). Checked in Edge:
+a lone 👍, three 🎉, six 👍, a family/flag/skin-tone line, and words with 👏 🚀. Tests `emojiText.test.ts`. Web only.
+
 ### 4 Nov 2026 — bigger emoji, and more of them
 The owner: "make the EMOJI's double its size cant see, and add some more". The picker (`EmojiPicker.tsx`, used for
 reactions and the composer) now shows 76 emoji from `utils/emojiSet.ts` (the twelve usual ones first, then faces,

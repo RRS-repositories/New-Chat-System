@@ -1,10 +1,30 @@
 import { Fragment, type ReactNode } from 'react';
+import { splitEmoji } from '../../utils/emojiText.ts';
 import { parseRich, type Block, type Inline } from '../../utils/richText.ts';
+
+/** Words as they are; each run of emoji in a span, so it can be drawn larger than the words. */
+function words(text: string, key: number): ReactNode {
+  const runs = splitEmoji(text);
+  if (!runs.some((r) => r.emoji)) return text;
+  return (
+    <Fragment key={key}>
+      {runs.map((r, i) =>
+        r.emoji ? (
+          <span key={i} className="emo">
+            {r.text}
+          </span>
+        ) : (
+          r.text
+        ),
+      )}
+    </Fragment>
+  );
+}
 
 function piece(part: Inline, key: number): ReactNode {
   switch (part.kind) {
     case 'text':
-      return part.text;
+      return words(part.text, key);
     case 'mention':
       return (
         <span key={key} className="mention">

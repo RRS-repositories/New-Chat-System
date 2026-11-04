@@ -147,6 +147,25 @@
   color: var(--dim);
   font-size: 11px;
 }
+/* Emoji in messages (the owner, 4 Nov 2026: too small to see). Among words: a little larger than
+   the words. Alone (up to three): big. Alone, four to eight: a step smaller so a row still fits. */
+.msg-text .emo {
+  font-size: 1.3em;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+.msg-text.jumbo {
+  font-size: 44px;
+  line-height: 1.15;
+  padding: 2px 0;
+}
+.msg-text.jumbo.many {
+  font-size: 30px;
+}
+.msg-text.jumbo .emo {
+  font-size: 1em;
+  vertical-align: baseline;
+}
 .msg.sysm {
   padding: 7px 18px;
 }
