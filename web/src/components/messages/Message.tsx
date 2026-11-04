@@ -2,11 +2,18 @@ import { CallInviteCard } from './CallInviteCard.tsx';
 import { memo, useState, type ReactNode } from 'react';
 import { MessageSquare, Phone, Pin } from 'lucide-react';
 import type { Message as M } from '../../types/index.ts';
+import { emojiOnlyCount, JUMBO_FEW } from '../../utils/emojiText.ts';
 import { formatClock, formatFull, formatTime, shortName } from '../../utils/format.ts';
 import { UserAvatar } from '../common/UserAvatar.tsx';
 import { PersonButton } from '../common/ProfileCard.tsx';
 import { MessageActions } from './MessageActions.tsx';
 import { ReplyPreview } from './ReplyPreview.tsx';
+
+/** A message that is only emoji is drawn big: ` jumbo` for a few, ` jumbo many` for up to eight. */
+function jumboClass(content: string): string {
+  const n = emojiOnlyCount(content);
+  return n === 0 ? '' : n <= JUMBO_FEW ? ' jumbo' : ' jumbo many';
+}
 
 export type MessageProps = {
   m: M;
@@ -164,7 +171,7 @@ export const Message = memo(function Message({
             </div>
           </div>
         ) : m.content ? (
-          <div className="msg-text tx">
+          <div className={`msg-text tx${jumboClass(m.content)}`}>
             {renderContent ? renderContent(m.content) : m.content}
             {m.editedAt && <span className="ed"> (edited)</span>}
           </div>
