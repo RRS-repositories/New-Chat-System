@@ -481,7 +481,8 @@ svg {
   padding: 4px 10px 6px;
 }
 
-/* Emoji picker: a pill of round buttons */
+/* Emoji picker: a scrolling grid of big round buttons (twice the old size, the owner's word, 4 Nov 2026).
+   Six to a row on a desktop, as many as fit on a phone; the box scrolls once the rows run out. */
 .picker-anchor {
   position: relative;
   display: inline-flex;
@@ -490,9 +491,12 @@ svg {
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
-  padding: 6px;
+  padding: 8px;
   width: max-content;
-  max-width: min(258px, 80vw);
+  max-width: min(380px, 92vw);
+  max-height: min(340px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--glass-2);
   backdrop-filter: blur(12px);
   border: 1px solid var(--line);
@@ -501,10 +505,11 @@ svg {
   animation: srise 0.13s;
 }
 .epick button {
-  width: 37px;
-  height: 37px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  font-size: 19px;
+  font-size: 38px;
+  line-height: 1;
   display: grid;
   place-items: center;
   transition:
@@ -513,7 +518,7 @@ svg {
 }
 .epick button:hover {
   background: var(--violet-soft);
-  transform: scale(1.18);
+  transform: scale(1.12);
 }
 
 /* Toasts: top right, above everything including the call screen */

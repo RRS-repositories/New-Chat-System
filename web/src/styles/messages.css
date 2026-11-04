@@ -312,7 +312,9 @@
   color: var(--violet-ink);
 }
 .rx .e {
-  font-size: 13px;
+  /* 13px was too small to make out (the owner, 4 Nov 2026). */
+  font-size: 20px;
+  line-height: 1;
 }
 .rx.add {
   padding: 3px 8px;
