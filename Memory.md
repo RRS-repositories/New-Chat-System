@@ -173,6 +173,15 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 6 Nov 2026 — a pasted table no longer swallows the words around it
+The owner pasted a note (a sentence, a claims table, a warning under it) and only the table was sent. The paste
+handler took the clipboard's HTML, kept its first `<table>` and dropped everything else. Now `tablesInText`
+(`utils/tablePaste.ts`) works from the plain text: each block of two or more tab-separated lines becomes a Markdown
+table, every other line stays word for word, and a blank line is put either side of a table that sits right
+against a sentence so the parser still draws it as a table. A paste that is nothing but a table behaves as before.
+Checked in Edge with the owner's note dispatched as a real paste event (both flavours). Tests `tablePaste.test.ts`
+(+3). Web only.
+
 ### 4 Nov 2026 — emoji in message text drawn big
 After the picker change the owner sent a screenshot of a 👍 posted as a message: "its still very small". That is
 message text, drawn at 14 px like words. Now `emojiOnlyCount` (`utils/emojiText.ts`, grapheme-based) marks a message
