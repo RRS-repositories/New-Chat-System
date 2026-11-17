@@ -84,3 +84,23 @@ export function renderCard(card, fallbackText = '') {
   }
   return lines.join('\n');
 }
+
+// The buttons the CRM's compliance receiver understands (routes/compliance/chat.js in the CRM).
+const BUTTON_ACTIONS = new Set(['accept', 'reject', 'show_me', 'confirm']);
+const MAX_BUTTONS = 6;
+
+/**
+ * Buttons under a bot message: [{ label, action, ref }], ref being "F12" (a finding) or "T5"
+ * (a template change). Anything else and the whole list is refused (null), never half kept.
+ */
+export function cleanActions(list) {
+  if (!Array.isArray(list) || list.length === 0 || list.length > MAX_BUTTONS) return null;
+  const out = [];
+  for (const a of list) {
+    const label = String(a?.label ?? '').trim();
+    const ref = String(a?.ref ?? '');
+    if (!label || label.length > 30 || !BUTTON_ACTIONS.has(a?.action) || !/^[FT]\d{1,15}$/.test(ref)) return null;
+    out.push({ label, action: a.action, ref });
+  }
+  return out;
+}

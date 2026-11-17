@@ -77,6 +77,16 @@ export async function isMember(db, channelId, userId) {
   return rows.length > 0;
 }
 
+/** True when the channel is a direct message with this person in it (a reply to a bot, for one). */
+export async function isDmWith(db, channelId, userId) {
+  const { rows } = await db.query(
+    `SELECT 1 FROM chat.channels c JOIN chat.channel_members m ON m.channel_id = c.id
+      WHERE c.id = $1 AND c.type = 'dm' AND m.user_id = $2`,
+    [channelId, userId],
+  );
+  return rows.length > 0;
+}
+
 export const NAME_MAX = 80;
 export const PURPOSE_MAX = 250;
 

@@ -1,3 +1,4 @@
+import { BotActions } from './BotActions.tsx';
 import { CallInviteCard } from './CallInviteCard.tsx';
 import { memo, useState, type ReactNode } from 'react';
 import { MessageSquare, Phone, Pin } from 'lucide-react';
@@ -177,6 +178,7 @@ export const Message = memo(function Message({
           </div>
         ) : null}
         {renderExtra?.(m)}
+        {m.metadata?.kind === 'bot_actions' && !!m.metadata.actions?.length && <BotActions m={m} />}
         {!inThread && m.replyCount > 0 && (
           <button className="thlink thread-link" onClick={() => onThread(m)}>
             {!!m.replyUsers?.length && (

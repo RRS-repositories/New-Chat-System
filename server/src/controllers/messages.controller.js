@@ -12,9 +12,10 @@ import { pinMessage, unpinMessage, listPins } from '../models/pins.model.js';
 import { addReaction, removeReaction } from '../models/reactions.model.js';
 import { assertMember, canModerate } from '../services/channels.service.js';
 import { assertCanPost, sendMessage } from '../services/messages.service.js';
+import { forwardReply, pressButton } from '../services/eleanor.service.js';
 import { cleanMessageContent } from '../utils/sanitize.js';
 
-export function createMessageController({ db, emit, notifier = null }) {
+export function createMessageController({ db, emit, notifier = null, eleanor = null }) {
   /** The message, after checking it exists and the caller is in its channel. */
   const messageForMember = async (messageId, userId) => {
     const message = await getMessage(db, messageId);
@@ -68,7 +69,19 @@ export function createMessageController({ db, emit, notifier = null }) {
           threadId: req.body?.threadId || null,
         },
       );
+      // A reply to Eleanor also goes to the CRM. Never holds up or fails the send.
+      if (eleanor)
+        forwardReply(eleanor, { channelId: req.params.id, sender: req.user, content: req.cleanContent }).catch((err) =>
+          console.error('[eleanor] reply not passed to the CRM', err?.name || 'error'),
+        );
       res.status(201).json({ success: true, message });
+    }),
+
+    /** A button under one of Eleanor's messages (Phase 10). */
+    action: wrap(async (req, res) => {
+      if (!eleanor) throw httpError(400, 'no_such_button', 'That button does not exist');
+      await pressButton(eleanor, { messageId: req.params.id, index: Number(req.body?.index), user: req.user });
+      res.json({ success: true });
     }),
 
     edit: wrap(async (req, res) => {

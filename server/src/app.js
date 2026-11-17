@@ -18,6 +18,7 @@ import { createPushRoutes } from './routes/push.routes.js';
 import { createCallRoutes } from './routes/calls.routes.js';
 import { createBotRoutes } from './routes/bot.routes.js';
 import { requireBotKey } from './middleware/botKey.js';
+import { createCrmEvents } from './services/crmEvents.service.js';
 import { createPresence } from './services/presence/registry.js';
 import { createNotifier } from './services/notifications/notifier.js';
 
@@ -55,8 +56,13 @@ export function createApp({
   // program has no session, it carries a key. Closed unless CHAT_BOT_KEY is set.
   app.use(
     '/api/chat/bot',
-    requireBotKey({ key: config.botKey }),
-    createBotRoutes({ db, emit, notifier, botUserId: config.botUserId }),
+    requireBotKey({
+      bots: [
+        { key: config.botKey, userId: config.botUserId, actions: false },
+        { key: config.eleanorKey, userId: config.eleanorUserId, actions: true },
+      ],
+    }),
+    createBotRoutes({ db, emit, notifier }),
   );
   // Auth is scoped to the prefixes that exist, so an unknown /api/chat path
   // is a 404 rather than a 401 that hides whether the route exists.
@@ -119,7 +125,25 @@ export function createApp({
   );
   app.use(
     '/api/chat',
-    createMessageRoutes({ db, emit, notifier, limiter: perUserLimiter({ windowMs: 1000, max: 1 }) }),
+    createMessageRoutes({
+      db,
+      emit,
+      notifier,
+      limiter: perUserLimiter({ windowMs: 1000, max: 1 }),
+      // Eleanor's button presses and replies go back to the CRM (Phase 10); off until both are set.
+      eleanor:
+        config.eleanorUserId && config.complianceEventSecret
+          ? {
+              db,
+              eleanorUserId: config.eleanorUserId,
+              sendEvent: createCrmEvents({
+                crmUrl: config.crmInternalUrl,
+                secret: config.complianceEventSecret,
+                fetchImpl,
+              }),
+            }
+          : null,
+    }),
   );
   app.use('/api', (_req, res) => res.status(404).json({ success: false, code: 'not_found', message: 'No such route' }));
 

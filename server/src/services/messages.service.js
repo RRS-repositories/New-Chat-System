@@ -32,9 +32,9 @@ export function announceMessage(
 /** Stores a text message with its mentions and announces it. `content` is already cleaned. */
 export async function sendMessage(
   { db, emit, notifier },
-  { channelId, sender, content, replyToId = null, threadId = null },
+  { channelId, sender, content, replyToId = null, threadId = null, metadata = null },
 ) {
-  const message = await createMessage(db, { channelId, userId: sender.id, content, replyToId, threadId });
+  const message = await createMessage(db, { channelId, userId: sender.id, content, replyToId, threadId, metadata });
   const { userIds, all } = parseMentions(content, await listMembers(db, channelId));
   if (userIds.length || all)
     await insertMentions(db, { messageId: message.id, channelId, authorId: sender.id, userIds, all });
