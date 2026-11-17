@@ -173,6 +173,11 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 17 Nov 2026 — Debt Agent posts as itself
+The CRM's Debt Agent (debt group handoffs and the 8pm report) posted through Sarah's key, so staff read
+its messages as Sarah's. A third bot in requireBotKey: CHAT_DEBT_AGENT_KEY / CHAT_DEBT_AGENT_USER_ID (CRM user
+"Debt Agent"), no buttons. Off until both are set. Tests in bot-post.test.js (+4).
+
 ### 16 Nov 2026 — Phase 10: Eleanor COMP, the compliance bot (built, not deployed)
 The CRM's Compliance Manager needs its own bot with buttons. `requireBotKey` now takes a list of bots
 (Sarah: `CHAT_BOT_KEY` / `CHAT_BOT_USER_ID`; Eleanor: `CHAT_ELEANOR_KEY` / `CHAT_ELEANOR_USER_ID`) and the key
