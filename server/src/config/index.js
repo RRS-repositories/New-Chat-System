@@ -31,6 +31,9 @@ export function loadConfig(env = process.env) {
     // the button presses and replies sent back to the CRM (same value as the CRM's). Unset = off.
     eleanorKey: env.CHAT_ELEANOR_KEY || '',
     eleanorUserId: parseInt(env.CHAT_ELEANOR_USER_ID || '0', 10) || 0,
+    // The CRM's Debt Agent, posting as its own account in the debt group. Unset = off.
+    debtAgentKey: env.CHAT_DEBT_AGENT_KEY || '',
+    debtAgentUserId: parseInt(env.CHAT_DEBT_AGENT_USER_ID || '0', 10) || 0,
     complianceEventSecret: env.COMPLIANCE_CHAT_WEBHOOK_SECRET || '',
     // The pages allowed to show the chat in a frame (the CRM). Empty: only the chat itself.
     frameAncestors:

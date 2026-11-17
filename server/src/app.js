@@ -60,6 +60,9 @@ export function createApp({
       bots: [
         { key: config.botKey, userId: config.botUserId, actions: false },
         { key: config.eleanorKey, userId: config.eleanorUserId, actions: true },
+        // The CRM's Debt Agent (handoffs + daily report in the debt group), so its posts are
+        // not mistaken for Sarah's. Off until both settings are set.
+        { key: config.debtAgentKey, userId: config.debtAgentUserId, actions: false },
       ],
     }),
     createBotRoutes({ db, emit, notifier }),

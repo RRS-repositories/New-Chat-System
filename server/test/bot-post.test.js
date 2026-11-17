@@ -214,3 +214,55 @@ test('a card with only fields still carries them', () => {
   const out = renderCard({ fields: [{ label: 'Queue', value: '12 waiting' }] }, '');
   assert.match(out, /\*\*Queue:\*\* 12 waiting/);
 });
+
+// --- the Debt Agent's own key (17 Nov 2026) ------------------------------
+
+const DEBT_KEY = 'test-debt-agent-key-0123456789';
+const DEBT_ID = 577;
+
+function recordingDb() {
+  const db = makeDb();
+  const asked = [];
+  const inner = db.query.bind(db);
+  db.query = async (sql, params = []) => {
+    if (/FROM users WHERE id =/.test(sql)) {
+      asked.push(params[0]);
+      return { rows: [{ id: params[0], full_name: params[0] === DEBT_ID ? 'Debt Agent' : 'Sarah' }], rowCount: 1 };
+    }
+    return inner(sql, params);
+  };
+  db.asked = asked;
+  return db;
+}
+
+const debtEnv = { CHAT_DEBT_AGENT_KEY: DEBT_KEY, CHAT_DEBT_AGENT_USER_ID: String(DEBT_ID) };
+
+test('the Debt Agent key posts as the Debt Agent account, not Sarah', async () => {
+  const db = recordingDb();
+  const res = await request(makeApp(db, debtEnv))
+    .post('/api/chat/bot/post').set('x-chat-bot-key', DEBT_KEY).send({ channel: 'ADMIN', text: 'handoff' });
+  assert.equal(res.status, 200);
+  assert.deepEqual(db.asked, [DEBT_ID]);
+  assert.equal(db.sent.at(-1).userId, DEBT_ID);
+});
+
+test('Sarah\'s key still posts as Sarah when the Debt Agent is set up', async () => {
+  const db = recordingDb();
+  const res = await post(db, { channel: 'ADMIN', text: 'hi' }, debtEnv);
+  assert.equal(res.status, 200);
+  assert.deepEqual(db.asked, [BOT_ID]);
+});
+
+test('the Debt Agent cannot add buttons', async () => {
+  const res = await request(makeApp(recordingDb(), debtEnv))
+    .post('/api/chat/bot/post').set('x-chat-bot-key', DEBT_KEY)
+    .send({ channel: 'ADMIN', text: 'x', actions: [{ label: 'Accept', action: 'accept', ref: 'F1' }] });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.code, 'actions_not_allowed');
+});
+
+test('with the Debt Agent key unset, that key is refused', async () => {
+  const res = await request(makeApp(makeDb()))
+    .post('/api/chat/bot/post').set('x-chat-bot-key', DEBT_KEY).send({ channel: 'ADMIN', text: 'x' });
+  assert.equal(res.status, 401);
+});
