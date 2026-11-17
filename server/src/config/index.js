@@ -27,6 +27,11 @@ export function loadConfig(env = process.env) {
     // Automatic messages from the CRM (Phase 8). Both unset = the bot route is closed.
     botKey: env.CHAT_BOT_KEY || '',
     botUserId: parseInt(env.CHAT_BOT_USER_ID || '0', 10) || 0,
+    // Eleanor COMP, the compliance bot (Phase 10): her own key and account, and the secret that signs
+    // the button presses and replies sent back to the CRM (same value as the CRM's). Unset = off.
+    eleanorKey: env.CHAT_ELEANOR_KEY || '',
+    eleanorUserId: parseInt(env.CHAT_ELEANOR_USER_ID || '0', 10) || 0,
+    complianceEventSecret: env.COMPLIANCE_CHAT_WEBHOOK_SECRET || '',
     // The pages allowed to show the chat in a frame (the CRM). Empty: only the chat itself.
     frameAncestors:
       env.CHAT_FRAME_ANCESTORS === undefined

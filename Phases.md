@@ -189,6 +189,24 @@ adds), then run the deploy script. Then try it on real phones.
 - Recording: a screen share that starts after recording began is heard but not seen in the file; the file is limited to 50 MB (the upload limit).
 - Merge (bringing a caller into your call) works for one-to-one rings. For a ring from a channel call, Accept changes calls.
 
+## Phase 10 — Eleanor COMP, the compliance bot ▶ (built on the developer's PC 16 November 2026; not deployed)
+
+**Goal:** the CRM's Compliance Manager posts as its own bot, Eleanor COMP, with buttons under her messages,
+and what people press or type to her goes back to the CRM. Sarah and her key are unchanged.
+
+| Part | What | State |
+|---|---|---|
+| 1 | Eleanor as a second bot with her own key: the key decides which account posts | ✅ built |
+| 2 | Buttons stored with her messages (`metadata.kind = 'bot_actions'`) and drawn under them; only her key may add them | ✅ built |
+| 3 | A button press goes to the CRM, signed (`POST /api/chat/messages/:id/action`) | ✅ built |
+| 4 | A message typed into a direct conversation with Eleanor goes to the CRM, signed | ✅ built |
+
+**Off until set on the server:** `CHAT_ELEANOR_KEY` and `CHAT_ELEANOR_USER_ID` (her account, made by a CRM
+database file), and `COMPLIANCE_CHAT_WEBHOOK_SECRET` (the same value as the CRM's) for parts 3 and 4.
+The CRM decides what a press or reply means; only an owner's changes anything.
+
+---
+
 ## Later — only on the owner's word 🔒
 
 | Item | Note |

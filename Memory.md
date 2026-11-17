@@ -173,6 +173,17 @@ These were left whole on purpose. Splitting them would mean passing a lot of sha
 
 ## Log
 
+### 16 Nov 2026 — Phase 10: Eleanor COMP, the compliance bot (built, not deployed)
+The CRM's Compliance Manager needs its own bot with buttons. `requireBotKey` now takes a list of bots
+(Sarah: `CHAT_BOT_KEY` / `CHAT_BOT_USER_ID`; Eleanor: `CHAT_ELEANOR_KEY` / `CHAT_ELEANOR_USER_ID`) and the key
+used decides who posts. Only Eleanor may send `actions` ([{ label, action, ref }], action accept / reject /
+show_me / confirm, ref `F12` or `T5`, at most six; `cleanActions` in `bot.service.js`); they are stored as
+`metadata.kind = 'bot_actions'` and drawn by `BotActions.tsx`. A press (`POST /api/chat/messages/:id/action`)
+and a message typed into a DM with Eleanor (500 characters at most) go to the CRM's
+`/api/compliance/chat/event`, signed with `COMPLIANCE_CHAT_WEBHOOK_SECRET` (`crmEvents.service.js`,
+`eleanor.service.js`). A reply never holds up the send. Everything is off until those settings are set.
+Tests `eleanor-bot.test.js` (+15).
+
 ### 6 Nov 2026 — a pasted table no longer swallows the words around it
 The owner pasted a note (a sentence, a claims table, a warning under it) and only the table was sent. The paste
 handler took the clipboard's HTML, kept its first `<table>` and dropped everything else. Now `tablesInText`

@@ -30,8 +30,14 @@ export type Message = {
   reactions: Reaction[];
   files: ChatFile[];
   mentionsMe?: boolean;
-  /** Extra facts about the message: an invitation into a call, for one. */
-  metadata?: { kind?: string; call_id?: string; channel_id?: string; duration_secs?: number };
+  /** Extra facts about the message: an invitation into a call, for one, or Eleanor's buttons. */
+  metadata?: {
+    kind?: string;
+    call_id?: string;
+    channel_id?: string;
+    duration_secs?: number;
+    actions?: Array<{ label: string; action: string; ref: string }>;
+  };
 };
 export type Channel = {
   id: string;

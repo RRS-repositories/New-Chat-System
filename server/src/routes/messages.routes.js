@@ -12,6 +12,7 @@ export function createMessageRoutes({ limiter, ...deps }) {
   r.patch('/messages/:id', messages.edit);
   r.delete('/messages/:id', messages.remove);
   r.post('/messages/:id/pin', messages.pin);
+  r.post('/messages/:id/action', messages.action);
   r.delete('/messages/:id/pin', messages.unpin);
   r.post('/messages/:id/reactions', messages.addReaction);
   r.delete('/messages/:id/reactions/:emoji', messages.removeReaction);

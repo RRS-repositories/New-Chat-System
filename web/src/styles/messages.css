@@ -1016,3 +1016,12 @@ body[data-density='compact'] .msg.first {
     animation: none;
   }
 }
+
+/* Eleanor's buttons under her message */
+.bot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
